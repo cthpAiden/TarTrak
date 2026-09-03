@@ -83,6 +83,25 @@ fn run(logs_root: PathBuf, stop: Arc<AtomicBool>, on_line: impl Fn(String)) {
     }
 }
 
+/// Called whenever `follow` is idling at EOF-ish (nothing new to read yet, or a partial
+/// line is still being written). Returns true if `follow` should stop polling and return:
+/// either shutdown was requested, or a newer log dir has appeared. Shared by both the
+/// EOF branch and the partial-line branch so they can't drift out of sync.
+fn poll_boundary(stop: &AtomicBool, dir: &Path, logs_root: &Path, polls: &mut u32) -> bool {
+    if stop.load(Ordering::SeqCst) {
+        return true;
+    }
+    *polls += 1;
+    if *polls % DIR_CHECK_EVERY == 0 {
+        if let Some(newest) = newest_log_dir(logs_root) {
+            if newest != dir {
+                return true; // caller re-resolves and follows the new file
+            }
+        }
+    }
+    false
+}
+
 /// Read `file` from the start and keep polling for new lines until stopped or a newer dir appears.
 fn follow(file: &Path, dir: &Path, logs_root: &Path, stop: &AtomicBool, on_line: &impl Fn(String)) {
     let Ok(f) = File::open(file) else {
@@ -96,16 +115,8 @@ fn follow(file: &Path, dir: &Path, logs_root: &Path, stop: &AtomicBool, on_line:
         buf.clear();
         match reader.read_until(b'\n', &mut buf) {
             Ok(0) => {
-                if stop.load(Ordering::SeqCst) {
+                if poll_boundary(stop, dir, logs_root, &mut polls) {
                     return;
-                }
-                polls += 1;
-                if polls % DIR_CHECK_EVERY == 0 {
-                    if let Some(newest) = newest_log_dir(logs_root) {
-                        if newest != dir {
-                            return; // caller re-resolves and follows the new file
-                        }
-                    }
                 }
                 // Truncation guard: if the file shrank, restart from its beginning.
                 if let Ok(meta) = fs::metadata(file) {
@@ -121,6 +132,9 @@ fn follow(file: &Path, dir: &Path, logs_root: &Path, stop: &AtomicBool, on_line:
                 if buf.last() != Some(&b'\n') {
                     // Partial line still being written: rewind and wait.
                     let _ = reader.seek(SeekFrom::Current(-(buf.len() as i64)));
+                    if poll_boundary(stop, dir, logs_root, &mut polls) {
+                        return;
+                    }
                     std::thread::sleep(POLL);
                     continue;
                 }
@@ -128,10 +142,10 @@ fn follow(file: &Path, dir: &Path, logs_root: &Path, stop: &AtomicBool, on_line:
                 on_line(line.trim_end_matches(['\r', '\n']).to_string());
             }
             Err(_) => {
+                // Dead/unreadable handle: give up on this file and let `run` re-resolve
+                // the newest dir and file rather than looping on it forever.
                 std::thread::sleep(POLL);
-                if stop.load(Ordering::SeqCst) {
-                    return;
-                }
+                return;
             }
         }
     }
@@ -150,24 +164,25 @@ pub fn start_log_tail_cmd(
     if !root.is_dir() {
         return Err(format!("not a directory: {logs_root}"));
     }
+    // Stop any existing tail (dropping the lock before the join) so it can't keep
+    // emitting `logline` concurrently with the new tail we're about to start.
+    let old = state.0.lock().map_err(|e| e.to_string())?.take();
+    if let Some(old) = old {
+        old.stop();
+    }
     let handle = app.clone();
     let tail = start_log_tail(root, move |line| {
         let _ = handle.emit("logline", line);
     });
-    let mut guard = state.0.lock().map_err(|e| e.to_string())?;
-    if let Some(old) = guard.take() {
-        old.stop();
-    }
-    *guard = Some(tail);
+    *state.0.lock().map_err(|e| e.to_string())? = Some(tail);
     Ok(())
 }
 
 #[tauri::command]
 pub fn stop_log_tail_cmd(state: State<'_, TailState>) {
-    if let Ok(mut guard) = state.0.lock() {
-        if let Some(old) = guard.take() {
-            old.stop();
-        }
+    let old = state.0.lock().ok().and_then(|mut guard| guard.take());
+    if let Some(old) = old {
+        old.stop();
     }
 }
 
@@ -232,5 +247,25 @@ mod tests {
         assert_eq!(rx.recv_timeout(Duration::from_secs(10)).unwrap(), "fresh");
 
         tail.stop();
+    }
+
+    #[test]
+    fn stop_returns_promptly_when_log_ends_mid_line() {
+        let root = tempfile::tempdir().unwrap();
+        mk_log(root.path(), "log_1", "1 application_000.log", "first\r\npartial");
+        let (tx, rx) = mpsc::channel::<String>();
+        let tail = start_log_tail(root.path().to_path_buf(), move |l| {
+            let _ = tx.send(l);
+        });
+
+        assert_eq!(rx.recv_timeout(Duration::from_secs(5)).unwrap(), "first");
+
+        let start = std::time::Instant::now();
+        tail.stop();
+        let elapsed = start.elapsed();
+        assert!(
+            elapsed < Duration::from_secs(3),
+            "stop() should return promptly even with a dangling partial line, took {elapsed:?}"
+        );
     }
 }
