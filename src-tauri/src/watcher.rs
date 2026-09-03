@@ -77,6 +77,7 @@ pub fn start_screenshot_watcher(
     if !path.is_dir() {
         return Err(format!("not a directory: {dir}"));
     }
+    state.0.lock().map_err(|e| e.to_string())?.take();
     let handle = app.clone();
     let watcher = watch_screenshots(&path, delete, move |name| {
         let _ = handle.emit("screenshot", name);
