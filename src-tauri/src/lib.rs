@@ -1,3 +1,4 @@
+mod detect;
 mod logtail;
 mod watcher;
 
@@ -15,6 +16,7 @@ pub fn run() {
             watcher::stop_screenshot_watcher,
             logtail::start_log_tail_cmd,
             logtail::stop_log_tail_cmd,
+            detect::detect_dirs,
         ])
         .run(tauri::generate_context!())
         .expect("error while running TarTrak");
