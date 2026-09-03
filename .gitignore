@@ -1,0 +1,10 @@
+node_modules/
+dist/
+target/
+.svelte-kit/
+*.log
+.env
+.env.*
+*.key
+.wrangler/
+data/cache/
