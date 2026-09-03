@@ -12,8 +12,9 @@ export default defineConfig({
     host: host || false,
     watch: { ignored: ["**/src-tauri/**", "**/relay/**"] },
   },
+  resolve: process.env.VITEST ? { conditions: ["browser"] } : undefined,
   test: {
     include: ["src/**/*.test.ts"],
-    environment: "node",
+    environment: "jsdom",
   },
 });
