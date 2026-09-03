@@ -12,6 +12,6 @@
     "strict": true,
     "types": ["vite/client"]
   },
-  "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte", "scripts/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte", "scripts/**/*.ts", "data/**/*.json"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
