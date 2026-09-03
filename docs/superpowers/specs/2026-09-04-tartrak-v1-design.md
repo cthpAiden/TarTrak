@@ -91,7 +91,9 @@ Which map direction yaw 0 points to on screen is settled in the map layer with `
 
 ### 5.4 Map view (Svelte + Leaflet)
 
-- Leaflet with `CRS.Simple`. Map SVG layers rendered with `L.imageOverlay` (SVG as `<img>`) from
+- Leaflet with a rotated `CRS.Simple` (same math as tarkov.dev, MIT). SVG fetched as text, wrapped in
+  an inline `<svg>` and shown with `L.svgOverlay`; top-level `<g id>` groups are floors, toggled by
+  CSS class. Maps without an SVG in maps.json (Labs, Labyrinth) show a blank grid in v1. SVGs from
   [tarkov-dev-svg-maps](https://github.com/the-hideout/tarkov-dev-svg-maps) (CC BY-NC-SA 4.0,
   attribution shown in About). Fetched at first use and cached in app data dir.
 - Per-map transform from tarkov.dev `maps.json` (MIT): `transform [scaleX, offsetX, scaleY, offsetY]`,
