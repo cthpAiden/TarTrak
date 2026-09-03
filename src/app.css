@@ -1,0 +1,16 @@
+:root {
+  color-scheme: dark;
+  --bg: #14171c;
+  --panel: #1e232b;
+  --fg: #e6e6e6;
+  --muted: #8a94a3;
+  --accent: #f0b429;
+}
+html, body, #app { height: 100%; margin: 0; }
+body {
+  font-family: system-ui, Segoe UI, sans-serif;
+  color: var(--fg);
+  background: var(--bg);
+  overflow: hidden;
+}
+body.overlay { background: rgba(20, 23, 28, 0.55); }
