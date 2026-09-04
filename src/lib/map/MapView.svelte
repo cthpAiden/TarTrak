@@ -8,6 +8,7 @@
   import { buildSvgElement, showFloor, type LoadedSvg } from "./svgLoader";
   import { PositionMarker } from "./markers";
   import { fetchTextCached } from "../tauri/http";
+  import { opacityFor } from "../room/fade";
   import { app, type Teammate } from "../state/app.svelte";
 
   let {
@@ -28,6 +29,8 @@
   /** Bumped by every destroy(); a build whose generation is stale drops its result. */
   let gen = 0;
   let message = $state("");
+  /** Ticks once a second so the marker effects re-run and re-apply the age fade. */
+  let now = $state(Date.now());
 
   const activeFloor = $derived(
     pinnedFloor === null ? (def && app.ownPos ? floorForHeight(def, app.ownPos) : null) : pinnedFloor || null,
@@ -76,7 +79,11 @@
   }
 
   onMount(() => {
-    return () => destroy();
+    const tick = setInterval(() => (now = Date.now()), 1000);
+    return () => {
+      clearInterval(tick);
+      destroy();
+    };
   });
 
   // untrack: build()/destroy() read and write map and svg, which would otherwise make this
@@ -98,14 +105,18 @@
 
   $effect(() => {
     const p = app.ownPos;
+    const updatedAt = app.ownUpdatedAt;
+    const t = now;
     const m = map;
     if (!m || !p) return;
     if (!own) own = new PositionMarker(m, { color: OWN_COLOR, radius: 6, lineLengthPx: LINE_PX });
     own.update(p.x, p.z, p.yaw);
+    own.setOpacity(opacityFor(t - updatedAt));
   });
 
   $effect(() => {
     const all = app.teammates;
+    const tick = now;
     const d = def;
     const m = map;
     if (!m || !d) return;
@@ -125,6 +136,7 @@
       }
       marker.setColor(t.color);
       marker.update(t.x, t.z, t.yaw);
+      marker.setOpacity(opacityFor(tick - t.receivedAt));
     }
   });
 
