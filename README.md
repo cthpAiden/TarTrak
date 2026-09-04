@@ -48,9 +48,9 @@ Pushing a `v*` tag runs `.github/workflows/release.yml`, which builds the instal
 **draft** GitHub Release. Publish that draft by hand - the updater only sees a published release.
 
 The updater private key lives only in the `TAURI_SIGNING_PRIVATE_KEY` repository secret (with
-`TAURI_SIGNING_PRIVATE_KEY_PASSWORD` for its passphrase). Before the first release, replace the owner
-placeholder `cthpAiden` in `src-tauri/tauri.conf.json` `plugins.updater.endpoints` with the real
-GitHub owner.
+`TAURI_SIGNING_PRIVATE_KEY_PASSWORD` for its passphrase). The updater endpoint in
+`src-tauri/tauri.conf.json` `plugins.updater.endpoints` points at the `cthpAiden/TarTrak` releases; forks
+must change the owner there.
 
 Quest data is fetched live from tarkov.dev and cached locally. `npm run snapshot` writes an offline
 fallback into `data/snapshot/`, used when tarkov.dev is unreachable and no cache exists; refresh it before
