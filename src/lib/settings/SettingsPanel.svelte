@@ -13,7 +13,8 @@
   /** An unparseable hotkey would be stored and the key would then silently stop working. */
   function commitHotkey(which: "hotkeyOverlay" | "hotkeyOpacity", raw: string) {
     const text = raw.trim();
-    if (normalizeHotkey(text) === null) {
+    // Empty is the way to unbind a key, so only a non-empty string can be invalid.
+    if (text !== "" && normalizeHotkey(text) === null) {
       onInvalid?.(`Invalid hotkey: ${text}`);
       return;
     }

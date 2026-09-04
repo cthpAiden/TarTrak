@@ -57,6 +57,13 @@ describe("registerHotkeys", () => {
     expect([...live]).toEqual([]);
   });
 
+  it("treats an empty binding as unbound and registers only the other", async () => {
+    const unhook = await registerHotkeys("", "F6", handlers);
+    expect([...live]).toEqual(["F6"]);
+    await unhook();
+    expect([...live]).toEqual([]);
+  });
+
   it("unhooks every registered key, and does nothing on a second call", async () => {
     const unhook = await registerHotkeys("F5", "F6", handlers);
     expect([...live]).toEqual(["F5", "F6"]);

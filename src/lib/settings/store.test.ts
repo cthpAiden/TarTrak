@@ -40,6 +40,12 @@ describe("mergeSettings", () => {
     expect(s.color).toHaveLength(32);
   });
 
+  it("keeps an empty hotkey, which stands for unbound", () => {
+    const s = mergeSettings({ hotkeyOverlay: "", hotkeyOpacity: "" });
+    expect(s.hotkeyOverlay).toBe("");
+    expect(s.hotkeyOpacity).toBe("");
+  });
+
   it("clamps the heading line length to [8, 120]", () => {
     expect(mergeSettings({ lineLengthPx: 0 }).lineLengthPx).toBe(8);
     expect(mergeSettings({ lineLengthPx: 5000 }).lineLengthPx).toBe(120);
