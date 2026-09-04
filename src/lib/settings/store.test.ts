@@ -1,5 +1,9 @@
-import { describe, it, expect } from "vitest";
-import { mergeSettings, DEFAULT_SETTINGS } from "./store";
+import { describe, it, expect, vi } from "vitest";
+import { mergeSettings, loadSettings, DEFAULT_SETTINGS } from "./store";
+
+vi.mock("@tauri-apps/plugin-store", () => ({
+  load: () => Promise.reject(new Error("corrupt settings.json")),
+}));
 
 describe("mergeSettings", () => {
   it("returns defaults for garbage", () => {
@@ -22,5 +26,11 @@ describe("mergeSettings", () => {
     expect(s.screenshotsDir).toBeNull();
     expect(s.logsDir).toBe("D:\\x\\Logs");
     expect(s.lastMap).toBeNull();
+  });
+});
+
+describe("loadSettings", () => {
+  it("falls back to defaults when the store cannot be opened", async () => {
+    await expect(loadSettings()).resolves.toEqual(DEFAULT_SETTINGS);
   });
 });

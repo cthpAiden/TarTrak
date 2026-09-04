@@ -70,9 +70,14 @@ export function mergeSettings(partial: unknown): Settings {
 const FILE = "settings.json";
 const KEY = "settings";
 
+/** Never rejects: an unreadable or corrupt store falls back to the defaults. */
 export async function loadSettings(): Promise<Settings> {
-  const store = await load(FILE, { defaults: {}, autoSave: false });
-  return mergeSettings(await store.get(KEY));
+  try {
+    const store = await load(FILE, { defaults: {}, autoSave: false });
+    return mergeSettings(await store.get(KEY));
+  } catch {
+    return mergeSettings(undefined);
+  }
 }
 
 export async function saveSettings(s: Settings): Promise<void> {

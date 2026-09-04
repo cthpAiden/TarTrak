@@ -14,8 +14,9 @@
 
   const codeOk = $derived(isValidRoomCode(code.toUpperCase()));
 
-  function persist() {
-    onSettingsChange({ name, color, lastRoom: code.toUpperCase() });
+  /** The code is persisted only on join, so a half-typed one is never stored. */
+  function persistIdentity() {
+    onSettingsChange({ name, color });
   }
   function create() {
     code = generateRoomCode();
@@ -23,15 +24,15 @@
   }
   function join() {
     if (!codeOk) return;
-    persist();
+    onSettingsChange({ name, color, lastRoom: code.toUpperCase() });
     room.join(code, name, color, settings.relayUrl);
   }
 </script>
 
 <section class="panel">
   <h2>Room</h2>
-  <label>Name <input maxlength="32" bind:value={name} onblur={persist} /></label>
-  <label>Color <input type="color" bind:value={color} onchange={persist} /></label>
+  <label>Name <input maxlength="32" bind:value={name} onblur={persistIdentity} /></label>
+  <label>Color <input type="color" bind:value={color} onchange={persistIdentity} /></label>
   <label>
     Code <input maxlength="6" bind:value={code} oninput={() => (code = code.toUpperCase())} placeholder="ABC123" />
   </label>

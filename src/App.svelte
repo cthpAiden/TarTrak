@@ -3,9 +3,9 @@
   import { open } from "@tauri-apps/plugin-dialog";
   import { app } from "./lib/state/app.svelte";
   import { startEventBridge } from "./lib/tauri/events";
-  import { detectDirs, startScreenshotWatcher, startLogTail } from "./lib/tauri/commands";
+  import { detectDirs, startScreenshotWatcher, startLogTail, type DetectedDirs } from "./lib/tauri/commands";
   import { getMapDef } from "./lib/map/mapsData";
-  import { loadSettings, saveSettings, type Settings } from "./lib/settings/store";
+  import { DEFAULT_SETTINGS, loadSettings, saveSettings, type Settings } from "./lib/settings/store";
   import { room } from "./lib/room/controller.svelte";
   import RoomPanel from "./lib/room/RoomPanel.svelte";
   import MapView from "./lib/map/MapView.svelte";
@@ -24,45 +24,70 @@
   function patchSettings(patch: Partial<Settings>) {
     if (!settings) return;
     settings = { ...settings, ...patch };
-    void saveSettings(settings);
+    saveSettings(settings).catch((e) => app.toast(`Could not save settings: ${e}`));
   }
 
-  async function useScreenshotsDir(dir: string) {
-    screenshotsDir = dir;
-    await startScreenshotWatcher(dir, settings?.deleteScreenshots ?? true);
+  // The dir state is set only once the backend accepts the folder, so a stale or moved folder
+  // leaves the banner up instead of silently pretending the watcher runs.
+  async function useScreenshotsDir(dir: string): Promise<boolean> {
+    try {
+      await startScreenshotWatcher(dir, settings?.deleteScreenshots ?? DEFAULT_SETTINGS.deleteScreenshots);
+      screenshotsDir = dir;
+      return true;
+    } catch (e) {
+      app.toast(`Screenshot folder ${dir}: ${e}`);
+      return false;
+    }
   }
-  async function useLogsDir(dir: string) {
-    logsDir = dir;
-    await startLogTail(dir);
+  async function useLogsDir(dir: string): Promise<boolean> {
+    try {
+      await startLogTail(dir);
+      logsDir = dir;
+      return true;
+    } catch (e) {
+      app.toast(`Log folder ${dir}: ${e}`);
+      return false;
+    }
   }
+
+  /** Try the stored folder, then the detected one; remember whichever works. */
+  async function useDir(kind: "screenshots" | "logs", stored: string | null, detected: string | null) {
+    const start = kind === "screenshots" ? useScreenshotsDir : useLogsDir;
+    if (stored && (await start(stored))) return;
+    if (detected && detected !== stored && (await start(detected))) {
+      patchSettings(kind === "screenshots" ? { screenshotsDir: detected } : { logsDir: detected });
+    }
+  }
+
   async function pickDir(kind: "screenshots" | "logs") {
     const picked = await open({ directory: true, multiple: false });
     if (typeof picked !== "string") return;
     if (kind === "screenshots") {
-      await useScreenshotsDir(picked);
-      patchSettings({ screenshotsDir: picked });
+      if (await useScreenshotsDir(picked)) patchSettings({ screenshotsDir: picked });
     } else {
-      await useLogsDir(picked);
-      patchSettings({ logsDir: picked });
+      if (await useLogsDir(picked)) patchSettings({ logsDir: picked });
     }
   }
 
   onMount(() => {
     let stop: (() => void) | undefined;
+    // Each phase is isolated: a failure in one must not stop the others from starting.
     (async () => {
       stop = await startEventBridge();
+
       const s = await loadSettings();
       settings = s;
       if (s.lastMap && !app.currentMap) app.setMap(s.lastMap, "manual");
-      const dirs = await detectDirs();
-      const screenshots = s.screenshotsDir ?? dirs.screenshots;
-      const logs = s.logsDir ?? dirs.logs;
-      if (screenshots) await useScreenshotsDir(screenshots);
-      if (logs) await useLogsDir(logs);
-      const patch: Partial<Settings> = {};
-      if (!s.screenshotsDir && dirs.screenshots) patch.screenshotsDir = dirs.screenshots;
-      if (!s.logsDir && dirs.logs) patch.logsDir = dirs.logs;
-      if (Object.keys(patch).length > 0) patchSettings(patch);
+
+      let dirs: DetectedDirs = { screenshots: null, logs: null };
+      try {
+        dirs = await detectDirs();
+      } catch (e) {
+        app.toast(`Folder detection failed: ${e}`);
+      }
+
+      await useDir("screenshots", s.screenshotsDir, dirs.screenshots);
+      await useDir("logs", s.logsDir, dirs.logs);
     })().catch((e) => app.toast(`Startup error: ${e}`));
     return () => stop?.();
   });

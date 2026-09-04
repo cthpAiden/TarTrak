@@ -1,5 +1,5 @@
 import type { Position } from "../parse/screenshot";
-import { parseServerMessage, type PosMsg, type ServerMsg } from "./protocol";
+import { parseServerMessage, type HelloMsg, type PosMsg, type ServerMsg } from "./protocol";
 
 export type RoomStatus = "connecting" | "open" | "closed";
 
@@ -45,9 +45,13 @@ export class RoomClient {
   private pending: PosMsg | null = null;
   private lastSentAt = -Infinity;
   private stopped = false;
-  status: RoomStatus = "closed";
+  private currentStatus: RoomStatus = "closed";
 
   constructor(private readonly opts: RoomClientOptions) {}
+
+  get status(): RoomStatus {
+    return this.currentStatus;
+  }
 
   connect(): void {
     this.stopped = false;
@@ -105,8 +109,8 @@ export class RoomClient {
   }
 
   private setStatus(s: RoomStatus): void {
-    if (this.status === s) return;
-    this.status = s;
+    if (this.currentStatus === s) return;
+    this.currentStatus = s;
     this.opts.onStatus(s);
   }
 
@@ -120,7 +124,8 @@ export class RoomClient {
       if (this.ws !== ws) return;
       this.backoff = BACKOFF_MIN_MS;
       this.setStatus("open");
-      ws.send(JSON.stringify({ type: "hello", name: this.opts.name, color: this.opts.color }));
+      const hello: HelloMsg = { type: "hello", name: this.opts.name, color: this.opts.color };
+      ws.send(JSON.stringify(hello));
       this.flush();
     };
     ws.onmessage = (ev) => {
