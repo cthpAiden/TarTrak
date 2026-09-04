@@ -1,37 +1,38 @@
 <script lang="ts">
   import { app } from "../state/app.svelte";
   import { toggleDone, saveDone } from "./done";
+  import { groupByTrader } from "./grouping";
   import type { QuestMarker } from "./markers";
 
   let {
     markers,
     playerLevel,
     onPlayerLevel,
-  }: { markers: QuestMarker[]; playerLevel: number; onPlayerLevel: (n: number) => void } = $props();
+    hiddenQuests,
+    onHiddenChange,
+  }: {
+    markers: QuestMarker[];
+    playerLevel: number;
+    onPlayerLevel: (n: number) => void;
+    hiddenQuests: Record<string, true>;
+    onHiddenChange: (h: Record<string, true>) => void;
+  } = $props();
 
   let search = $state("");
   let hideDone = $state(true);
+  let collapsed = $state<Record<string, boolean>>({});
 
-  const tasks = $derived.by(() => {
+  const groups = $derived.by(() => {
     const data = app.questData;
     if (!data) return [];
-    const q = search.trim().toLowerCase();
-    const onMap = new Map<string, number>();
+    const countsOnMap = new Map<string, number>();
     // Done tasks have no markers on the map, so they must not be counted here either.
     for (const m of markers) {
-      if (m.mapKey === app.currentMap && !app.doneQuests[m.taskId]) onMap.set(m.taskId, (onMap.get(m.taskId) ?? 0) + 1);
+      if (m.mapKey === app.currentMap && !app.doneQuests[m.taskId]) {
+        countsOnMap.set(m.taskId, (countsOnMap.get(m.taskId) ?? 0) + 1);
+      }
     }
-    return data.tasks
-      .filter((t) => !hideDone || !app.doneQuests[t.id])
-      .filter((t) => playerLevel <= 0 || t.minPlayerLevel <= playerLevel)
-      .filter((t) => !q || t.name.toLowerCase().includes(q) || t.trader.name.toLowerCase().includes(q))
-      .map((t) => ({ t, count: onMap.get(t.id) ?? 0 }))
-      .sort(
-        (a, b) =>
-          b.count - a.count ||
-          a.t.trader.name.localeCompare(b.t.trader.name) ||
-          a.t.minPlayerLevel - b.t.minPlayerLevel,
-      );
+    return groupByTrader(data.tasks, { search, hideDone, playerLevel, done: app.doneQuests, countsOnMap });
   });
 
   function toggle(id: string) {
@@ -42,6 +43,13 @@
       return;
     }
     saveDone(app.doneQuests).catch((e) => app.toast(`Could not save quest progress: ${e}`));
+  }
+
+  function flipHidden(id: string) {
+    const next = { ...hiddenQuests };
+    if (next[id]) delete next[id];
+    else next[id] = true;
+    onHiddenChange(next);
   }
 
   const dataDate = $derived(app.questData ? new Date(app.questData.fetchedAt).toLocaleDateString() : "");
@@ -70,20 +78,37 @@
   {#if !app.questData}
     <p class="muted">No quest data yet.</p>
   {:else}
-    <ul>
-      {#each tasks as { t, count } (t.id)}
-        <li class:done={app.doneQuests[t.id]}>
-          <input
-            type="checkbox"
-            aria-label="Mark {t.name} done"
-            checked={!!app.doneQuests[t.id]}
-            onchange={() => toggle(t.id)}
-          />
-          <span class="name">{t.name}</span>
-          <span class="meta">{t.trader.name} · {t.minPlayerLevel}{#if count} · {count} here{/if}</span>
-        </li>
+    <div class="list">
+      {#each groups as g (g.trader)}
+        <div class="trader">
+          <button class="hdr" onclick={() => (collapsed[g.trader] = !collapsed[g.trader])} aria-expanded={!collapsed[g.trader]}>
+            <span class="tri">{collapsed[g.trader] ? "▸" : "▾"}</span>{g.trader}<span class="cnt">{g.done}/{g.total}</span>
+          </button>
+          {#if !collapsed[g.trader]}
+            <ul>
+              {#each g.tasks as { t, count } (t.id)}
+                <li class:done={app.doneQuests[t.id]} class:hidden={hiddenQuests[t.id]}>
+                  <input
+                    type="checkbox"
+                    aria-label="Mark {t.name} done"
+                    checked={!!app.doneQuests[t.id]}
+                    onchange={() => toggle(t.id)}
+                  />
+                  <span class="name">{t.name}</span>
+                  <button
+                    class="eye"
+                    aria-pressed={!!hiddenQuests[t.id]}
+                    title={hiddenQuests[t.id] ? "Show on map" : "Hide on map"}
+                    onclick={() => flipHidden(t.id)}>{hiddenQuests[t.id] ? "◌" : "◉"}</button
+                  >
+                  <span class="meta">lvl {t.minPlayerLevel}{#if count} · {count} here{/if}</span>
+                </li>
+              {/each}
+            </ul>
+          {/if}
+        </div>
       {/each}
-    </ul>
+    </div>
     <p class="muted footer">data: {app.questSource} · {dataDate}</p>
   {/if}
 </section>
@@ -95,9 +120,18 @@
   .row .search { flex: 1; min-width: 0; }
   input { background: #2a2f38; color: var(--fg); border: 1px solid #3a4048; padding: 3px 6px; }
   input[type="number"] { width: 48px; }
-  ul { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
-  li { display: grid; grid-template-columns: auto 1fr; column-gap: 6px; padding: 4px 0; border-bottom: 1px solid #262b33; font-size: 13px; }
-  li .meta { grid-column: 2; color: var(--muted); font-size: 11px; }
+  .list { overflow-y: auto; flex: 1; }
+  .hdr {
+    display: flex; align-items: center; gap: 6px; width: 100%; background: none; border: none;
+    color: var(--fg); font-size: 13px; text-align: left; padding: 5px 0; cursor: pointer;
+  }
+  .hdr .tri { color: var(--muted); width: 12px; font-size: 11px; }
+  .hdr .cnt { margin-left: auto; color: var(--muted); font-size: 11px; }
+  ul { list-style: none; margin: 0; padding: 0 0 0 18px; }
+  li { display: grid; grid-template-columns: auto 1fr auto; column-gap: 6px; padding: 4px 0; border-bottom: 1px solid #262b33; font-size: 13px; }
+  li .meta { grid-row: 2; grid-column: 2; color: var(--muted); font-size: 11px; }
   li.done .name { text-decoration: line-through; color: var(--muted); }
+  li.hidden .name { opacity: .5; }
+  .eye { background: none; border: none; color: var(--muted); cursor: pointer; padding: 0 2px; font-size: 12px; }
   .footer { margin: 0; font-size: 11px; }
 </style>

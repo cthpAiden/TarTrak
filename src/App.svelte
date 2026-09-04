@@ -276,6 +276,8 @@
           markers={allQuestMarkers}
           playerLevel={settings.playerLevel}
           onPlayerLevel={(n) => patchSettings({ playerLevel: n })}
+          hiddenQuests={settings.hiddenQuests}
+          onHiddenChange={(h) => patchSettings({ hiddenQuests: h })}
         />
         <SettingsPanel {settings} onChange={applySettings} onPickDir={pickDir} onInvalid={(m) => app.toast(m)} />
       {/if}

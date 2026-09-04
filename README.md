@@ -24,6 +24,16 @@ No memory reading, no injection, no hooks, no keystrokes sent to the game, no ac
 
 Markers never disappear; they dim slowly after 30 s and settle at 35% after 5 minutes.
 
+**Filters.** The panel at the top of the sidebar groups everything the map can draw: Extracts, Map
+Tasks, Spawns, Containers, Locks, Hazards, Switches and BTR. Each group and each category shows a
+`shown/total` count for the current map, so a group with nothing on this map still appears as `0/0`.
+PMC, co-op and transit extracts plus every map task category are on by default; everything else is
+off. Your choices are saved with the rest of your settings.
+
+**Quest list.** Quests are grouped by trader in the usual trader order, with a `done/total` count per
+trader; sections collapse and quests with markers on the current map sort first. The checkbox marks a
+quest done, and the eye button hides one quest's markers from the map without marking it done.
+
 ## Relay
 
 Positions go through a tiny Cloudflare Worker (`relay/`). It keeps nothing, logs nothing, needs no account.
