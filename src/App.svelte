@@ -35,8 +35,6 @@
   let settings = $state<Settings | null>(null);
   let mapView = $state<ReturnType<typeof MapView>>();
   let overlay = $state(false);
-  /** Overlay mode hides the toolbar until the corner tab is clicked; window mode always shows it. */
-  let barOpen = $state(false);
   let opacity = $state(100);
   let unhookHotkeys: (() => Promise<void>) | null = null;
   let stopQuestRetry: (() => void) | null = null;
@@ -85,7 +83,6 @@
     try {
       await setOverlay(next);
       overlay = next;
-      barOpen = false;
     } catch (e) {
       app.toast(`Could not switch overlay mode: ${e}`);
     }
@@ -253,9 +250,7 @@
 </script>
 
 <div class="layout">
-  {#if overlay && !barOpen}
-    <button class="overlay-tab" title="Show toolbar" aria-label="Show toolbar" onclick={() => (barOpen = true)}>▾</button>
-  {:else}
+  {#if !overlay}
   <header class="topbar">
     <strong>TarTrak</strong>
     <MapPicker
@@ -277,9 +272,6 @@
     <button onclick={() => mapView?.fitMap()} disabled={!def}>Fit</button>
     <button onclick={toggleOverlay}>{overlay ? "Window" : "Overlay"}</button>
     <button onclick={cycleOpacity}>{opacity}%</button>
-    {#if overlay}
-      <button title="Hide toolbar" aria-label="Hide toolbar" onclick={() => (barOpen = false)}>▴</button>
-    {/if}
   </header>
   {/if}
 
@@ -292,6 +284,18 @@
 
   <div class="body">
     <section class="map">
+      <!-- Overlay is the minimal view: map only. This button is the one control that survives it. -->
+      <button class="mode-btn" onclick={toggleOverlay} title={overlay ? "Full window" : "Overlay (map only)"} aria-label={overlay ? "Full window" : "Overlay (map only)"}>
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+          {#if overlay}
+            <rect x="1.5" y="4.5" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.5" />
+            <path d="M5.5 4.5v-3h9v9h-3" fill="none" stroke="currentColor" stroke-width="1.5" />
+          {:else}
+            <rect x="2.5" y="2.5" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.5" />
+            <path d="M2.5 5.5h11" stroke="currentColor" stroke-width="1.5" />
+          {/if}
+        </svg>
+      </button>
       {#if def}
         <MapView
           bind:this={mapView}
