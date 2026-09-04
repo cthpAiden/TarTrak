@@ -24,6 +24,13 @@ No memory reading, no injection, no hooks, no keystrokes sent to the game, no ac
 
 Markers never disappear; they dim slowly after 30 s and settle at 35% after 5 minutes.
 
+**Squad.** Every player marker has a heading line and a translucent view cone (turn the cone off in
+Settings). While you are in a room, the Room panel lists your teammates: distance to you when they are on
+your map, otherwise the map they are on, plus how long ago they last reported. Click a row to center on them.
+
+**Details.** Click any marker for a popup with its name, type, elevation, and, for loose loot, the full item
+list; boss spawns show each boss with its spawn chance.
+
 **Filters.** The panel at the top of the sidebar groups everything the map can draw: Extracts, Map
 Tasks, Spawns, Containers, Locks, Hazards, Switches and BTR. Each group and each category shows a
 `shown/total` count for the current map, so a group with nothing on this map still appears as `0/0`.
