@@ -1,0 +1,56 @@
+2026-09-04 04:41:25.204|1.1.0.1.46911|Info|application|Config entry: MasterPort 17000
+2026-09-04 04:41:25.275|1.1.0.1.46911|Info|application|Disposing BEClient
+2026-09-04 04:41:25.275|1.1.0.1.46911|Info|application|BEClient exit
+2026-09-04 04:41:25.376|1.1.0.1.46911|Info|application|BEClient exit successfully
+2026-09-04 04:41:25.376|1.1.0.1.46911|Debug|application|Releasing dll '140718956019712'
+2026-09-04 04:41:25.544|1.1.0.1.46911|Debug|application|SUCCESS: Dll released with code '1'
+2026-09-04 04:52:15.335|1.1.0.1.46911|Debug|application|Matching with group id: 
+2026-09-04 04:52:15.335|1.1.0.1.46911|Info|application|ClientMetricsEvents():1294.55
+2026-09-04 04:52:16.615|1.1.0.1.46911|Info|application|scene preset path:maps/lighthouse_preset.bundle rcid:lighthouse.scenespreset.asset
+2026-09-04 04:52:16.615|1.1.0.1.46911|Debug|application|TRACE-NetworkGameMatching G
+2026-09-04 04:52:18.555|1.1.0.1.46911|Debug|application|TRACE-NetworkGameMatching H
+2026-09-04 04:52:18.556|1.1.0.1.46911|Debug|application|TRACE-NetworkGameMatching I
+2026-09-04 04:52:34.977|1.1.0.1.46911|Info|application|MatchingCompleted:13.26 real:19.64 diff:6.37
+2026-09-04 04:52:52.795|1.1.0.1.46911|Info|application|LocationLoaded:26.09 real:37.45 diff:11.36
+2026-09-04 04:52:52.894|1.1.0.1.46911|Info|application|GamePrepared:26.23 real:37.55 diff:11.32
+2026-09-04 04:52:52.894|1.1.0.1.46911|Debug|application|TRACE-NetworkGameCreate 0
+2026-09-04 04:52:52.894|1.1.0.1.46911|Debug|application|TRACE-NetworkGameCreate 2
+2026-09-04 04:52:58.414|1.1.0.1.46911|Debug|application|TRACE-NetworkGameCreate 3
+2026-09-04 04:52:58.415|1.1.0.1.46911|Debug|application|TRACE-NetworkGameCreate profileStatus: 'Profileid: REDACTED_ID, Status: Busy, RaidMode: Online, Ip: 0.0.0.0, Port: 17000, Location: Lighthouse, Sid: REDACTED, GameMode: deathmatch, shortId: REDACTED'
+2026-09-04 04:52:58.418|1.1.0.1.46911|Debug|application|TRACE-NetworkGameCreate 4
+2026-09-04 04:52:58.421|1.1.0.1.46911|Info|application|GameCreated:31.78(5.55) real:43.08(5.53) diff:11.3
+2026-09-04 04:52:58.421|1.1.0.1.46911|Debug|application|TRACE-NetworkGameCreate 5
+2026-09-04 04:55:54.506|1.1.0.1.46911|Info|application|GamePooled:206.75(174.97) real:219.17(176.09) diff:12.41
+2026-09-04 04:56:04.236|1.1.0.1.46911|Info|application|GameRunned:209.61(2.86) real:228.9(9.72) diff:19.28
+2026-09-04 04:56:04.395|1.1.0.1.46911|Info|application|GameSpawn:209.79(0.17) real:229.06(0.16) diff:19.27
+2026-09-04 04:56:04.608|1.1.0.1.46911|Info|application|PlayerSpawnEvent:209.97(0.18) real:229.27(0.21) diff:19.3
+2026-09-04 04:56:10.335|1.1.0.1.46911|Info|application|GameSpawned:214.55(4.58) real:234.99(5.72) diff:20.44
+2026-09-04 04:56:10.335|1.1.0.1.46911|Debug|application|Heap pre-allocation - disabled
+2026-09-04 04:56:10.343|1.1.0.1.46911|Debug|application|GC::CollectAsync iteration: 0.007446289s True
+2026-09-04 04:56:10.352|1.1.0.1.46911|Debug|application|GC::CollectAsync iteration: 0.007080078s True
+2026-09-04 04:56:10.378|1.1.0.1.46911|Debug|application|GC::CollectAsync iteration: 0.007080078s True
+2026-09-04 04:56:10.406|1.1.0.1.46911|Debug|application|GC::CollectAsync iteration: 0.007080078s True
+2026-09-04 04:56:10.434|1.1.0.1.46911|Debug|application|GC::CollectAsync iteration: 0.007080078s True
+2026-09-04 04:56:10.462|1.1.0.1.46911|Debug|application|GC::CollectAsync iteration: 0.006958008s True
+2026-09-04 04:56:10.489|1.1.0.1.46911|Debug|application|GC::CollectAsync iteration: 0.007080078s True
+2026-09-04 04:56:10.517|1.1.0.1.46911|Debug|application|GC::CollectAsync iteration: 0.006958008s True
+2026-09-04 04:56:10.546|1.1.0.1.46911|Debug|application|GC::CollectAsync iteration: 0.007080078s True
+2026-09-04 04:56:10.574|1.1.0.1.46911|Debug|application|GC::CollectAsync iteration: 0.007202148s True
+2026-09-04 04:56:10.601|1.1.0.1.46911|Debug|application|GC::CollectAsync iteration: 0.007202148s True
+2026-09-04 04:56:10.625|1.1.0.1.46911|Debug|application|GC::CollectAsync iteration: 0.007080078s True
+2026-09-04 04:56:10.647|1.1.0.1.46911|Debug|application|GC::CollectAsync iteration: 0.007080078s True
+2026-09-04 04:56:10.667|1.1.0.1.46911|Debug|application|GC::CollectAsync iteration: 0.007080078s True
+2026-09-04 04:56:10.689|1.1.0.1.46911|Debug|application|GC::CollectAsync iteration: 0.007080078s True
+2026-09-04 04:56:10.711|1.1.0.1.46911|Debug|application|GC::CollectAsync iteration: 0.007080078s True
+2026-09-04 04:56:10.734|1.1.0.1.46911|Debug|application|GC::CollectAsync iteration: 0.007080078s True
+2026-09-04 04:56:10.755|1.1.0.1.46911|Debug|application|GC::CollectAsync iteration: 0.007080078s True
+2026-09-04 04:56:10.823|1.1.0.1.46911|Debug|application|GC::CollectAsync iteration: 0.04821777s False
+2026-09-04 04:56:10.843|1.1.0.1.46911|Debug|application|GC::CollectAsync time 0.5078125s 2849.219 - collected 526.8086
+2026-09-04 04:56:12.175|1.1.0.1.46911|Debug|application|GC mode switched to Disabled
+2026-09-04 04:56:12.284|1.1.0.1.46911|Info|application|GameStarted:215.23(215.23) real:236.94(236.94) diff:21.71
+2026-09-04 04:56:12.336|1.1.0.1.46911|Debug|application|TRACE-NetworkGameCreate 6
+2026-09-04 04:56:15.187|1.1.0.1.46911|Info|application|[Transit] `REDACTED_ID` Count:0, EventPlayer:False
+2026-09-04 04:56:17.062|1.1.0.1.46911|Info|application|Reason:PacketsQueue, Position:(-246.780, 1.247, -381.950), SpeedLimit:0.5833333, CurrentState:Idle, StrengthSummaryLevel:5, WalkSpeedLimit:1
+2026-09-04 05:04:41.849|1.1.0.1.46911|Info|application|PrepareSelectedProfileLocally ProfileId:REDACTED AccountId:REDACTED
+2026-09-04 05:04:47.992|1.1.0.1.46911|Debug|application|totalMemoryBeforeCleanUp 2904.684
+2026-09-04 05:04:47.992|1.1.0.1.46911|Debug|application|GC mode switched to Enabled
