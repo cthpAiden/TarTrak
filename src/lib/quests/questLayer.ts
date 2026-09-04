@@ -22,7 +22,8 @@ export function visibleQuestMarkers(
   );
 }
 
-function esc(s: string): string {
+/** Leaflet renders string popups and tooltips as HTML, so remote names must be escaped. */
+export function esc(s: string): string {
   return s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 

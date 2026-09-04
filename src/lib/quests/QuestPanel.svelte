@@ -17,7 +17,10 @@
     if (!data) return [];
     const q = search.trim().toLowerCase();
     const onMap = new Map<string, number>();
-    for (const m of markers) if (m.mapKey === app.currentMap) onMap.set(m.taskId, (onMap.get(m.taskId) ?? 0) + 1);
+    // Done tasks have no markers on the map, so they must not be counted here either.
+    for (const m of markers) {
+      if (m.mapKey === app.currentMap && !app.doneQuests[m.taskId]) onMap.set(m.taskId, (onMap.get(m.taskId) ?? 0) + 1);
+    }
     return data.tasks
       .filter((t) => !hideDone || !app.doneQuests[t.id])
       .filter((t) => playerLevel <= 0 || t.minPlayerLevel <= playerLevel)
@@ -33,7 +36,12 @@
 
   function toggle(id: string) {
     app.setDone(toggleDone(app.doneQuests, id));
-    void saveDone(app.doneQuests);
+    // Saving on top of a done set that never loaded would replace the stored file with this one id.
+    if (!app.doneLoaded) {
+      app.toast("Quest progress not loaded, not saving");
+      return;
+    }
+    saveDone(app.doneQuests).catch((e) => app.toast(`Could not save quest progress: ${e}`));
   }
 
   const dataDate = $derived(app.questData ? new Date(app.questData.fetchedAt).toLocaleDateString() : "");
@@ -42,7 +50,7 @@
 <section class="panel quests">
   <h2>Quests</h2>
   <div class="row">
-    <input class="search" placeholder="Search" bind:value={search} />
+    <input class="search" aria-label="Search quests" placeholder="Search" bind:value={search} />
     <label title="Your PMC level (0 = show all)">
       Lvl
       <input

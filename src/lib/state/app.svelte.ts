@@ -24,9 +24,12 @@ export class AppState {
   mapSource = $state<MapSource | null>(null);
   teammates = $state<Record<string, Teammate>>({});
   toasts = $state<{ id: number; text: string }[]>([]);
-  questData = $state<QuestData | null>(null);
+  // raw: both hold large, wholly-replaced values, so deep proxying would cost far more than it buys.
+  questData = $state.raw<QuestData | null>(null);
   questSource = $state<QuestSource>("none");
-  doneQuests = $state<Record<string, true>>({});
+  doneQuests = $state.raw<Record<string, true>>({});
+  /** False until the stored done set has been read; saving before that would overwrite it. */
+  doneLoaded = $state(false);
   private nextToastId = 1;
 
   setQuestData(d: QuestData, s: QuestSource): void {

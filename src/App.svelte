@@ -93,11 +93,14 @@
 
       try {
         app.setDone(await loadDone());
+        app.doneLoaded = true;
       } catch (e) {
         app.toast(`Could not load quest progress: ${e}`);
       }
       // Fire and forget: quest data arrives whenever it arrives, the UI never waits for it.
-      void loadQuestData(defaultDeps(), (d, src) => app.setQuestData(d, src));
+      loadQuestData(defaultDeps(), (d, src) => app.setQuestData(d, src)).catch((e) =>
+        app.toast(`Quest data error: ${e}`),
+      );
 
       let dirs: DetectedDirs = { screenshots: null, logs: null };
       try {

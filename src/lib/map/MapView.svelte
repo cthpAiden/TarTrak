@@ -10,7 +10,7 @@
   import { fetchTextCached } from "../tauri/http";
   import { opacityFor } from "../room/fade";
   import { app, type Teammate } from "../state/app.svelte";
-  import { questDivIcon, extractDivIcon, questPopupHtml } from "../quests/questLayer";
+  import { questDivIcon, extractDivIcon, questPopupHtml, esc } from "../quests/questLayer";
   import type { QuestMarker, ExtractMarker } from "../quests/markers";
 
   let {
@@ -177,7 +177,7 @@
     g.clearLayers();
     if (!show) return;
     for (const e of all) {
-      L.marker(toLatLng(e.x, e.z), { icon: extractDivIcon(e) }).bindTooltip(e.name).addTo(g);
+      L.marker(toLatLng(e.x, e.z), { icon: extractDivIcon(e) }).bindTooltip(esc(e.name)).addTo(g);
     }
   });
 
