@@ -26,10 +26,27 @@
 
   /** Ticks once a second so the ages in the squad list stay current. */
   let now = $state(Date.now());
+  let copied = $state(false);
+  let copyTimer: ReturnType<typeof setTimeout> | null = null;
   onMount(() => {
     const tick = setInterval(() => (now = Date.now()), 1000);
-    return () => clearInterval(tick);
+    return () => {
+      clearInterval(tick);
+      if (copyTimer) clearTimeout(copyTimer);
+    };
   });
+
+  /** Clipboard access can be denied, so the fallback tells the user to copy the code by hand. */
+  async function copyCode() {
+    try {
+      await navigator.clipboard.writeText(room.code!);
+      copied = true;
+      if (copyTimer) clearTimeout(copyTimer);
+      copyTimer = setTimeout(() => (copied = false), 1500);
+    } catch {
+      app.toast("Copy failed: select the code and press Ctrl+C");
+    }
+  }
 
   const rows = $derived(
     squadRows(
@@ -64,12 +81,19 @@
   <h2>Room</h2>
   <label>Name <input maxlength="32" bind:value={name} onblur={persistIdentity} /></label>
   <label>Color <input type="color" bind:value={color} onchange={persistIdentity} /></label>
-  <label>
-    Code <input maxlength="6" bind:value={code} oninput={() => (code = code.toUpperCase())} placeholder="ABC123" />
-  </label>
+  {#if room.code}
+    <div class="code-row">
+      <span class="code">{room.code}</span>
+      <button onclick={copyCode}>{copied ? "Copied" : "Copy"}</button>
+    </div>
+  {:else}
+    <label>
+      Code <input maxlength="6" bind:value={code} oninput={() => (code = code.toUpperCase())} placeholder="ABC123" />
+    </label>
+  {/if}
   <div class="row">
     {#if room.code}
-      <button onclick={() => room.leave()}>Leave {room.code}</button>
+      <button onclick={() => room.leave()}>Leave</button>
     {:else}
       <button onclick={join} disabled={!codeOk}>Join</button>
       <button onclick={create}>Create</button>
@@ -105,12 +129,14 @@
 </section>
 
 <style>
-  .panel { padding: 10px; border-bottom: 1px solid #2a2f38; display: flex; flex-direction: column; gap: 6px; }
+  .panel { padding: 10px; display: flex; flex-direction: column; gap: 6px; }
   h2 { margin: 0 0 4px; font-size: 14px; }
   label { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; }
   input { background: #2a2f38; color: var(--fg); border: 1px solid #3a4048; padding: 3px 6px; width: 150px; }
   input[type="color"] { width: 40px; padding: 0; height: 24px; }
   .row { display: flex; gap: 8px; align-items: center; }
+  .code-row { display: flex; gap: 8px; align-items: center; }
+  .code { flex: 1; font-family: ui-monospace, Consolas, monospace; font-size: 20px; letter-spacing: 0.12em; }
   .dot { width: 10px; height: 10px; border-radius: 50%; background: #c33; display: inline-block; }
   .dot.open { background: #3c3; }
   .dot.connecting { background: #cc3; }

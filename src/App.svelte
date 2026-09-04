@@ -28,6 +28,14 @@
 
   const DIR_RETRY_MS = 10_000;
   const QUEST_RETRY_MS = 300_000;
+  const TABS = [
+    { id: "filters", label: "Filters" },
+    { id: "squad", label: "Squad" },
+    { id: "quests", label: "Quests" },
+    { id: "settings", label: "Settings" },
+  ] as const;
+
+  let tab = $state<(typeof TABS)[number]["id"]>("filters");
 
   let pinnedFloor = $state<string | null>(null);
   let screenshotsDir = $state<string | null>(null);
@@ -261,12 +269,12 @@
         patchSettings({ lastMap: k });
       }}
     />
-    {#if app.mapSource === "log"}<span class="muted">auto</span>{/if}
+    {#if app.mapSource === "log"}<span class="muted" title="Map detected from the game log">auto</span>{/if}
     <span class="grow"></span>
     {#if app.ownPos}
       <span class="coords">x {app.ownPos.x.toFixed(0)} · y {app.ownPos.y.toFixed(0)} · z {app.ownPos.z.toFixed(0)} · {app.ownPos.yaw.toFixed(0)}°</span>
     {:else}
-      <span class="muted">Take a screenshot in raid to place yourself</span>
+      <span class="muted" title="Take an in-game screenshot to place yourself">No position yet</span>
     {/if}
     <button onclick={() => mapView?.centerOnMe()} disabled={!app.ownPos}>Center</button>
     <button onclick={() => mapView?.fitMap()} disabled={!def}>Fit</button>
@@ -315,20 +323,37 @@
     </section>
     <aside id="side" class="side">
       {#if settings}
-        <FilterPanel
-          counts={buildCounts(mapPoints, mapQuestMarkersBeforeFilters, layerFilters, def?.labels.length ?? 0)}
-          filters={layerFilters}
-          onChange={(f) => patchSettings({ layerFilters: f })}
-        />
-        <RoomPanel {settings} onSettingsChange={patchSettings} onFocus={focusTeammate} />
-        <QuestPanel
-          markers={allQuestMarkers}
-          playerLevel={settings.playerLevel}
-          onPlayerLevel={(n) => patchSettings({ playerLevel: n })}
-          hiddenQuests={settings.hiddenQuests}
-          onHiddenChange={(h) => patchSettings({ hiddenQuests: h })}
-        />
-        <SettingsPanel {settings} onChange={applySettings} onPickDir={pickDir} onInvalid={(m) => app.toast(m)} />
+        <div class="tabs" role="tablist">
+          {#each TABS as t (t.id)}
+            <button role="tab" aria-selected={tab === t.id} onclick={() => (tab = t.id)}>
+              {t.label}
+              {#if t.id === "squad" && (room.status === "open" || room.status === "connecting")}
+                <span class="dot {room.status}"></span>
+              {/if}
+            </button>
+          {/each}
+        </div>
+        <div class="pane">
+          {#if tab === "filters"}
+            <FilterPanel
+              counts={buildCounts(mapPoints, mapQuestMarkersBeforeFilters, layerFilters, def?.labels.length ?? 0)}
+              filters={layerFilters}
+              onChange={(f) => patchSettings({ layerFilters: f })}
+            />
+          {:else if tab === "squad"}
+            <RoomPanel {settings} onSettingsChange={patchSettings} onFocus={focusTeammate} />
+          {:else if tab === "quests"}
+            <QuestPanel
+              markers={allQuestMarkers}
+              playerLevel={settings.playerLevel}
+              onPlayerLevel={(n) => patchSettings({ playerLevel: n })}
+              hiddenQuests={settings.hiddenQuests}
+              onHiddenChange={(h) => patchSettings({ hiddenQuests: h })}
+            />
+          {:else}
+            <SettingsPanel {settings} onChange={applySettings} onPickDir={pickDir} onInvalid={(m) => app.toast(m)} />
+          {/if}
+        </div>
       {/if}
     </aside>
   </div>

@@ -95,12 +95,12 @@
 </section>
 
 <style>
-  .panel { padding: 10px; display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+  .panel { padding: 10px; display: flex; flex-direction: column; gap: 6px; min-height: 0; height: 100%; box-sizing: border-box; }
   h2 { margin: 0 0 4px; font-size: 14px; }
   input { background: #2a2f38; color: var(--fg); border: 1px solid #3a4048; padding: 3px 6px; }
   input[type="checkbox"] { padding: 0; }
   .search { width: 100%; box-sizing: border-box; }
-  .groups { overflow-y: auto; max-height: 240px; }
+  .groups { flex: 1; min-height: 0; overflow-y: auto; }
   .note { margin: 0; font-size: 11px; }
   .hdr { display: flex; align-items: center; gap: 6px; font-size: 13px; padding: 3px 0; }
   .tri { background: none; border: none; color: var(--muted); cursor: pointer; padding: 0; width: 12px; font-size: 11px; }
