@@ -14,8 +14,12 @@
   import SettingsPanel from "./lib/settings/SettingsPanel.svelte";
   import QuestPanel from "./lib/quests/QuestPanel.svelte";
   import { loadQuestData, defaultDeps } from "./lib/quests/cache";
-  import { extractQuestMarkers, extractExtracts } from "./lib/quests/markers";
+  import { extractQuestMarkers } from "./lib/quests/markers";
   import { visibleQuestMarkers } from "./lib/quests/questLayer";
+  import FilterPanel from "./lib/layers/FilterPanel.svelte";
+  import { buildCounts } from "./lib/layers/counts";
+  import { extractPoints } from "./lib/layers/points";
+  import { isOn } from "./lib/layers/filters";
   import { loadDone } from "./lib/quests/done";
   import MapView from "./lib/map/MapView.svelte";
   import MapPicker from "./lib/map/MapPicker.svelte";
@@ -28,19 +32,29 @@
   let screenshotsDir = $state<string | null>(null);
   let logsDir = $state<string | null>(null);
   let settings = $state<Settings | null>(null);
-  let showExtracts = $state(true);
   let mapView = $state<ReturnType<typeof MapView>>();
   let overlay = $state(false);
   let opacity = $state(100);
   let unhookHotkeys: (() => Promise<void>) | null = null;
 
   const def = $derived(app.currentMap ? (getMapDef(app.currentMap) ?? null) : null);
+  const layerFilters = $derived(settings?.layerFilters ?? {});
+  const hiddenQuests = $derived(settings?.hiddenQuests ?? {});
   const allQuestMarkers = $derived(app.questData ? extractQuestMarkers(app.questData) : []);
-  const allExtracts = $derived(app.questData ? extractExtracts(app.questData) : []);
-  const questMarkers = $derived(
-    def ? visibleQuestMarkers(allQuestMarkers, def.key, app.doneQuests, settings?.playerLevel ?? 0) : [],
+  const allPoints = $derived(app.questData ? extractPoints(app.questData) : []);
+  const mapPoints = $derived(def ? allPoints.filter((p) => p.mapKey === def.key) : []);
+  const points = $derived(mapPoints.filter((p) => isOn(layerFilters, p.group, p.category)));
+  // Kept unfiltered by the layer toggles so the panel's shown/total can differ.
+  const mapQuestMarkersBeforeFilters = $derived(
+    def
+      ? visibleQuestMarkers(allQuestMarkers, def.key, app.doneQuests, settings?.playerLevel ?? 0).filter(
+          (m) => !hiddenQuests[m.taskId],
+        )
+      : [],
   );
-  const extracts = $derived(def ? allExtracts.filter((e) => e.mapKey === def.key) : []);
+  const questMarkers = $derived(
+    mapQuestMarkersBeforeFilters.filter((m) => isOn(layerFilters, "quests", m.category)),
+  );
 
   async function toggleOverlay() {
     const next = !overlay;
@@ -215,7 +229,6 @@
       }}
     />
     {#if app.mapSource === "log"}<span class="muted">auto</span>{/if}
-    <label class="muted"><input type="checkbox" bind:checked={showExtracts} /> extracts</label>
     <span class="grow"></span>
     {#if app.ownPos}
       <span class="coords">x {app.ownPos.x.toFixed(0)} · y {app.ownPos.y.toFixed(0)} · z {app.ownPos.z.toFixed(0)} · {app.ownPos.yaw.toFixed(0)}°</span>
@@ -244,8 +257,7 @@
           {pinnedFloor}
           onFloorPinned={(n) => (pinnedFloor = n)}
           {questMarkers}
-          {extracts}
-          {showExtracts}
+          {points}
           lineLengthPx={settings?.lineLengthPx ?? DEFAULT_SETTINGS.lineLengthPx}
         />
       {:else}
@@ -254,6 +266,11 @@
     </section>
     <aside id="side" class="side">
       {#if settings}
+        <FilterPanel
+          counts={buildCounts(mapPoints, mapQuestMarkersBeforeFilters, layerFilters)}
+          filters={layerFilters}
+          onChange={(f) => patchSettings({ layerFilters: f })}
+        />
         <RoomPanel {settings} onSettingsChange={patchSettings} />
         <QuestPanel
           markers={allQuestMarkers}
