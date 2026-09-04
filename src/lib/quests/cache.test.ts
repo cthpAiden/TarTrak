@@ -1,0 +1,69 @@
+import { describe, it, expect, vi } from "vitest";
+import { loadQuestData, MAX_AGE_MS, type QuestLoaderDeps } from "./cache";
+import type { QuestData } from "./types";
+
+const d = (fetchedAt: number, tag: string): QuestData => ({
+  fetchedAt,
+  tasks: [{ id: tag, name: tag, trader: { name: "T" }, minPlayerLevel: 1, objectives: [] }],
+  maps: [],
+});
+
+function deps(over: Partial<QuestLoaderDeps>): QuestLoaderDeps & { written: QuestData[] } {
+  const written: QuestData[] = [];
+  return {
+    written,
+    readCache: async () => null,
+    writeCache: async (x) => {
+      written.push(x);
+    },
+    fetchRemote: async () => {
+      throw new Error("offline");
+    },
+    snapshot: () => null,
+    now: () => 1_000_000_000_000,
+    ...over,
+  };
+}
+
+describe("loadQuestData", () => {
+  it("uses a fresh cache and does not fetch", async () => {
+    const fetchRemote = vi.fn(async () => d(0, "net"));
+    const dp = deps({ readCache: async () => d(1_000_000_000_000 - 1000, "cache"), fetchRemote });
+    const updates: string[] = [];
+    await loadQuestData(dp, (data, src) => updates.push(`${src}:${data.tasks[0].id}`));
+    expect(updates).toEqual(["cache:cache"]);
+    expect(fetchRemote).not.toHaveBeenCalled();
+  });
+
+  it("serves a stale cache first, then refreshes from the network and writes the cache", async () => {
+    const stale = d(1_000_000_000_000 - MAX_AGE_MS - 1, "stale");
+    const dp = deps({ readCache: async () => stale, fetchRemote: async () => d(5, "net") });
+    const updates: string[] = [];
+    await loadQuestData(dp, (data, src) => updates.push(`${src}:${data.tasks[0].id}`));
+    expect(updates).toEqual(["cache:stale", "network:net"]);
+    expect(dp.written).toHaveLength(1);
+    expect(dp.written[0].fetchedAt).toBe(1_000_000_000_000);
+  });
+
+  it("falls back to the snapshot when there is no cache and the network fails", async () => {
+    const dp = deps({ snapshot: () => d(1, "snap") });
+    const updates: string[] = [];
+    await loadQuestData(dp, (data, src) => updates.push(`${src}:${data.tasks[0].id}`));
+    expect(updates).toEqual(["snapshot:snap"]);
+    expect(dp.written).toHaveLength(0);
+  });
+
+  it("fetches when there is no cache and prefers network over snapshot", async () => {
+    const dp = deps({ snapshot: () => d(1, "snap"), fetchRemote: async () => d(2, "net") });
+    const updates: string[] = [];
+    await loadQuestData(dp, (data, src) => updates.push(`${src}:${data.tasks[0].id}`));
+    expect(updates).toEqual(["snapshot:snap", "network:net"]);
+  });
+
+  it("calls nothing when no source has data", async () => {
+    const dp = deps({});
+    const onUpdate = vi.fn();
+    await loadQuestData(dp, onUpdate);
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+});
