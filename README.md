@@ -49,7 +49,7 @@ Pushing a `v*` tag runs `.github/workflows/release.yml`, which builds the instal
 
 The updater private key lives only in the `TAURI_SIGNING_PRIVATE_KEY` repository secret (with
 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` for its passphrase). Before the first release, replace the owner
-placeholder `tartrak-placeholder` in `src-tauri/tauri.conf.json` `plugins.updater.endpoints` with the real
+placeholder `cthpAiden` in `src-tauri/tauri.conf.json` `plugins.updater.endpoints` with the real
 GitHub owner.
 
 Quest data is fetched live from tarkov.dev and cached locally. `npm run snapshot` writes an offline
