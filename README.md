@@ -18,6 +18,9 @@ No memory reading, no injection, no hooks, no keystrokes sent to the game, no ac
 2. Start the game in **borderless windowed** mode so the overlay can sit on top.
 3. In raid, press your screenshot key (PrintScreen by default). Your marker appears on the map.
 4. Team: one player presses **Create**, shares the 6-character code; others enter it and press **Join**.
+   **Rooms do not work in v1 out of the box:** the built-in relay URL is a placeholder that does not
+   resolve. Everyone in the team must paste the same working relay URL into Settings > Relay URL first
+   (see [Relay](#relay)). Everything else - your own position, the map, quest markers - works without it.
 5. Hotkeys: `F5` overlay mode, `F6` opacity, `Alt+drag` moves the overlay. Rebind in Settings.
 
 Markers never disappear; they dim slowly after 30 s and settle at 35% after 5 minutes.
@@ -25,8 +28,13 @@ Markers never disappear; they dim slowly after 30 s and settle at 35% after 5 mi
 ## Relay
 
 Positions go through a tiny Cloudflare Worker (`relay/`). It keeps nothing, logs nothing, needs no account.
+
+`DEFAULT_RELAY_URL` in `src/lib/settings/store.ts` currently holds the placeholder
+`wss://tartrak-relay.example.workers.dev`, which does not resolve, so rooms fail to connect until either
+the project owner deploys the Worker and replaces that constant, or each user pastes a relay URL into
+Settings > Relay URL.
+
 To run your own: `cd relay && npm ci && npx wrangler deploy`, then paste the URL into Settings > Relay URL.
-The default relay URL is set in `src/lib/settings/store.ts` (`DEFAULT_RELAY_URL`).
 
 ## Build from source
 
@@ -36,11 +44,18 @@ Node 24, Rust stable (MSVC), WebView2 (ships with Windows 10/11).
     npm test
     npm run tauri dev
 
-Release builds are signed by GitHub Actions (`.github/workflows/release.yml`). The updater private key lives
-only in the `TAURI_SIGNING_PRIVATE_KEY` repository secret. Set the GitHub owner in
-`src-tauri/tauri.conf.json` `plugins.updater.endpoints` before the first release.
+Pushing a `v*` tag runs `.github/workflows/release.yml`, which builds the installer, signs it and creates a
+**draft** GitHub Release. Publish that draft by hand - the updater only sees a published release.
 
-Refresh the bundled quest snapshot before tagging: `npm run snapshot`.
+The updater private key lives only in the `TAURI_SIGNING_PRIVATE_KEY` repository secret (with
+`TAURI_SIGNING_PRIVATE_KEY_PASSWORD` for its passphrase). Before the first release, replace the owner
+placeholder `tartrak-placeholder` in `src-tauri/tauri.conf.json` `plugins.updater.endpoints` with the real
+GitHub owner.
+
+Quest data is fetched live from tarkov.dev and cached locally. `npm run snapshot` writes an offline
+fallback into `data/snapshot/`, used when tarkov.dev is unreachable and no cache exists; refresh it before
+tagging. No snapshot ships in v1 - tarkov.dev was returning errors when this release was cut - so a first
+run with tarkov.dev down shows no quest markers.
 
 ## Credits and licenses
 

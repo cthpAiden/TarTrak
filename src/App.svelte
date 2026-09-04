@@ -163,7 +163,7 @@
       await useDir("screenshots", s.screenshotsDir, dirs.screenshots);
       await useDir("logs", s.logsDir, dirs.logs);
 
-      void checkForUpdate((m) => app.toast(m));
+      checkForUpdate((m) => app.toast(m)).catch((e) => app.toast(`Update failed: ${e}`));
     })().catch((e) => app.toast(`Startup error: ${e}`));
     return () => {
       stop?.();

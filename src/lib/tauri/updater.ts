@@ -12,8 +12,14 @@ export async function checkForUpdate(onInfo: (msg: string) => void): Promise<voi
     return;
   }
   if (!update) return;
-  const yes = await ask(`TarTrak ${update.version} is available. Install now?`, { title: "Update", kind: "info" });
-  if (!yes) return;
-  await update.downloadAndInstall();
-  await relaunch();
+  // Everything past the prompt can still fail (missing release asset, bad signature, dropped
+  // download). Reported, because a silent failure leaves the user believing the update landed.
+  try {
+    const yes = await ask(`TarTrak ${update.version} is available. Install now?`, { title: "Update", kind: "info" });
+    if (!yes) return;
+    await update.downloadAndInstall();
+    await relaunch();
+  } catch (e) {
+    onInfo(`Update failed: ${e}`);
+  }
 }
