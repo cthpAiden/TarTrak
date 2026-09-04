@@ -18,9 +18,8 @@ No memory reading, no injection, no hooks, no keystrokes sent to the game, no ac
 2. Start the game in **borderless windowed** mode so the overlay can sit on top.
 3. In raid, press your screenshot key (PrintScreen by default). Your marker appears on the map.
 4. Team: one player presses **Create**, shares the 6-character code; others enter it and press **Join**.
-   **Rooms do not work in v1 out of the box:** the built-in relay URL is a placeholder that does not
-   resolve. Everyone in the team must paste the same working relay URL into Settings > Relay URL first
-   (see [Relay](#relay)). Everything else - your own position, the map, quest markers - works without it.
+   Positions travel through the project relay (`wss://tartrak-relay.aidenmileshp.workers.dev`); you can
+   point Settings > Relay URL at your own Worker instead (see [Relay](#relay)).
 5. Hotkeys: `F5` overlay mode, `F6` opacity, `Alt+drag` moves the overlay. Rebind in Settings.
 
 Markers never disappear; they dim slowly after 30 s and settle at 35% after 5 minutes.
@@ -29,10 +28,10 @@ Markers never disappear; they dim slowly after 30 s and settle at 35% after 5 mi
 
 Positions go through a tiny Cloudflare Worker (`relay/`). It keeps nothing, logs nothing, needs no account.
 
-`DEFAULT_RELAY_URL` in `src/lib/settings/store.ts` currently holds the placeholder
-`wss://tartrak-relay.example.workers.dev`, which does not resolve, so rooms fail to connect until either
-the project owner deploys the Worker and replaces that constant, or each user pastes a relay URL into
-Settings > Relay URL.
+The default relay (`DEFAULT_RELAY_URL` in `src/lib/settings/store.ts`) is
+`wss://tartrak-relay.aidenmileshp.workers.dev`, hosted by the project on the Cloudflare free tier. To run
+your own, deploy `relay/` (`cd relay && npm ci && npx wrangler deploy`) and paste the resulting
+`wss://...workers.dev` URL into Settings > Relay URL.
 
 To run your own: `cd relay && npm ci && npx wrangler deploy`, then paste the URL into Settings > Relay URL.
 

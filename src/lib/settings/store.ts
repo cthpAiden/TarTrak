@@ -15,8 +15,8 @@ export interface Settings {
   lineLengthPx: number;
 }
 
-/** Placeholder until the relay is deployed; see README "Relay". */
-export const DEFAULT_RELAY_URL = "wss://tartrak-relay.example.workers.dev";
+/** Default relay: the project-hosted Cloudflare Worker (relay/). Overridable in Settings. */
+export const DEFAULT_RELAY_URL = "wss://tartrak-relay.aidenmileshp.workers.dev";
 
 export const DEFAULT_SETTINGS: Settings = {
   screenshotsDir: null,
