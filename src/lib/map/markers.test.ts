@@ -93,3 +93,74 @@ describe("PositionMarker", () => {
     expect(map.hasLayer(m.line)).toBe(false);
   });
 });
+
+describe("PositionMarker view cone", () => {
+  let map: L.Map;
+  beforeEach(() => {
+    map = makeMap();
+  });
+
+  function conePoints(m: PositionMarker): L.LatLng[] {
+    return (m.cone!.getLatLngs() as L.LatLng[][])[0];
+  }
+
+  it("draws no polygon when the cone is off", () => {
+    const m = new PositionMarker(map, { color: "#fff", radius: 6, lineLengthPx: 28 });
+    m.update(0, 0, 0);
+    expect(m.cone).toBeNull();
+  });
+
+  it("draws a sector of the centre plus nine arc points", () => {
+    const m = new PositionMarker(map, { color: "#fff", radius: 6, lineLengthPx: 28, cone: true });
+    m.update(100, -50, 90);
+    const pts = conePoints(m);
+    expect(pts).toHaveLength(10);
+    expect(pts[0].lng).toBeCloseTo(100, 6);
+    expect(pts[0].lat).toBeCloseTo(-50, 6);
+    const start = px(map, 100, -50);
+    for (const p of pts.slice(1)) {
+      expect(map.project(p, map.getZoom()).distanceTo(start)).toBeCloseTo(28 * 1.6, 3);
+    }
+  });
+
+  it("spans coneDeg around the heading, with the middle arc point on the heading", () => {
+    const m = new PositionMarker(map, { color: "#fff", radius: 6, lineLengthPx: 28, cone: true, coneDeg: 60 });
+    m.update(100, -50, 90);
+    const start = px(map, 100, -50);
+    const arc = conePoints(m)
+      .slice(1)
+      .map((p) => map.project(p, map.getZoom()).subtract(start));
+    const angle = (p: L.Point) => (Math.atan2(p.y, p.x) * 180) / Math.PI;
+    const spread = Math.abs(angle(arc[8]) - angle(arc[0]));
+    expect(Math.min(spread, 360 - spread)).toBeCloseTo(60, 3);
+    const want = headingUnit(map, 100, -50, 90).multiplyBy(28 * 1.6);
+    expect(arc[4].x).toBeCloseTo(want.x, 3);
+    expect(arc[4].y).toBeCloseTo(want.y, 3);
+  });
+
+  it("honours a custom cone width", () => {
+    const m = new PositionMarker(map, { color: "#fff", radius: 6, lineLengthPx: 28, cone: true, coneDeg: 120 });
+    m.update(0, 0, 0);
+    const start = px(map, 0, 0);
+    const arc = conePoints(m)
+      .slice(1)
+      .map((p) => map.project(p, map.getZoom()).subtract(start));
+    const angle = (p: L.Point) => (Math.atan2(p.y, p.x) * 180) / Math.PI;
+    const spread = Math.abs(angle(arc[8]) - angle(arc[0]));
+    expect(Math.min(spread, 360 - spread)).toBeCloseTo(120, 3);
+  });
+
+  it("fades, recolours and removes the cone with the rest of the marker", () => {
+    const m = new PositionMarker(map, { color: "#fff", radius: 6, lineLengthPx: 28, cone: true });
+    m.update(0, 0, 0);
+    expect(m.cone!.options.fillOpacity).toBeCloseTo(0.18);
+    expect(m.cone!.options.stroke).toBe(false);
+    m.setOpacity(0.5);
+    expect(m.cone!.options.fillOpacity).toBeCloseTo(0.09);
+    m.setColor("#123456");
+    expect(m.cone!.options.fillColor).toBe("#123456");
+    expect(map.hasLayer(m.cone!)).toBe(true);
+    m.remove();
+    expect(map.hasLayer(m.cone!)).toBe(false);
+  });
+});

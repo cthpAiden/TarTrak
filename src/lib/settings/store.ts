@@ -14,6 +14,7 @@ export interface Settings {
   lastMap: string | null;
   lastRoom: string;
   lineLengthPx: number;
+  showViewCone: boolean;
   layerFilters: Record<string, boolean>;
   hiddenQuests: Record<string, true>;
 }
@@ -34,6 +35,7 @@ export const DEFAULT_SETTINGS: Settings = {
   lastMap: null,
   lastRoom: "",
   lineLengthPx: 28,
+  showViewCone: true,
   layerFilters: {},
   hiddenQuests: {},
 };
@@ -52,6 +54,7 @@ const SHAPE: Record<keyof Settings, Kind> = {
   lastMap: "string?",
   lastRoom: "string",
   lineLengthPx: "number",
+  showViewCone: "boolean",
   layerFilters: "record",
   hiddenQuests: "record",
 };

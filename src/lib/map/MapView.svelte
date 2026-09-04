@@ -25,6 +25,7 @@
     points,
     showLabels,
     lineLengthPx,
+    showCone,
   }: {
     def: MapDef | null;
     pinnedFloor: string | null;
@@ -34,6 +35,7 @@
     points: MapPoint[];
     showLabels: boolean;
     lineLengthPx: number;
+    showCone: boolean;
   } = $props();
 
   const OWN_COLOR = "#f0b429";
@@ -135,10 +137,11 @@
     if (s && d) showFloor(s, d.svgLayer, group, d.layers.map((l) => l.svgLayer).filter((v): v is string => !!v));
   });
 
-  // A marker bakes its line length in at construction, so a change drops every marker and the two
-  // effects below rebuild them at the new length. untrack: the removal must not track the markers.
+  // A marker bakes its line length and cone in at construction, so a change drops every marker and
+  // the two effects below rebuild them. untrack: the removal must not track the markers.
   $effect(() => {
     void lineLengthPx;
+    void showCone;
     untrack(() => {
       for (const m of mates.values()) m.remove();
       mates = new Map();
@@ -153,8 +156,9 @@
     const t = now;
     const m = map;
     const len = lineLengthPx;
+    const cone = showCone;
     if (!m || !p) return;
-    if (!own) own = new PositionMarker(m, { color: OWN_COLOR, radius: 6, lineLengthPx: len });
+    if (!own) own = new PositionMarker(m, { color: OWN_COLOR, radius: 6, lineLengthPx: len, cone });
     own.update(p.x, p.z, p.yaw);
     own.setOpacity(opacityFor(t - updatedAt));
   });
@@ -165,6 +169,7 @@
     const d = def;
     const m = map;
     const len = lineLengthPx;
+    const cone = showCone;
     if (!m || !d) return;
     const wanted: Teammate[] = Object.values(all).filter((t) => t.map === d.key);
     const ids = new Set(wanted.map((t) => t.id));
@@ -177,7 +182,7 @@
     for (const t of wanted) {
       let marker = mates.get(t.id);
       if (!marker) {
-        marker = new PositionMarker(m, { color: t.color, radius: 6, lineLengthPx: len, label: t.name });
+        marker = new PositionMarker(m, { color: t.color, radius: 6, lineLengthPx: len, label: t.name, cone });
         mates.set(t.id, marker);
       }
       marker.setColor(t.color);
@@ -238,6 +243,10 @@
 
   export function centerOnMe() {
     if (map && app.ownPos) map.panTo(L.latLng(app.ownPos.z, app.ownPos.x));
+  }
+
+  export function centerOn(x: number, z: number) {
+    map?.panTo(toLatLng(x, z));
   }
 
   export function fitMap() {

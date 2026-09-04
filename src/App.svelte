@@ -73,6 +73,11 @@
       : [],
   );
 
+  function focusTeammate(id: string) {
+    const t = app.teammates[id];
+    if (t) mapView?.centerOn(t.x, t.z);
+  }
+
   async function toggleOverlay() {
     const next = !overlay;
     try {
@@ -288,6 +293,7 @@
           {points}
           {showLabels}
           lineLengthPx={settings?.lineLengthPx ?? DEFAULT_SETTINGS.lineLengthPx}
+          showCone={settings?.showViewCone ?? DEFAULT_SETTINGS.showViewCone}
         />
       {:else}
         <div class="empty">Pick a map above, or load into a raid.</div>
@@ -300,7 +306,7 @@
           filters={layerFilters}
           onChange={(f) => patchSettings({ layerFilters: f })}
         />
-        <RoomPanel {settings} onSettingsChange={patchSettings} />
+        <RoomPanel {settings} onSettingsChange={patchSettings} onFocus={focusTeammate} />
         <QuestPanel
           markers={allQuestMarkers}
           playerLevel={settings.playerLevel}

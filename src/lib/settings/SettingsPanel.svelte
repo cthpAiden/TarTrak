@@ -71,6 +71,14 @@
         placeholder="F6"
       />
 
+      <label for="set-cone">View cone</label>
+      <input
+        id="set-cone"
+        type="checkbox"
+        checked={settings.showViewCone}
+        onchange={(e) => onChange({ showViewCone: e.currentTarget.checked })}
+      />
+
       <label for="set-line">Heading line (px)</label>
       <input
         id="set-line"

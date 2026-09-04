@@ -1,11 +1,21 @@
 <script lang="ts">
-  import { untrack } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { room } from "./controller.svelte";
   import { generateRoomCode, isValidRoomCode } from "./protocol";
+  import { squadRows } from "./squad";
+  import { app } from "../state/app.svelte";
+  import { getMapDef } from "../map/mapsData";
   import type { Settings } from "../settings/store";
 
-  let { settings, onSettingsChange }: { settings: Settings; onSettingsChange: (patch: Partial<Settings>) => void } =
-    $props();
+  let {
+    settings,
+    onSettingsChange,
+    onFocus,
+  }: {
+    settings: Settings;
+    onSettingsChange: (patch: Partial<Settings>) => void;
+    onFocus: (id: string) => void;
+  } = $props();
 
   // untrack: these are the editable copies, seeded once from the stored settings.
   let code = $state(untrack(() => settings.lastRoom));
@@ -13,6 +23,27 @@
   let color = $state(untrack(() => settings.color));
 
   const codeOk = $derived(isValidRoomCode(code.toUpperCase()));
+
+  /** Ticks once a second so the ages in the squad list stay current. */
+  let now = $state(Date.now());
+  onMount(() => {
+    const tick = setInterval(() => (now = Date.now()), 1000);
+    return () => clearInterval(tick);
+  });
+
+  const rows = $derived(
+    squadRows(
+      Object.values(app.teammates),
+      app.ownPos ? { map: app.currentMap, x: app.ownPos.x, z: app.ownPos.z } : null,
+      now,
+      (k) => getMapDef(k)?.name ?? null,
+    ),
+  );
+
+  /** The relay accepts any string as a colour, so never let one reach a style attribute unchecked. */
+  function swatch(c: string): string {
+    return /^#[0-9a-fA-F]{3,8}$/.test(c) ? c : "#888888";
+  }
 
   /** The code is persisted only on join, so a half-typed one is never stored. */
   function persistIdentity() {
@@ -46,6 +77,31 @@
     <span class="dot {room.status}" title={room.status}></span>
     <span class="muted">{room.status}</span>
   </div>
+
+  {#if room.code}
+    <h3>Squad</h3>
+    {#if rows.length === 0}
+      <p class="muted small">No teammates yet</p>
+    {:else}
+      <ul class="squad">
+        {#each rows as r (r.id)}
+          <li>
+            <button
+              class="mate"
+              disabled={!r.sameMap}
+              title={r.sameMap ? "Centre the map on " + r.name : ""}
+              onclick={() => onFocus(r.id)}
+            >
+              <span class="swatch" style="background: {swatch(r.color)}"></span>
+              <span class="mate-name">{r.name}</span>
+              <span class="muted">{r.sameMap ? r.distanceM + " m" : (r.mapName ?? "elsewhere")}</span>
+              <span class="muted age">{r.ageSec}s</span>
+            </button>
+          </li>
+        {/each}
+      </ul>
+    {/if}
+  {/if}
 </section>
 
 <style>
@@ -58,4 +114,15 @@
   .dot { width: 10px; height: 10px; border-radius: 50%; background: #c33; display: inline-block; }
   .dot.open { background: #3c3; }
   .dot.connecting { background: #cc3; }
+  h3 { margin: 6px 0 0; font-size: 13px; }
+  .squad { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  .mate {
+    width: 100%; display: grid; grid-template-columns: 10px 1fr auto auto; gap: 6px;
+    align-items: center; text-align: left; font-size: 12px; padding: 2px 4px;
+  }
+  .mate:disabled { cursor: default; }
+  .mate-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .swatch { width: 10px; height: 10px; border-radius: 50%; }
+  .age { min-width: 34px; text-align: right; }
+  .small { font-size: 11px; }
 </style>
