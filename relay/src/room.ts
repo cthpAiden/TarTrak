@@ -20,7 +20,12 @@ export class RoomDO extends DurableObject {
     for (const other of this.ctx.getWebSockets()) {
       if (other === server) continue;
       const att = other.deserializeAttachment() as Attachment | null;
-      if (att?.last) server.send(att.last);
+      if (!att?.last) continue;
+      try {
+        server.send(att.last);
+      } catch {
+        // newcomer socket already gone; nothing to replay
+      }
     }
     return new Response(null, { status: 101, webSocket: client });
   }
@@ -53,6 +58,13 @@ export class RoomDO extends DurableObject {
     const att = ws.deserializeAttachment() as Attachment | null;
     if (!att) return;
     this.broadcast(JSON.stringify({ type: "leave", id: att.id } satisfies ServerMsg), ws);
+    // Clearing the attachment makes the guard above swallow a second call, so a socket
+    // that errors and then closes announces its leave once.
+    try {
+      ws.serializeAttachment(null);
+    } catch {
+      // already gone
+    }
   }
 
   private broadcast(text: string, except: WebSocket): void {

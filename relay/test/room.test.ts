@@ -66,6 +66,11 @@ describe("routing", () => {
     expect((await SELF.fetch(`${BASE}/nope`)).status).toBe(404);
   });
 
+  it("rejects a malformed percent escape with 400, not 500", async () => {
+    const res = await SELF.fetch(`${BASE}/room/%zz`, { headers: { Upgrade: "websocket" } });
+    expect(res.status).toBe(400);
+  });
+
   it("lowercase codes are upgraded to the same room", async () => {
     const a = await connect("ROOMAA");
     const b = await connect("roomaa");
@@ -99,6 +104,7 @@ describe("room relay", () => {
     expect(leave).toEqual({ type: "leave", id: seenByB.id });
     const leaveC = JSON.parse(await c.next());
     expect(leaveC).toEqual({ type: "leave", id: seenByB.id });
+    expect(await b.quiet(200)).toBe(true); // leave is announced once, not repeated
   });
 
   it("does not echo to the sender and drops invalid messages", async () => {

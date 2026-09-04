@@ -10,3 +10,6 @@ class_name = "RoomDO"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["RoomDO"]
+
+[observability]
+enabled = false
