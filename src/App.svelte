@@ -3,6 +3,7 @@
   import { open } from "@tauri-apps/plugin-dialog";
   import { app } from "./lib/state/app.svelte";
   import { startEventBridge } from "./lib/tauri/events";
+  import { setOverlay, applyOpacity, nextOpacity, installAltDrag, registerHotkeys } from "./lib/tauri/window";
   import { detectDirs, startScreenshotWatcher, startLogTail, type DetectedDirs } from "./lib/tauri/commands";
   import { getMapDef } from "./lib/map/mapsData";
   import { DEFAULT_SETTINGS, loadSettings, saveSettings, type Settings } from "./lib/settings/store";
@@ -25,6 +26,9 @@
   let settings = $state<Settings | null>(null);
   let showExtracts = $state(true);
   let mapView = $state<ReturnType<typeof MapView>>();
+  let overlay = $state(false);
+  let opacity = $state(100);
+  let unhookHotkeys: (() => Promise<void>) | null = null;
 
   const def = $derived(app.currentMap ? (getMapDef(app.currentMap) ?? null) : null);
   const allQuestMarkers = $derived(app.questData ? extractQuestMarkers(app.questData) : []);
@@ -33,6 +37,30 @@
     def ? visibleQuestMarkers(allQuestMarkers, def.key, app.doneQuests, settings?.playerLevel ?? 0) : [],
   );
   const extracts = $derived(def ? allExtracts.filter((e) => e.mapKey === def.key) : []);
+
+  async function toggleOverlay() {
+    overlay = !overlay;
+    try {
+      await setOverlay(overlay);
+    } catch (e) {
+      app.toast(`Could not switch overlay mode: ${e}`);
+    }
+  }
+
+  function cycleOpacity() {
+    opacity = nextOpacity(opacity);
+    applyOpacity(opacity);
+  }
+
+  /** Registering can fail when another app already owns the key, which must not break startup. */
+  async function armHotkeys(s: Settings) {
+    try {
+      if (unhookHotkeys) await unhookHotkeys();
+      unhookHotkeys = await registerHotkeys(s.hotkeyOverlay, s.hotkeyOpacity, { toggleOverlay, cycleOpacity });
+    } catch (e) {
+      app.toast(`Could not register hotkeys: ${e}`);
+    }
+  }
 
   function patchSettings(patch: Partial<Settings>) {
     if (!settings) return;
@@ -82,6 +110,9 @@
     if (patch.relayUrl !== undefined && patch.relayUrl !== before.relayUrl && room.code) {
       room.join(room.code, after.name, after.color, after.relayUrl);
     }
+    if (after.hotkeyOverlay !== before.hotkeyOverlay || after.hotkeyOpacity !== before.hotkeyOpacity) {
+      await armHotkeys(after);
+    }
   }
 
   async function pickDir(kind: "screenshots" | "logs") {
@@ -96,6 +127,7 @@
 
   onMount(() => {
     let stop: (() => void) | undefined;
+    const stopDrag = installAltDrag();
     // Each phase is isolated: a failure in one must not stop the others from starting.
     (async () => {
       stop = await startEventBridge();
@@ -103,6 +135,7 @@
       const s = await loadSettings();
       settings = s;
       if (s.lastMap && !app.currentMap) app.setMap(s.lastMap, "manual");
+      await armHotkeys(s);
 
       try {
         app.setDone(await loadDone());
@@ -125,7 +158,11 @@
       await useDir("screenshots", s.screenshotsDir, dirs.screenshots);
       await useDir("logs", s.logsDir, dirs.logs);
     })().catch((e) => app.toast(`Startup error: ${e}`));
-    return () => stop?.();
+    return () => {
+      stop?.();
+      stopDrag();
+      void unhookHotkeys?.();
+    };
   });
 
   $effect(() => {
@@ -155,6 +192,8 @@
     {/if}
     <button onclick={() => mapView?.centerOnMe()} disabled={!app.ownPos}>Center</button>
     <button onclick={() => mapView?.fitMap()} disabled={!def}>Fit</button>
+    <button onclick={toggleOverlay}>{overlay ? "Window" : "Overlay"}</button>
+    <button onclick={cycleOpacity}>{opacity}%</button>
   </header>
 
   {#if !screenshotsDir}
