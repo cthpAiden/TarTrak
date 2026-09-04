@@ -1,7 +1,7 @@
 import { BaseDirectory, exists, mkdir, readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { fetchQuestData } from "./query";
 import { bundledSnapshot } from "./snapshot";
-import type { QuestData } from "./types";
+import { QUEST_SCHEMA_VERSION, type QuestData } from "./types";
 
 export const CACHE_PATH = "quests/data.json";
 export const MAX_AGE_MS = 86_400_000;
@@ -20,6 +20,7 @@ export interface QuestLoaderDeps {
 export function isQuestData(v: unknown): v is QuestData {
   if (typeof v !== "object" || v === null) return false;
   const d = v as Record<string, unknown>;
+  if (d.schemaVersion !== QUEST_SCHEMA_VERSION) return false;
   return Array.isArray(d.tasks) && Array.isArray(d.maps) && typeof d.fetchedAt === "number";
 }
 

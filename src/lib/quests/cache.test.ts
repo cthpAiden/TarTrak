@@ -1,8 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
 import { isQuestData, loadQuestData, MAX_AGE_MS, type QuestLoaderDeps } from "./cache";
-import type { QuestData } from "./types";
+import { QUEST_SCHEMA_VERSION, type QuestData } from "./types";
 
 const d = (fetchedAt: number, tag: string): QuestData => ({
+  schemaVersion: QUEST_SCHEMA_VERSION,
   fetchedAt,
   tasks: [{ id: tag, name: tag, trader: { name: "T" }, minPlayerLevel: 1, objectives: [] }],
   maps: [],
@@ -71,16 +72,22 @@ describe("loadQuestData", () => {
 describe("isQuestData", () => {
   it("accepts a well-formed payload", () => {
     expect(isQuestData(d(1, "ok"))).toBe(true);
-    expect(isQuestData({ tasks: [], maps: [], fetchedAt: 0 })).toBe(true);
+    expect(isQuestData({ schemaVersion: QUEST_SCHEMA_VERSION, tasks: [], maps: [], fetchedAt: 0 })).toBe(true);
   });
 
   it("rejects anything the app would choke on", () => {
     expect(isQuestData(null)).toBe(false);
     expect(isQuestData("{}")).toBe(false);
     expect(isQuestData({})).toBe(false);
-    expect(isQuestData({ tasks: [], maps: [] })).toBe(false);
-    expect(isQuestData({ tasks: [], maps: [], fetchedAt: "1" })).toBe(false);
-    expect(isQuestData({ tasks: {}, maps: [], fetchedAt: 1 })).toBe(false);
-    expect(isQuestData({ tasks: [], maps: null, fetchedAt: 1 })).toBe(false);
+    expect(isQuestData({ schemaVersion: QUEST_SCHEMA_VERSION, tasks: [], maps: [] })).toBe(false);
+    expect(isQuestData({ schemaVersion: QUEST_SCHEMA_VERSION, tasks: [], maps: [], fetchedAt: "1" })).toBe(false);
+    expect(isQuestData({ schemaVersion: QUEST_SCHEMA_VERSION, tasks: {}, maps: [], fetchedAt: 1 })).toBe(false);
+    expect(isQuestData({ schemaVersion: QUEST_SCHEMA_VERSION, tasks: [], maps: null, fetchedAt: 1 })).toBe(false);
+  });
+
+  it("rejects data without the current schemaVersion", () => {
+    expect(isQuestData({ tasks: [], maps: [], fetchedAt: 1 })).toBe(false);
+    expect(isQuestData({ schemaVersion: 1, tasks: [], maps: [], fetchedAt: 1 })).toBe(false);
+    expect(isQuestData({ schemaVersion: QUEST_SCHEMA_VERSION, tasks: [], maps: [], fetchedAt: 1 })).toBe(true);
   });
 });

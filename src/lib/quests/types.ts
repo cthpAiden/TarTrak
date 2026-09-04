@@ -1,3 +1,5 @@
+export const QUEST_SCHEMA_VERSION = 2;
+
 export interface Vec3 {
   x: number;
   y: number;
@@ -28,13 +30,56 @@ export interface MapExtract {
   faction: string;
   position: Vec3 | null;
 }
+export interface MapTransit {
+  id: string;
+  description: string;
+  position: Vec3 | null;
+}
+export interface MapSpawn {
+  zoneName: string | null;
+  position: Vec3 | null;
+  sides: string[];
+  categories: string[];
+}
+export interface MapLootContainer {
+  lootContainer: { id: string; name: string; normalizedName: string };
+  position: Vec3 | null;
+}
+export interface MapLock {
+  lockType: string;
+  key: { name: string } | null;
+  position: Vec3 | null;
+}
+export interface MapHazard {
+  hazardType: string;
+  name: string;
+  position: Vec3 | null;
+}
+export interface MapSwitch {
+  id: string;
+  name: string;
+  position: Vec3 | null;
+}
+export interface MapBtrStation {
+  id: string;
+  name: string;
+  position: Vec3 | null;
+}
 export interface MapInfo {
   id: string;
   name: string;
   normalizedName: string;
   extracts: MapExtract[];
+  transits?: MapTransit[] | null;
+  spawns?: MapSpawn[] | null;
+  lootContainers?: MapLootContainer[] | null;
+  locks?: MapLock[] | null;
+  hazards?: MapHazard[] | null;
+  switches?: MapSwitch[] | null;
+  btrStations?: MapBtrStation[] | null;
 }
 export interface QuestData {
+  schemaVersion: number;
   tasks: QuestTask[];
   maps: MapInfo[];
   fetchedAt: number;

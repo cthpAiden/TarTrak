@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { extractQuestMarkers, extractExtracts } from "./markers";
-import type { QuestData } from "./types";
+import { QUEST_SCHEMA_VERSION, type QuestData } from "./types";
 
 const data: QuestData = {
+  schemaVersion: QUEST_SCHEMA_VERSION,
   fetchedAt: 1,
   maps: [
     {

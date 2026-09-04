@@ -1,5 +1,5 @@
 import { fetch } from "@tauri-apps/plugin-http";
-import type { QuestData, MapInfo, QuestTask } from "./types";
+import { QUEST_SCHEMA_VERSION, type QuestData, type MapInfo, type QuestTask } from "./types";
 
 export const TARKOV_DEV_GRAPHQL = "https://api.tarkov.dev/graphql";
 
@@ -19,6 +19,13 @@ export const QUEST_QUERY = `{
   maps(gameMode: regular, lang: en) {
     id name normalizedName
     extracts { id name faction position { x y z } }
+    transits { id description position { x y z } }
+    spawns { zoneName position { x y z } sides categories }
+    lootContainers { lootContainer { id name normalizedName } position { x y z } }
+    locks { lockType key { name } position { x y z } }
+    hazards { hazardType name position { x y z } }
+    switches { id name position { x y z } }
+    btrStations { id name position { x y z } }
   }
 }`;
 
@@ -34,5 +41,5 @@ export async function fetchQuestData(post: (url: string, body: string) => Promis
   if (!json.data?.tasks || !json.data.maps) {
     throw new Error(`tarkov.dev returned no data: ${JSON.stringify(json.errors ?? json).slice(0, 200)}`);
   }
-  return { tasks: json.data.tasks, maps: json.data.maps, fetchedAt: Date.now() };
+  return { schemaVersion: QUEST_SCHEMA_VERSION, tasks: json.data.tasks, maps: json.data.maps, fetchedAt: Date.now() };
 }

@@ -17,6 +17,13 @@ const QUERY = `{
   maps(gameMode: regular, lang: en) {
     id name normalizedName
     extracts { id name faction position { x y z } }
+    transits { id description position { x y z } }
+    spawns { zoneName position { x y z } sides categories }
+    lootContainers { lootContainer { id name normalizedName } position { x y z } }
+    locks { lockType key { name } position { x y z } }
+    hazards { hazardType name position { x y z } }
+    switches { id name position { x y z } }
+    btrStations { id name position { x y z } }
   }
 }`;
 
@@ -33,5 +40,5 @@ if (!res.ok || !json.data) {
 mkdirSync("data/snapshot", { recursive: true });
 writeFileSync("data/snapshot/tasks.json", JSON.stringify(json.data.tasks));
 writeFileSync("data/snapshot/maps.json", JSON.stringify(json.data.maps));
-writeFileSync("data/snapshot/meta.json", JSON.stringify({ fetchedAt: Date.now() }));
+writeFileSync("data/snapshot/meta.json", JSON.stringify({ fetchedAt: Date.now(), schemaVersion: 2 }));
 console.log(`snapshot: ${json.data.tasks.length} tasks, ${json.data.maps.length} maps`);

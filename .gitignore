@@ -11,3 +11,4 @@ data/cache/
 src-tauri/target/
 src-tauri/gen/schemas/
 !tests/fixtures/*.log
+.superpowers/
