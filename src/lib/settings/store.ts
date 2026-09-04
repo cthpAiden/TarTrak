@@ -1,4 +1,5 @@
 import { load } from "@tauri-apps/plugin-store";
+import { FILTER_KEY_RE } from "../layers/filters";
 
 export interface Settings {
   screenshotsDir: string | null;
@@ -13,6 +14,8 @@ export interface Settings {
   lastMap: string | null;
   lastRoom: string;
   lineLengthPx: number;
+  layerFilters: Record<string, boolean>;
+  hiddenQuests: Record<string, true>;
 }
 
 /** Default relay: the project-hosted Cloudflare Worker (relay/). Overridable in Settings. */
@@ -31,9 +34,11 @@ export const DEFAULT_SETTINGS: Settings = {
   lastMap: null,
   lastRoom: "",
   lineLengthPx: 28,
+  layerFilters: {},
+  hiddenQuests: {},
 };
 
-type Kind = "string" | "number" | "boolean" | "string?";
+type Kind = "string" | "number" | "boolean" | "string?" | "record";
 const SHAPE: Record<keyof Settings, Kind> = {
   screenshotsDir: "string?",
   logsDir: "string?",
@@ -47,11 +52,14 @@ const SHAPE: Record<keyof Settings, Kind> = {
   lastMap: "string?",
   lastRoom: "string",
   lineLengthPx: "number",
+  layerFilters: "record",
+  hiddenQuests: "record",
 };
 
 function accepts(kind: Kind, v: unknown): boolean {
   if (kind === "string?") return v === null || typeof v === "string";
   if (kind === "number") return typeof v === "number" && Number.isFinite(v);
+  if (kind === "record") return typeof v === "object" && v !== null && !Array.isArray(v);
   return typeof v === kind;
 }
 
@@ -60,6 +68,27 @@ function clamp(n: number, lo: number, hi: number): number {
 }
 
 const ROOM_CODE_RE = /^[A-Z0-9]{6}$|^$/;
+
+const MAX_FILTERS = 500;
+const MAX_HIDDEN_QUESTS = 2000;
+
+/** Any bad key or value resets the whole record: a partial filter set is more confusing than none. */
+function cleanRecord<T>(
+  v: Record<string, unknown>,
+  max: number,
+  ok: (key: string, value: unknown) => boolean,
+): Record<string, T> {
+  const out: Record<string, T> = {};
+  let n = 0;
+  for (const [k, val] of Object.entries(v)) {
+    if (!ok(k, val)) return {};
+    if (n < max) {
+      out[k] = val as T;
+      n++;
+    }
+  }
+  return out;
+}
 
 export function mergeSettings(partial: unknown): Settings {
   const out: Settings = { ...DEFAULT_SETTINGS };
@@ -77,6 +106,12 @@ export function mergeSettings(partial: unknown): Settings {
   out.lineLengthPx = clamp(out.lineLengthPx, 8, 120);
   out.playerLevel = clamp(out.playerLevel, 0, 79);
   if (!ROOM_CODE_RE.test(out.lastRoom)) out.lastRoom = "";
+  out.layerFilters = cleanRecord<boolean>(
+    out.layerFilters,
+    MAX_FILTERS,
+    (k, v) => typeof v === "boolean" && FILTER_KEY_RE.test(k),
+  );
+  out.hiddenQuests = cleanRecord<true>(out.hiddenQuests, MAX_HIDDEN_QUESTS, (_k, v) => v === true);
   return out;
 }
 

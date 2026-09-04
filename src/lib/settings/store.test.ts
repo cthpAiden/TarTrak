@@ -46,6 +46,44 @@ describe("mergeSettings", () => {
     expect(mergeSettings({ playerLevel: 42 }).playerLevel).toBe(42);
   });
 
+  it("defaults layerFilters and hiddenQuests to empty objects", () => {
+    expect(mergeSettings(undefined).layerFilters).toEqual({});
+    expect(mergeSettings(undefined).hiddenQuests).toEqual({});
+  });
+
+  it("keeps valid layer filter keys", () => {
+    const s = mergeSettings({ layerFilters: { loot: true, "loot/safe": false } });
+    expect(s.layerFilters).toEqual({ loot: true, "loot/safe": false });
+  });
+
+  it("resets layerFilters that are not a flat boolean record with valid keys", () => {
+    expect(mergeSettings({ layerFilters: { loot: "yes" } }).layerFilters).toEqual({});
+    expect(mergeSettings({ layerFilters: [] }).layerFilters).toEqual({});
+    expect(mergeSettings({ layerFilters: { "a/b/c": true } }).layerFilters).toEqual({});
+  });
+
+  it("truncates layerFilters to the first 500 keys", () => {
+    const many: Record<string, boolean> = {};
+    for (let i = 0; i < 501; i++) many[`g/k${i}`] = true;
+    const kept = mergeSettings({ layerFilters: many }).layerFilters;
+    expect(Object.keys(kept)).toHaveLength(500);
+    expect(kept["g/k0"]).toBe(true);
+    expect(kept["g/k499"]).toBe(true);
+    expect(kept["g/k500"]).toBeUndefined();
+  });
+
+  it("keeps hiddenQuests of true, resets anything else, and truncates to 2000", () => {
+    expect(mergeSettings({ hiddenQuests: { t1: true } }).hiddenQuests).toEqual({ t1: true });
+    expect(mergeSettings({ hiddenQuests: { t1: false } }).hiddenQuests).toEqual({});
+    expect(mergeSettings({ hiddenQuests: [] }).hiddenQuests).toEqual({});
+    const many: Record<string, true> = {};
+    for (let i = 0; i < 2001; i++) many[`t${i}`] = true;
+    const kept = mergeSettings({ hiddenQuests: many }).hiddenQuests;
+    expect(Object.keys(kept)).toHaveLength(2000);
+    expect(kept["t0"]).toBe(true);
+    expect(kept["t2000"]).toBeUndefined();
+  });
+
   it("rejects a last room that is not a room code", () => {
     expect(mergeSettings({ lastRoom: "ABC123" }).lastRoom).toBe("ABC123");
     expect(mergeSettings({ lastRoom: "" }).lastRoom).toBe("");
