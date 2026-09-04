@@ -115,6 +115,21 @@ describe("RoomClient", () => {
     expect(ws.sent.map((s) => JSON.parse(s).type)).toEqual(["hello", "pos"]);
   });
 
+  it("re-sends the last position after a reconnect", () => {
+    const { client } = make();
+    client.connect();
+    const first = FakeWs.instances[0];
+    first.open();
+    client.sendPosition("customs", { x: 7, y: 0, z: 0, yaw: 0 });
+    expect(first.sent.map((s) => JSON.parse(s).type)).toEqual(["hello", "pos"]);
+    first.drop();
+    vi.advanceTimersByTime(1000);
+    const second = FakeWs.instances[1];
+    second.open();
+    expect(second.sent.map((s) => JSON.parse(s).type)).toEqual(["hello", "pos"]);
+    expect(JSON.parse(second.sent[1])).toMatchObject({ type: "pos", map: "customs", x: 7 });
+  });
+
   it("reconnects with doubling backoff capped at 30 s and stops after close()", () => {
     const { client, statuses } = make();
     client.connect();

@@ -47,6 +47,7 @@ export class RoomClient {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private throttleTimer: ReturnType<typeof setTimeout> | null = null;
   private pending: PosMsg | null = null;
+  private lastPos: PosMsg | null = null;
   private lastSentAt = -Infinity;
   private stopped = false;
   private currentStatus: RoomStatus = "closed";
@@ -88,6 +89,7 @@ export class RoomClient {
       yaw: p.yaw,
       ts: this.now(),
     };
+    this.lastPos = this.pending;
     this.flush();
   }
 
@@ -149,6 +151,9 @@ export class RoomClient {
       this.setStatus("open");
       const hello: HelloMsg = { type: "hello", name: this.opts.name, color: this.opts.color };
       ws.send(JSON.stringify(hello));
+      // The reconnect got a fresh relay id, so the room only knows the new us once we say where
+      // we are; waiting for the next screenshot would leave a gap in everyone else's map.
+      this.pending ??= this.lastPos;
       this.flush();
     };
     ws.onmessage = (ev) => {
