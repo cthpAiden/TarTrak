@@ -23,7 +23,7 @@ export function questCategory(objectiveType: string): QuestCategory {
   return "other";
 }
 
-const GLYPHS: Record<QuestCategory, string> = {
+export const QUEST_GLYPHS: Record<QuestCategory, string> = {
   visit: "◎",
   questItem: "★",
   mark: "⚑",
@@ -32,7 +32,7 @@ const GLYPHS: Record<QuestCategory, string> = {
 };
 
 export function iconFor(objectiveType: string): string {
-  return GLYPHS[questCategory(objectiveType)];
+  return QUEST_GLYPHS[questCategory(objectiveType)];
 }
 
 export function visibleQuestMarkers(

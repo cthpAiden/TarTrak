@@ -39,7 +39,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 /** Canvas paths ignore CSS classes, so circle markers need the colour as an option. */
-export function colorFor(p: MapPoint): string {
+export function colorFor(p: { group: GroupId; category: string }): string {
   return CATEGORY_COLORS[filterKey(p)] ?? GROUP_COLORS[p.group];
 }
 

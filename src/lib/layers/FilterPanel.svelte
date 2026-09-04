@@ -2,8 +2,9 @@
   // MapView owns the same import, but the panel renders before a map is picked.
   import "../map/map.css";
   import { isOn, setCategory, setGroup, type Filters } from "./filters";
-  import { GLYPHS } from "./pointLayer";
+  import { GLYPHS, colorFor, usesCanvas } from "./pointLayer";
   import type { GroupId } from "./points";
+  import { QUEST_GLYPHS, type QuestCategory } from "../quests/questLayer";
   import type { CategoryCount, GroupCount } from "./counts";
 
   let {
@@ -11,15 +12,6 @@
     filters,
     onChange,
   }: { counts: GroupCount[]; filters: Filters; onChange: (f: Filters) => void } = $props();
-
-  // Duplicated from questLayer.ts, whose glyph map is keyed by objective type and not exported.
-  const QUEST_GLYPHS: Record<string, string> = {
-    visit: "◎",
-    questItem: "★",
-    mark: "⚑",
-    item: "▣",
-    other: "•",
-  };
 
   let search = $state("");
   let collapsed = $state<Record<string, boolean>>({
@@ -31,8 +23,13 @@
     btr: true,
   });
 
+  // Canvas groups have no glyph on the map, so the panel shows a dot in the marker colour instead.
   function glyph(c: CategoryCount): string {
-    return c.group === "quests" ? (QUEST_GLYPHS[c.category] ?? "•") : GLYPHS[c.group as GroupId];
+    if (c.group === "quests") return QUEST_GLYPHS[c.category as QuestCategory] ?? "•";
+    return usesCanvas(c.group as GroupId) ? "●" : GLYPHS[c.group as GroupId];
+  }
+  function color(c: CategoryCount): string {
+    return c.group === "quests" ? "" : `color: ${colorFor({ group: c.group as GroupId, category: c.category })}`;
   }
 
   const shownGroups = $derived.by(() => {
@@ -79,7 +76,7 @@
                   checked={isOn(filters, c.group, c.category)}
                   onchange={(e) => onChange(setCategory(filters, c.group, c.category, e.currentTarget.checked))}
                 />
-                <span class="point-icon {c.group} {c.category}"><span>{glyph(c)}</span></span>
+                <span class="point-icon {c.group} {c.category}"><span style={color(c)}>{glyph(c)}</span></span>
                 <span class="label">{c.label}</span>
                 <span class="cnt">{c.shown}/{c.total}</span>
               </li>
