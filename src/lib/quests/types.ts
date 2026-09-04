@@ -1,4 +1,4 @@
-export const QUEST_SCHEMA_VERSION = 3;
+export const QUEST_SCHEMA_VERSION = 4;
 
 export interface Vec3 {
   x: number;
@@ -47,10 +47,12 @@ export interface MapLootContainer {
 }
 export interface MapLootLoose {
   position: Vec3 | null;
+  /** Item names, deduplicated, in source order. */
   items: string[];
 }
 export interface MapLock {
   lockType: string;
+  /** Name of the key that opens it, null when the lock needs none. */
   key: string | null;
   position: Vec3 | null;
 }
@@ -60,6 +62,17 @@ export interface MapHazard {
   position: Vec3 | null;
 }
 export interface MapSwitch {
+  id: string;
+  name: string;
+  position: Vec3 | null;
+}
+export interface MapBoss {
+  name: string;
+  normalizedName: string;
+  spawnChance: number;
+  spawnKeys: string[];
+}
+export interface MapStationaryWeapon {
   id: string;
   name: string;
   position: Vec3 | null;
@@ -82,6 +95,8 @@ export interface MapInfo {
   hazards?: MapHazard[] | null;
   switches?: MapSwitch[] | null;
   btrStations?: MapBtrStation[] | null;
+  bosses?: MapBoss[] | null;
+  stationaryWeapons?: MapStationaryWeapon[] | null;
 }
 export interface QuestData {
   schemaVersion: number;

@@ -2,6 +2,7 @@
 // user-facing string held as a translation key that the matching `*_en` file resolves.
 import { QUEST_SCHEMA_VERSION } from "./types.ts";
 import type {
+  MapBoss,
   MapBtrStation,
   MapExtract,
   MapHazard,
@@ -10,6 +11,7 @@ import type {
   MapLootContainer,
   MapLootLoose,
   MapSpawn,
+  MapStationaryWeapon,
   MapSwitch,
   MapTransit,
   QuestData,
@@ -20,7 +22,7 @@ import type {
 } from "./types.ts";
 
 export const JSON_TARKOV_DEV = "https://json.tarkov.dev/regular";
-export const JSON_FILES = ["maps", "maps_en", "tasks", "tasks_en", "traders", "traders_en"] as const;
+export const JSON_FILES = ["maps", "maps_en", "tasks", "tasks_en", "traders", "traders_en", "items_en"] as const;
 
 export interface RawBundle {
   maps: unknown;
@@ -29,6 +31,7 @@ export interface RawBundle {
   tasksEn: unknown;
   traders: unknown;
   tradersEn: unknown;
+  itemsEn: unknown;
 }
 
 /** `en[key]` when it is a non-empty string, else `key` itself. */
@@ -65,6 +68,20 @@ function str(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
 }
 
+function num(value: unknown, fallback = 0): number {
+  return typeof value === "number" ? value : fallback;
+}
+
+/** Item display name: items_en, then maps_en (which holds the stationary guns), else the id. */
+function itemName(itemsEn: Record<string, unknown>, mapsEn: Record<string, unknown>, id: string): string {
+  const key = `${id} Name`;
+  for (const source of [itemsEn, mapsEn]) {
+    const value = source[key];
+    if (typeof value === "string" && value !== "") return value;
+  }
+  return id;
+}
+
 function strings(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
 }
@@ -93,10 +110,16 @@ function toTask(t: Dict, tasksEn: Record<string, unknown>, traders: Dict, trader
   };
 }
 
-function toMap(m: Dict, mapsEn: Record<string, unknown>, containers: Dict): MapInfo {
+function toMap(
+  m: Dict,
+  mapsEn: Record<string, unknown>,
+  itemsEn: Record<string, unknown>,
+  containers: Dict,
+  mobs: Dict,
+): MapInfo {
   const extracts: MapExtract[] = list(m.extracts).map((e) => ({
     id: str(e.id),
-    name: str(e.name),
+    name: tr(mapsEn, str(e.name)),
     faction: str(e.faction),
     position: pos(e.position),
   }));
@@ -123,10 +146,13 @@ function toMap(m: Dict, mapsEn: Record<string, unknown>, containers: Dict): MapI
       position: pos(c.position),
     };
   });
-  const lootLoose: MapLootLoose[] = list(m.lootLoose).map((l) => ({ position: pos(l.position), items: strings(l.items) }));
+  const lootLoose: MapLootLoose[] = list(m.lootLoose).map((l) => ({
+    position: pos(l.position),
+    items: [...new Set(strings(l.items).map((id) => itemName(itemsEn, mapsEn, id)))],
+  }));
   const locks: MapLock[] = list(m.locks).map((l) => ({
     lockType: str(l.lockType),
-    key: typeof l.key === "string" ? l.key : null,
+    key: typeof l.key === "string" ? itemName(itemsEn, mapsEn, l.key) : null,
     position: pos(l.position),
   }));
   const hazards: MapHazard[] = list(m.hazards).map((h) => ({
@@ -134,12 +160,29 @@ function toMap(m: Dict, mapsEn: Record<string, unknown>, containers: Dict): MapI
     name: tr(mapsEn, str(h.name)),
     position: pos(h.position),
   }));
-  const switches: MapSwitch[] = list(m.switches).map((s) => ({ id: str(s.id), name: str(s.name), position: pos(s.position) }));
+  const switches: MapSwitch[] = list(m.switches).map((s) => ({
+    id: str(s.id),
+    name: tr(mapsEn, str(s.name)),
+    position: pos(s.position),
+  }));
   const btrStations: MapBtrStation[] = list(m.btrStops).map((b) => ({
     id: str(b.name),
     name: tr(mapsEn, str(b.name)),
     position: { x: b.x as number, y: b.y as number, z: b.z as number },
   }));
+  const bosses: MapBoss[] = list(m.bosses).map((b) => {
+    const mob = dict(mobs[str(b.mob)]);
+    return {
+      name: tr(mapsEn, str(mob.name, str(b.mob))),
+      normalizedName: str(mob.normalizedName, str(b.mob)),
+      spawnChance: num(b.spawnChance),
+      spawnKeys: [...new Set(list(b.spawnLocations).map((sl) => str(sl.spawnKey)))],
+    };
+  });
+  const stationaryWeapons: MapStationaryWeapon[] = list(m.stationaryWeapons).map((w) => {
+    const id = str(w.stationaryWeapon);
+    return { id, name: itemName(itemsEn, mapsEn, id), position: pos(w.position) };
+  });
   return {
     id: str(m.id),
     name: tr(mapsEn, str(m.name)),
@@ -153,6 +196,8 @@ function toMap(m: Dict, mapsEn: Record<string, unknown>, containers: Dict): MapI
     hazards,
     switches,
     btrStations,
+    bosses,
+    stationaryWeapons,
   };
 }
 
@@ -160,15 +205,17 @@ export function toQuestData(raw: RawBundle, now: number): QuestData {
   const mapsData = need(dict(raw.maps).data, "maps.data");
   const rawMaps = need(mapsData.maps, "maps.data.maps");
   const containers = dict(mapsData.lootContainers);
+  const mobs = dict(mapsData.mobs);
   const rawTasks = need(need(dict(raw.tasks).data, "tasks.data").tasks, "tasks.data.tasks");
   const traders = need(dict(raw.traders).data, "traders.data");
   const mapsEn = en(raw.mapsEn);
   const tasksEn = en(raw.tasksEn);
   const tradersEn = en(raw.tradersEn);
+  const itemsEn = en(raw.itemsEn);
   return {
     schemaVersion: QUEST_SCHEMA_VERSION,
     tasks: Object.values(rawTasks).map((t) => toTask(dict(t), tasksEn, traders, tradersEn)),
-    maps: Object.values(rawMaps).map((m) => toMap(dict(m), mapsEn, containers)),
+    maps: Object.values(rawMaps).map((m) => toMap(dict(m), mapsEn, itemsEn, containers, mobs)),
     fetchedAt: now,
   };
 }

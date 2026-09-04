@@ -10,6 +10,7 @@ const bodies: Record<string, unknown> = {
   tasks_en: { data: { "t1 name": "Debut" } },
   traders: { data: { tr1: { id: "tr1", name: "tr1 Nickname", normalizedName: "prapor" } } },
   traders_en: { data: { "tr1 Nickname": "Prapor" } },
+  items_en: { data: { "k1 Name": "Factory emergency exit key" } },
 };
 
 const get = async (url: string): Promise<string> => {
@@ -20,12 +21,13 @@ const get = async (url: string): Promise<string> => {
 };
 
 describe("fetchQuestData", () => {
-  it("requests the six json.tarkov.dev files and adapts them", async () => {
+  it("requests the seven json.tarkov.dev files and adapts them", async () => {
     const seen: string[] = [];
     const d = await fetchQuestData((url) => {
       seen.push(url);
       return get(url);
     });
+    expect(seen).toHaveLength(7);
     expect(seen.sort()).toEqual(JSON_FILES.map((f) => `${JSON_TARKOV_DEV}/${f}`).sort());
     expect(d.schemaVersion).toBe(QUEST_SCHEMA_VERSION);
     expect(d.maps.map((m) => m.name)).toEqual(["Factory"]);

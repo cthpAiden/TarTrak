@@ -9,9 +9,9 @@ async function defaultGet(url: string): Promise<string> {
 }
 
 export async function fetchQuestData(get: (url: string) => Promise<string> = defaultGet): Promise<QuestData> {
-  const [maps, mapsEn, tasks, tasksEn, traders, tradersEn] = await Promise.all(
+  const [maps, mapsEn, tasks, tasksEn, traders, tradersEn, itemsEn] = await Promise.all(
     JSON_FILES.map(async (file) => JSON.parse(await get(`${JSON_TARKOV_DEV}/${file}`)) as unknown),
   );
-  const bundle: RawBundle = { maps, mapsEn, tasks, tasksEn, traders, tradersEn };
+  const bundle: RawBundle = { maps, mapsEn, tasks, tasksEn, traders, tradersEn, itemsEn };
   return toQuestData(bundle, Date.now());
 }

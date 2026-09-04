@@ -13,8 +13,8 @@ const bodies = await Promise.all(
     return (await res.json()) as unknown;
   }),
 );
-const [maps, mapsEn, tasks, tasksEn, traders, tradersEn] = bodies;
-const bundle: RawBundle = { maps, mapsEn, tasks, tasksEn, traders, tradersEn };
+const [maps, mapsEn, tasks, tasksEn, traders, tradersEn, itemsEn] = bodies;
+const bundle: RawBundle = { maps, mapsEn, tasks, tasksEn, traders, tradersEn, itemsEn };
 const data = toQuestData(bundle, Date.now());
 
 mkdirSync("data/snapshot", { recursive: true });
