@@ -13,7 +13,7 @@
   import { questDivIcon, questPopupHtml, esc } from "../quests/questLayer";
   import type { QuestMarker } from "../quests/markers";
   import type { MapPoint } from "../layers/points";
-  import { colorFor, pointDivIcon, pointPopupHtml, usesCanvas } from "../layers/pointLayer";
+  import { pointIcon, pointPopupHtml } from "../layers/pointLayer";
   import { labelDivIcon } from "./labels";
 
   let {
@@ -50,7 +50,6 @@
   let questGroup = $state<L.LayerGroup | null>(null);
   let pointGroup = $state<L.LayerGroup | null>(null);
   let labelGroup = $state<L.LayerGroup | null>(null);
-  let canvas = L.canvas({ padding: 0.5 });
   /** Bumped by every destroy(); a build whose generation is stale drops its result. */
   let gen = 0;
   let message = $state("");
@@ -88,12 +87,8 @@
     m.fitBounds(boundsOf(d));
     map = m;
     questGroup = L.layerGroup().addTo(m);
-    // Own panes above the overlay pane (400): the SVG map is added later, and in a shared pane it
-    // would land on top of the canvas and hide every circle marker.
-    m.createPane("points").style.zIndex = "450";
+    // Own pane above the overlay pane (400) so the SVG map, added later, cannot cover the labels.
     m.createPane("labels").style.zIndex = "460";
-    // Fresh renderer per map; assigned before pointGroup so the point effect sees the new one.
-    canvas = L.canvas({ padding: 0.5, pane: "points" });
     pointGroup = L.layerGroup().addTo(m);
     labelGroup = L.layerGroup().addTo(m);
     if (!d.svgPath) {
@@ -207,18 +202,7 @@
     if (!g) return;
     g.clearLayers();
     for (const p of all) {
-      const ll = toLatLng(p.x, p.z);
-      const layer = usesCanvas(p.group)
-        ? L.circleMarker(ll, {
-            renderer: canvas,
-            radius: 4,
-            className: `point-canvas ${p.group} ${p.category}`,
-            color: colorFor(p),
-            fillColor: colorFor(p),
-            fillOpacity: 0.9,
-            weight: 1,
-          })
-        : L.marker(ll, { icon: pointDivIcon(p) });
+      const layer = L.marker(toLatLng(p.x, p.z), { icon: pointIcon(p) });
       layer.bindTooltip(esc(p.name)).bindPopup(pointPopupHtml(p)).addTo(g);
     }
   });

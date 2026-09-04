@@ -2,7 +2,7 @@
   // MapView owns the same import, but the panel renders before a map is picked.
   import "../map/map.css";
   import { isOn, setCategory, setGroup, type Filters } from "./filters";
-  import { GLYPHS, colorFor, usesCanvas } from "./pointLayer";
+  import { iconUrl } from "./pointLayer";
   import type { GroupId } from "./points";
   import { QUEST_GLYPHS, type QuestCategory } from "../quests/questLayer";
   import type { CategoryCount, GroupCount } from "./counts";
@@ -23,14 +23,12 @@
     btr: true,
   });
 
-  // Canvas groups have no glyph on the map, so the panel shows a dot in the marker colour instead.
+  // Labels and quests are pseudo-groups without a picture; every real group shows its map icon.
   function glyph(c: CategoryCount): string {
-    if (c.group === "labels") return "Aa";
-    if (c.group === "quests") return QUEST_GLYPHS[c.category as QuestCategory] ?? "•";
-    return usesCanvas(c.group as GroupId) ? "●" : GLYPHS[c.group as GroupId];
+    return c.group === "labels" ? "Aa" : QUEST_GLYPHS[c.category as QuestCategory] ?? "•";
   }
-  function color(c: CategoryCount): string {
-    return c.group === "quests" || c.group === "labels" ? "" : `color: ${colorFor({ group: c.group as GroupId, category: c.category })}`;
+  function isPseudo(c: CategoryCount): boolean {
+    return c.group === "labels" || c.group === "quests";
   }
 
   const empty = $derived(counts.every((g) => g.total === 0));
@@ -80,7 +78,11 @@
                   checked={isOn(filters, c.group, c.category)}
                   onchange={(e) => onChange(setCategory(filters, c.group, c.category, e.currentTarget.checked))}
                 />
-                <span class="point-icon {c.group} {c.category}"><span style={color(c)}>{glyph(c)}</span></span>
+                {#if isPseudo(c)}
+                  <span class="row-icon glyph">{glyph(c)}</span>
+                {:else}
+                  <img class="row-icon" alt="" src={iconUrl({ group: c.group as GroupId, category: c.category })} />
+                {/if}
                 <span class="label">{c.label}</span>
                 <span class="cnt">{c.shown}/{c.total}</span>
               </li>
@@ -106,5 +108,6 @@
   .cnt { color: var(--muted); font-size: 11px; }
   ul { list-style: none; margin: 0 0 2px; padding: 0 0 0 18px; }
   li { display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 2px 0; }
-  li .point-icon { width: 18px; flex: none; }
+  .row-icon { width: 18px; height: 18px; flex: none; }
+  .glyph { display: block; line-height: 18px; text-align: center; font-size: 13px; }
 </style>

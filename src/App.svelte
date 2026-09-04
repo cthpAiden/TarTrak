@@ -35,6 +35,8 @@
   let settings = $state<Settings | null>(null);
   let mapView = $state<ReturnType<typeof MapView>>();
   let overlay = $state(false);
+  /** Overlay mode hides the toolbar until the corner tab is clicked; window mode always shows it. */
+  let barOpen = $state(false);
   let opacity = $state(100);
   let unhookHotkeys: (() => Promise<void>) | null = null;
   let stopQuestRetry: (() => void) | null = null;
@@ -83,6 +85,7 @@
     try {
       await setOverlay(next);
       overlay = next;
+      barOpen = false;
     } catch (e) {
       app.toast(`Could not switch overlay mode: ${e}`);
     }
@@ -250,6 +253,9 @@
 </script>
 
 <div class="layout">
+  {#if overlay && !barOpen}
+    <button class="overlay-tab" title="Show toolbar" aria-label="Show toolbar" onclick={() => (barOpen = true)}>▾</button>
+  {:else}
   <header class="topbar">
     <strong>TarTrak</strong>
     <MapPicker
@@ -271,7 +277,11 @@
     <button onclick={() => mapView?.fitMap()} disabled={!def}>Fit</button>
     <button onclick={toggleOverlay}>{overlay ? "Window" : "Overlay"}</button>
     <button onclick={cycleOpacity}>{opacity}%</button>
+    {#if overlay}
+      <button title="Hide toolbar" aria-label="Hide toolbar" onclick={() => (barOpen = false)}>▴</button>
+    {/if}
   </header>
+  {/if}
 
   {#if !screenshotsDir}
     <Banner text="Screenshot folder not found." action="Pick folder" onaction={() => pickDir("screenshots")} />

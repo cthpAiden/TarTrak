@@ -16,6 +16,12 @@ body {
 body.overlay { background: rgba(20, 23, 28, 0.55); }
 body.overlay .side { display: none; }
 body.overlay .topbar { padding: 2px 6px; font-size: 12px; background: rgba(30, 35, 43, 0.75); }
+.overlay-tab {
+  position: absolute; top: 0; left: 0; z-index: 1100;
+  width: 22px; height: 16px; padding: 0; line-height: 14px; font-size: 11px;
+  background: rgba(30, 35, 43, 0.6); color: var(--muted); border: 1px solid #3a4048; border-top: none; border-left: none; cursor: pointer;
+}
+.overlay-tab:hover { color: var(--fg); background: rgba(30, 35, 43, 0.95); }
 
 .layout { display: flex; flex-direction: column; height: 100%; }
 .topbar { display: flex; gap: 8px; align-items: center; padding: 6px 10px; background: var(--panel); }
