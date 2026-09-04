@@ -14,3 +14,16 @@ body {
   overflow: hidden;
 }
 body.overlay { background: rgba(20, 23, 28, 0.55); }
+
+.layout { display: flex; flex-direction: column; height: 100%; }
+.topbar { display: flex; gap: 8px; align-items: center; padding: 6px 10px; background: var(--panel); }
+.topbar .grow { flex: 1; }
+.topbar .muted, .muted { color: var(--muted); font-size: 12px; }
+.topbar .coords { font-variant-numeric: tabular-nums; font-size: 13px; }
+.topbar button, .side button { background: #2a2f38; color: var(--fg); border: 1px solid #3a4048; padding: 3px 8px; cursor: pointer; }
+.topbar button:disabled { opacity: .4; cursor: default; }
+select { background: #2a2f38; color: var(--fg); border: 1px solid #3a4048; padding: 3px 6px; }
+.body { display: flex; flex: 1; min-height: 0; }
+.map { position: relative; flex: 1; }
+.side { width: 320px; background: var(--panel); overflow-y: auto; display: flex; flex-direction: column; }
+.empty { display: grid; place-items: center; height: 100%; color: var(--muted); }
