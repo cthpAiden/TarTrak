@@ -2,7 +2,7 @@
 
 Source: per-task review ledger and the final whole-branch review at commit 2f56dde. None of these block v1; ordered roughly by value.
 
-## Parked after the final fix wave
+## Parked after the final fix wave (all fixed 2026-09-04: 48af49c, 45a7eb3, 00c7591, 008da9b)
 - ghost marker if pos(new id) arrives before leave(old id) — ruling: real, minor, relay leave lag is rare; v1.1: on leave remove entry when a same-name teammate has newer receivedAt
 - teammate marker gap after their reconnect until next screenshot — ruling: real, minor; v1.1: client re-queues last PosMsg on reopen
 - hotkey field cannot be cleared to unbind — ruling: real, minor regression; v1.1: allow empty string as explicit unbind
