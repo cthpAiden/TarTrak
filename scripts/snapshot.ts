@@ -1,44 +1,24 @@
-// Refresh data/snapshot/*.json from tarkov.dev. Run before tagging a release.
+// Refresh data/snapshot/*.json from json.tarkov.dev. Run before tagging a release.
 import { mkdirSync, writeFileSync } from "node:fs";
+import { JSON_FILES, JSON_TARKOV_DEV, toQuestData, type RawBundle } from "../src/lib/quests/jsonSource.ts";
 
-const URL = "https://api.tarkov.dev/graphql";
-const ZONE = "zones { id map { id } position { x y z } }";
-const QUERY = `{
-  tasks(gameMode: regular, lang: en) {
-    id name minPlayerLevel trader { name }
-    objectives {
-      id type description maps { id }
-      ... on TaskObjectiveBasic { ${ZONE} }
-      ... on TaskObjectiveItem { ${ZONE} }
-      ... on TaskObjectiveQuestItem { ${ZONE} }
-      ... on TaskObjectiveMark { ${ZONE} }
+const bodies = await Promise.all(
+  JSON_FILES.map(async (file) => {
+    const url = `${JSON_TARKOV_DEV}/${file}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.error(`json.tarkov.dev unavailable: GET ${url} -> ${res.status}`);
+      process.exit(1);
     }
-  }
-  maps(gameMode: regular, lang: en) {
-    id name normalizedName
-    extracts { id name faction position { x y z } }
-    transits { id description position { x y z } }
-    spawns { zoneName position { x y z } sides categories }
-    lootContainers { lootContainer { id name normalizedName } position { x y z } }
-    locks { lockType key { name } position { x y z } }
-    hazards { hazardType name position { x y z } }
-    switches { id name position { x y z } }
-    btrStations { id name position { x y z } }
-  }
-}`;
+    return (await res.json()) as unknown;
+  }),
+);
+const [maps, mapsEn, tasks, tasksEn, traders, tradersEn] = bodies;
+const bundle: RawBundle = { maps, mapsEn, tasks, tasksEn, traders, tradersEn };
+const data = toQuestData(bundle, Date.now());
 
-const res = await fetch(URL, {
-  method: "POST",
-  headers: { "content-type": "application/json" },
-  body: JSON.stringify({ query: QUERY }),
-});
-const json = (await res.json()) as { data?: { tasks: unknown[]; maps: unknown[] }; errors?: unknown };
-if (!res.ok || !json.data) {
-  console.error("tarkov.dev unavailable:", res.status, JSON.stringify(json.errors ?? json).slice(0, 300));
-  process.exit(1);
-}
 mkdirSync("data/snapshot", { recursive: true });
-writeFileSync("data/snapshot/tasks.json", JSON.stringify(json.data.tasks));
-writeFileSync("data/snapshot/maps.json", JSON.stringify(json.data.maps));
-writeFileSync("data/snapshot/meta.json", JSON.stringify({ fetchedAt: Date.now(), schemaVersion: 2 }));
-console.log(`snapshot: ${json.data.tasks.length} tasks, ${json.data.maps.length} maps`);
+writeFileSync("data/snapshot/tasks.json", JSON.stringify(data.tasks));
+writeFileSync("data/snapshot/maps.json", JSON.stringify(data.maps));
+writeFileSync("data/snapshot/meta.json", JSON.stringify({ fetchedAt: data.fetchedAt, schemaVersion: data.schemaVersion }));
+console.log(`snapshot: ${data.tasks.length} tasks, ${data.maps.length} maps`);

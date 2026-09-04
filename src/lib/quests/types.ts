@@ -1,4 +1,4 @@
-export const QUEST_SCHEMA_VERSION = 2;
+export const QUEST_SCHEMA_VERSION = 3;
 
 export interface Vec3 {
   x: number;
@@ -45,9 +45,13 @@ export interface MapLootContainer {
   lootContainer: { id: string; name: string; normalizedName: string };
   position: Vec3 | null;
 }
+export interface MapLootLoose {
+  position: Vec3 | null;
+  items: string[];
+}
 export interface MapLock {
   lockType: string;
-  key: { name: string } | null;
+  key: string | null;
   position: Vec3 | null;
 }
 export interface MapHazard {
@@ -73,6 +77,7 @@ export interface MapInfo {
   transits?: MapTransit[] | null;
   spawns?: MapSpawn[] | null;
   lootContainers?: MapLootContainer[] | null;
+  lootLoose?: MapLootLoose[] | null;
   locks?: MapLock[] | null;
   hazards?: MapHazard[] | null;
   switches?: MapSwitch[] | null;

@@ -8,6 +8,9 @@
     "allowJs": true,
     "checkJs": true,
     "isolatedModules": true,
+    // scripts/snapshot.ts runs under `node --experimental-strip-types`, which needs explicit .ts import paths.
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
     "moduleDetection": "force",
     "strict": true,
     "types": ["vite/client"]

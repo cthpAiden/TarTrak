@@ -29,8 +29,12 @@ const data: QuestData = {
         { lootContainer: { id: "lc1", name: "Safe", normalizedName: "safe" }, position: { x: 32, y: 0, z: 33 } },
         { lootContainer: { id: "lc2", name: "Medcase", normalizedName: "medcase" }, position: { x: 34, y: 0, z: 35 } },
       ],
+      lootLoose: [
+        { position: { x: 36, y: 0, z: 37 }, items: ["i1"] },
+        { position: null, items: ["i2"] },
+      ],
       locks: [
-        { lockType: "door", key: { name: "Office key" }, position: { x: 40, y: 0, z: 41 } },
+        { lockType: "door", key: "k1", position: { x: 40, y: 0, z: 41 } },
         { lockType: "trunk", key: null, position: { x: 42, y: 0, z: 43 } },
       ],
       hazards: [{ hazardType: "sniper", name: "Sniper zone", position: { x: 50, y: 0, z: 51 } }],
@@ -64,10 +68,16 @@ describe("extractPoints", () => {
     expect(loot.map((p) => p.name)).toEqual(["Safe", "Safe", "Medcase"]);
   });
 
-  it("names locks by key name or a Locked fallback", () => {
+  it("names locks by lock type", () => {
     const locks = inGroup("locks");
     expect(locks.map((p) => p.category)).toEqual(["door", "trunk"]);
-    expect(locks.map((p) => p.name)).toEqual(["Office key", "Locked trunk"]);
+    expect(locks.map((p) => p.name)).toEqual(["Locked door", "Locked trunk"]);
+  });
+
+  it("maps loose loot into one category", () => {
+    const loose = inGroup("lootLoose");
+    expect(loose.map((p) => p.category)).toEqual(["item"]);
+    expect(loose[0].name).toBe("Loose loot");
   });
 
   it("maps hazards, switches and BTR stations", () => {

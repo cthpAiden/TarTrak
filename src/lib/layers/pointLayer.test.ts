@@ -18,6 +18,7 @@ describe("usesCanvas", () => {
   it("is true only for the dense groups", () => {
     expect(usesCanvas("loot")).toBe(true);
     expect(usesCanvas("spawns")).toBe(true);
+    expect(usesCanvas("lootLoose")).toBe(true);
     for (const g of ["extracts", "locks", "hazards", "switches", "btr"] as const) {
       expect(usesCanvas(g)).toBe(false);
     }
@@ -46,5 +47,6 @@ describe("colorFor", () => {
     expect(colorFor(pt({ group: "extracts", category: "transit" }))).toBe("#c58bff");
     expect(colorFor(pt({ group: "loot", category: "sportbag" }))).toBe("#d2b48c");
     expect(colorFor(pt({ group: "spawns", category: "unknown" }))).toBe("#f0d060");
+    expect(colorFor(pt({ group: "lootLoose", category: "item" }))).toBe("#e0d8a0");
   });
 });

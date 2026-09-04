@@ -6,6 +6,7 @@ export const GLYPHS: Record<GroupId, string> = {
   extracts: "⇲",
   spawns: "✦",
   loot: "",
+  lootLoose: "",
   locks: "🔒",
   hazards: "☢",
   switches: "⏻",
@@ -14,13 +15,14 @@ export const GLYPHS: Record<GroupId, string> = {
 
 /** Dense groups draw as canvas circles: a busy map has over a thousand of them. */
 export function usesCanvas(group: GroupId): boolean {
-  return group === "loot" || group === "spawns";
+  return group === "loot" || group === "lootLoose" || group === "spawns";
 }
 
 const GROUP_COLORS: Record<GroupId, string> = {
   extracts: "#7fd47f",
   spawns: "#f0d060",
   loot: "#d2b48c",
+  lootLoose: "#e0d8a0",
   locks: "#b0b8c0",
   hazards: "#ff5c5c",
   switches: "#5ce0e6",

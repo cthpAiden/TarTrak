@@ -1,11 +1,12 @@
 import type { MapInfo, QuestData, Vec3 } from "../quests/types";
 
-export type GroupId = "extracts" | "spawns" | "loot" | "locks" | "hazards" | "switches" | "btr";
+export type GroupId = "extracts" | "spawns" | "loot" | "lootLoose" | "locks" | "hazards" | "switches" | "btr";
 
 export const GROUP_ORDER: readonly GroupId[] = [
   "extracts",
   "spawns",
   "loot",
+  "lootLoose",
   "locks",
   "hazards",
   "switches",
@@ -16,6 +17,7 @@ export const GROUP_LABELS: Record<GroupId, string> = {
   extracts: "Extracts",
   spawns: "Spawns",
   loot: "Containers",
+  lootLoose: "Loose Loot",
   locks: "Locks",
   hazards: "Hazards",
   switches: "Switches",
@@ -31,9 +33,14 @@ export const CATEGORY_LABELS: Record<string, string> = {
   "spawns/scav": "Scav",
   "spawns/boss": "Boss",
   "spawns/sniper": "Sniper",
+  "lootLoose/item": "Loose loot",
   "locks/door": "Doors",
   "locks/container": "Containers",
   "locks/trunk": "Trunks",
+  "locks/switch": "Switches",
+  "hazards/minefield": "Minefields",
+  "hazards/hazard": "Hazards",
+  "hazards/sniper": "Sniper zones",
   "switches/switch": "Switches",
   "btr/stop": "BTR stops",
 };
@@ -56,8 +63,8 @@ export function filterKey(p: { group: string; category: string }): string {
 function spawnCategory(spawn: { sides: string[]; categories: string[] }): string {
   if (spawn.categories.includes("boss")) return "boss";
   if (spawn.categories.includes("sniper")) return "sniper";
-  if (spawn.sides.length === 1 && spawn.sides[0] === "scav") return "scav";
-  return "pmc";
+  if (spawn.sides.includes("pmc") || spawn.sides.includes("all")) return "pmc";
+  return "scav";
 }
 
 function push(
@@ -89,13 +96,16 @@ function pointsForMap(m: MapInfo, out: MapPoint[]): void {
     const category = c.lootContainer.normalizedName;
     push(out, key, "loot", category, c.lootContainer.name, `loot/${category}/${i}`, c.position);
   });
+  (m.lootLoose ?? []).forEach((l, i) => {
+    push(out, key, "lootLoose", "item", "Loose loot", `lootLoose/item/${i}`, l.position);
+  });
   (m.locks ?? []).forEach((l, i) => {
     push(
       out,
       key,
       "locks",
       l.lockType,
-      l.key?.name ?? `Locked ${l.lockType}`,
+      `Locked ${l.lockType}`,
       `locks/${l.lockType}/${i}`,
       l.position,
     );

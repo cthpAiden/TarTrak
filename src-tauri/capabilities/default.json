@@ -33,6 +33,7 @@
       "identifier": "http:default",
       "allow": [
         { "url": "https://api.tarkov.dev/*" },
+        { "url": "https://json.tarkov.dev/*" },
         { "url": "https://assets.tarkov.dev/*" },
         { "url": "https://raw.githubusercontent.com/*" }
       ]
