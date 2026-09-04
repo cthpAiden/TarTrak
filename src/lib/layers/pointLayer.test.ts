@@ -19,7 +19,7 @@ describe("usesCanvas", () => {
     expect(usesCanvas("loot")).toBe(true);
     expect(usesCanvas("spawns")).toBe(true);
     expect(usesCanvas("lootLoose")).toBe(true);
-    for (const g of ["extracts", "locks", "hazards", "switches", "btr"] as const) {
+    for (const g of ["extracts", "locks", "hazards", "switches", "guns", "btr"] as const) {
       expect(usesCanvas(g)).toBe(false);
     }
   });
@@ -33,6 +33,7 @@ describe("pointDivIcon", () => {
 
   it("renders the group glyph", () => {
     expect(pointDivIcon(pt()).options.html).toContain(GLYPHS.extracts);
+    expect(GLYPHS.guns).toBe("\u2316");
   });
 
   it("escapes the name in the title attribute", () => {
@@ -48,5 +49,15 @@ describe("colorFor", () => {
     expect(colorFor(pt({ group: "loot", category: "sportbag" }))).toBe("#d2b48c");
     expect(colorFor(pt({ group: "spawns", category: "unknown" }))).toBe("#f0d060");
     expect(colorFor(pt({ group: "lootLoose", category: "item" }))).toBe("#e0d8a0");
+  });
+
+  it("gives every boss spawn category its own colour", () => {
+    expect(colorFor(pt({ group: "spawns", category: "boss" }))).toBe("#ff5c5c");
+    expect(colorFor(pt({ group: "spawns", category: "cultist-priest" }))).toBe("#b06cff");
+    expect(colorFor(pt({ group: "spawns", category: "rogue" }))).toBe("#ff9c3c");
+    expect(colorFor(pt({ group: "spawns", category: "black-div" }))).toBe("#c8c8c8");
+    expect(colorFor(pt({ group: "spawns", category: "af" }))).toBe("#ffd23c");
+    expect(colorFor(pt({ group: "spawns", category: "bloodhound" }))).toBe("#ff6cb0");
+    expect(colorFor(pt({ group: "guns", category: "gun" }))).toBe("#d0d0d0");
   });
 });

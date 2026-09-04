@@ -1,6 +1,15 @@
-import type { MapInfo, QuestData, Vec3 } from "../quests/types";
+import type { MapBoss, MapInfo, MapSpawn, QuestData, Vec3 } from "../quests/types";
 
-export type GroupId = "extracts" | "spawns" | "loot" | "lootLoose" | "locks" | "hazards" | "switches" | "btr";
+export type GroupId =
+  | "extracts"
+  | "spawns"
+  | "loot"
+  | "lootLoose"
+  | "locks"
+  | "hazards"
+  | "switches"
+  | "guns"
+  | "btr";
 
 export const GROUP_ORDER: readonly GroupId[] = [
   "extracts",
@@ -10,6 +19,7 @@ export const GROUP_ORDER: readonly GroupId[] = [
   "locks",
   "hazards",
   "switches",
+  "guns",
   "btr",
 ];
 
@@ -21,6 +31,7 @@ export const GROUP_LABELS: Record<GroupId, string> = {
   locks: "Locks",
   hazards: "Hazards",
   switches: "Switches",
+  guns: "Stationary Guns",
   btr: "BTR",
 };
 
@@ -31,8 +42,13 @@ export const CATEGORY_LABELS: Record<string, string> = {
   "extracts/transit": "Transit Zones",
   "spawns/pmc": "PMC",
   "spawns/scav": "Scav",
+  "spawns/sniper": "Sniper Scav",
   "spawns/boss": "Boss",
-  "spawns/sniper": "Sniper",
+  "spawns/cultist-priest": "Cultist Priest",
+  "spawns/rogue": "Rogues",
+  "spawns/black-div": "Black Division",
+  "spawns/af": "Arena Fighters",
+  "spawns/bloodhound": "Bloodhounds",
   "lootLoose/item": "Loose loot",
   "locks/door": "Doors",
   "locks/container": "Containers",
@@ -42,6 +58,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   "hazards/hazard": "Hazards",
   "hazards/sniper": "Sniper zones",
   "switches/switch": "Switches",
+  "guns/gun": "Stationary guns",
   "btr/stop": "BTR stops",
 };
 
@@ -60,11 +77,46 @@ export function filterKey(p: { group: string; category: string }): string {
   return `${p.group}/${p.category}`;
 }
 
-function spawnCategory(spawn: { sides: string[]; categories: string[] }): string {
-  if (spawn.categories.includes("boss")) return "boss";
-  if (spawn.categories.includes("sniper")) return "sniper";
-  if (spawn.sides.includes("pmc") || spawn.sides.includes("all")) return "pmc";
-  return "scav";
+/** Bosses that get their own map layer on tarkov.dev rather than sharing the boss one. */
+const OWN_LAYER_BOSSES = ["cultist-priest", "rogue", "black-div", "af", "bloodhound"];
+
+const SCAV_SPAWN = { category: "scav", name: "Scav spawn" };
+
+/**
+ * Mirrors tarkov.dev's spawn classification. Returns null for the spawns it draws
+ * nothing for: a boss zone with no boss and no scav bot, and any other odd combination.
+ */
+export function classifySpawn(spawn: MapSpawn, mapBosses: MapBoss[]): { category: string; name: string } | null {
+  if (spawn.categories.includes("boss")) {
+    const matched = mapBosses.filter((b) => spawn.zoneName !== null && b.spawnKeys.includes(spawn.zoneName));
+    const bosses = matched.filter((b, i) => matched.findIndex((o) => o.normalizedName === b.normalizedName) === i);
+    if (bosses.length === 0) {
+      return spawn.categories.includes("bot") && spawn.sides.includes("scav") ? SCAV_SPAWN : null;
+    }
+    if (bosses.length === 1 && OWN_LAYER_BOSSES.includes(bosses[0].normalizedName)) {
+      return { category: bosses[0].normalizedName, name: bosses[0].name };
+    }
+    return {
+      category: "boss",
+      name: bosses.map((b) => `${b.name} (${Math.round(b.spawnChance * 100)}%)`).join(", "),
+    };
+  }
+  if (spawn.categories.includes("player")) {
+    const isPmc = spawn.sides.includes("pmc") || spawn.sides.includes("all");
+    return isPmc ? { category: "pmc", name: "PMC spawn" } : null;
+  }
+  if (spawn.categories.includes("sniper")) return { category: "sniper", name: "Sniper Scav" };
+  if (spawn.sides.includes("scav") && (spawn.categories.includes("bot") || spawn.categories.includes("all"))) {
+    return SCAV_SPAWN;
+  }
+  return null;
+}
+
+/** "Bolts, Screws, Nuts +2" for a long list, "Loose loot" for an empty one. */
+function looseLootName(items: string[]): string {
+  if (items.length === 0) return "Loose loot";
+  const head = items.slice(0, 3).join(", ");
+  return items.length > 3 ? `${head} +${items.length - 3}` : head;
 }
 
 function push(
@@ -89,32 +141,28 @@ function pointsForMap(m: MapInfo, out: MapPoint[]): void {
     push(out, key, "extracts", "transit", t.description, t.id || `extracts/transit/${i}`, t.position);
   });
   (m.spawns ?? []).forEach((s, i) => {
-    const category = spawnCategory(s);
-    push(out, key, "spawns", category, s.zoneName ?? "Spawn", `spawns/${category}/${i}`, s.position);
+    const spawn = classifySpawn(s, m.bosses ?? []);
+    if (!spawn) return;
+    push(out, key, "spawns", spawn.category, spawn.name, `spawns/${spawn.category}/${i}`, s.position);
   });
   (m.lootContainers ?? []).forEach((c, i) => {
     const category = c.lootContainer.normalizedName;
     push(out, key, "loot", category, c.lootContainer.name, `loot/${category}/${i}`, c.position);
   });
   (m.lootLoose ?? []).forEach((l, i) => {
-    push(out, key, "lootLoose", "item", "Loose loot", `lootLoose/item/${i}`, l.position);
+    push(out, key, "lootLoose", "item", looseLootName(l.items), `lootLoose/item/${i}`, l.position);
   });
   (m.locks ?? []).forEach((l, i) => {
-    push(
-      out,
-      key,
-      "locks",
-      l.lockType,
-      `Locked ${l.lockType}`,
-      `locks/${l.lockType}/${i}`,
-      l.position,
-    );
+    push(out, key, "locks", l.lockType, l.key ?? `Locked ${l.lockType}`, `locks/${l.lockType}/${i}`, l.position);
   });
   (m.hazards ?? []).forEach((h, i) => {
     push(out, key, "hazards", h.hazardType, h.name, `hazards/${h.hazardType}/${i}`, h.position);
   });
   (m.switches ?? []).forEach((s, i) => {
     push(out, key, "switches", "switch", s.name, s.id || `switches/switch/${i}`, s.position);
+  });
+  (m.stationaryWeapons ?? []).forEach((w, i) => {
+    push(out, key, "guns", "gun", w.name, `guns/gun/${i}`, w.position);
   });
   (m.btrStations ?? []).forEach((b, i) => {
     push(out, key, "btr", "stop", b.name, b.id || `btr/stop/${i}`, b.position);

@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { extractPoints, filterKey, categoryLabel, type MapPoint } from "./points";
+import {
+  extractPoints,
+  filterKey,
+  categoryLabel,
+  CATEGORY_LABELS,
+  GROUP_LABELS,
+  GROUP_ORDER,
+  type MapPoint,
+} from "./points";
 import { QUEST_SCHEMA_VERSION, type QuestData } from "../quests/types";
 
 const data: QuestData = {
@@ -21,8 +29,22 @@ const data: QuestData = {
       spawns: [
         { zoneName: "z1", position: { x: 20, y: 0, z: 21 }, sides: ["pmc", "scav"], categories: ["player"] },
         { zoneName: "z2", position: { x: 22, y: 0, z: 23 }, sides: ["scav"], categories: ["bot"] },
-        { zoneName: "z3", position: { x: 24, y: 0, z: 25 }, sides: ["scav"], categories: ["boss"] },
-        { zoneName: "z4", position: { x: 26, y: 0, z: 27 }, sides: ["scav"], categories: ["sniper"] },
+        { zoneName: "ZoneScavBase", position: { x: 24, y: 0, z: 25 }, sides: ["savage"], categories: ["boss"] },
+        { zoneName: "ZoneCultist", position: { x: 26, y: 0, z: 27 }, sides: ["savage"], categories: ["boss"] },
+        { zoneName: "ZoneRogue", position: { x: 28, y: 0, z: 29 }, sides: ["savage"], categories: ["boss"] },
+        { zoneName: "ZoneNoBoss", position: { x: 80, y: 0, z: 81 }, sides: ["scav"], categories: ["boss", "bot"] },
+        { zoneName: "ZoneNoBoss", position: { x: 82, y: 0, z: 83 }, sides: ["savage"], categories: ["boss"] },
+        { zoneName: "z8", position: { x: 84, y: 0, z: 85 }, sides: ["scav"], categories: ["player"] },
+        { zoneName: "z9", position: { x: 86, y: 0, z: 87 }, sides: ["savage"], categories: ["sniper"] },
+        { zoneName: "z10", position: { x: 88, y: 0, z: 89 }, sides: ["scav"], categories: ["all"] },
+        { zoneName: "z11", position: { x: 90, y: 0, z: 91 }, sides: ["bear"], categories: ["marksman"] },
+      ],
+      bosses: [
+        { name: "Reshala", normalizedName: "reshala", spawnChance: 0.6, spawnKeys: ["ZoneScavBase", "ZoneDorms"] },
+        { name: "Knight", normalizedName: "knight", spawnChance: 0.2, spawnKeys: ["ZoneScavBase"] },
+        { name: "Cultist Priest", normalizedName: "cultist-priest", spawnChance: 0.35, spawnKeys: ["ZoneCultist"] },
+        { name: "Rogue", normalizedName: "rogue", spawnChance: 0.5, spawnKeys: ["ZoneRogue"] },
+        { name: "Rogue", normalizedName: "rogue", spawnChance: 0.5, spawnKeys: ["ZoneRogue"] },
       ],
       lootContainers: [
         { lootContainer: { id: "lc1", name: "Safe", normalizedName: "safe" }, position: { x: 30, y: 0, z: 31 } },
@@ -30,16 +52,23 @@ const data: QuestData = {
         { lootContainer: { id: "lc2", name: "Medcase", normalizedName: "medcase" }, position: { x: 34, y: 0, z: 35 } },
       ],
       lootLoose: [
-        { position: { x: 36, y: 0, z: 37 }, items: ["i1"] },
-        { position: null, items: ["i2"] },
+        { position: { x: 36, y: 0, z: 37 }, items: ["Bolts", "Screws", "Nuts", "Nails"] },
+        { position: { x: 38, y: 0, z: 39 }, items: ["Bolts", "Screws"] },
+        { position: { x: 44, y: 0, z: 45 }, items: [] },
+        { position: null, items: ["Wire"] },
       ],
       locks: [
-        { lockType: "door", key: "k1", position: { x: 40, y: 0, z: 41 } },
+        { lockType: "door", key: "Factory emergency exit key", position: { x: 40, y: 0, z: 41 } },
         { lockType: "trunk", key: null, position: { x: 42, y: 0, z: 43 } },
       ],
       hazards: [{ hazardType: "sniper", name: "Sniper zone", position: { x: 50, y: 0, z: 51 } }],
       switches: [{ id: "sw1", name: "Power switch", position: { x: 60, y: 0, z: 61 } }],
       btrStations: [{ id: "bt1", name: "Stop 1", position: { x: 70, y: 0, z: 71 } }],
+      stationaryWeapons: [
+        { id: "gun1", name: "NSV Utyos 12.7x108 heavy machine gun", position: { x: 72, y: 0, z: 73 } },
+        { id: "gun1", name: "NSV Utyos 12.7x108 heavy machine gun", position: { x: 74, y: 0, z: 75 } },
+        { id: "gun2", name: "AGS-30 30x29mm automatic grenade launcher", position: null },
+      ],
     },
     { id: "m2", name: "Woods", normalizedName: "woods", extracts: [] },
   ],
@@ -58,8 +87,17 @@ describe("extractPoints", () => {
     expect(transit.name).toBe("To Woods");
   });
 
-  it("derives spawn categories from sides and categories", () => {
-    expect(inGroup("spawns").map((p) => p.category)).toEqual(["pmc", "scav", "boss", "sniper"]);
+  it("classifies spawns the way tarkov.dev does and skips the unusual ones", () => {
+    expect(inGroup("spawns").map((p) => [p.category, p.name])).toEqual([
+      ["pmc", "PMC spawn"],
+      ["scav", "Scav spawn"],
+      ["boss", "Reshala (60%), Knight (20%)"],
+      ["cultist-priest", "Cultist Priest"],
+      ["rogue", "Rogue"],
+      ["scav", "Scav spawn"],
+      ["sniper", "Sniper Scav"],
+      ["scav", "Scav spawn"],
+    ]);
   });
 
   it("uses container normalized names for loot categories and container names for labels", () => {
@@ -68,22 +106,29 @@ describe("extractPoints", () => {
     expect(loot.map((p) => p.name)).toEqual(["Safe", "Safe", "Medcase"]);
   });
 
-  it("names locks by lock type", () => {
+  it("names locks by their key, falling back to the lock type", () => {
     const locks = inGroup("locks");
     expect(locks.map((p) => p.category)).toEqual(["door", "trunk"]);
-    expect(locks.map((p) => p.name)).toEqual(["Locked door", "Locked trunk"]);
+    expect(locks.map((p) => p.name)).toEqual(["Factory emergency exit key", "Locked trunk"]);
   });
 
-  it("maps loose loot into one category", () => {
+  it("names loose loot after its first three items", () => {
     const loose = inGroup("lootLoose");
-    expect(loose.map((p) => p.category)).toEqual(["item"]);
-    expect(loose[0].name).toBe("Loose loot");
+    expect(loose.map((p) => p.category)).toEqual(["item", "item", "item"]);
+    expect(loose.map((p) => p.name)).toEqual(["Bolts, Screws, Nuts +1", "Bolts, Screws", "Loose loot"]);
   });
 
   it("maps hazards, switches and BTR stations", () => {
     expect(inGroup("hazards").map((p) => p.category)).toEqual(["sniper"]);
     expect(inGroup("switches").map((p) => p.category)).toEqual(["switch"]);
     expect(inGroup("btr").map((p) => p.category)).toEqual(["stop"]);
+  });
+
+  it("maps stationary weapons into the guns group", () => {
+    const guns = inGroup("guns");
+    expect(guns.map((p) => p.category)).toEqual(["gun", "gun"]);
+    expect(guns[0].name).toBe("NSV Utyos 12.7x108 heavy machine gun");
+    expect(guns.map((p) => p.id)).toEqual(["guns/gun/0", "guns/gun/1"]);
   });
 
   it("tags every point with the map key and tolerates maps with no optional arrays", () => {
@@ -99,8 +144,36 @@ describe("extractPoints", () => {
       "spawns/pmc/0",
       "spawns/scav/1",
       "spawns/boss/2",
-      "spawns/sniper/3",
+      "spawns/cultist-priest/3",
+      "spawns/rogue/4",
+      "spawns/scav/5",
+      "spawns/sniper/8",
+      "spawns/scav/9",
     ]);
+  });
+});
+
+describe("spawn labels", () => {
+  it("names every spawn category tarkov.dev draws", () => {
+    for (const key of [
+      "spawns/pmc",
+      "spawns/scav",
+      "spawns/sniper",
+      "spawns/boss",
+      "spawns/cultist-priest",
+      "spawns/rogue",
+      "spawns/black-div",
+      "spawns/af",
+      "spawns/bloodhound",
+      "guns/gun",
+    ]) {
+      expect(CATEGORY_LABELS[key]).toBeTruthy();
+    }
+    expect(CATEGORY_LABELS["spawns/sniper"]).toBe("Sniper Scav");
+    expect(CATEGORY_LABELS["spawns/bloodhound"]).toBe("Bloodhounds");
+    expect(CATEGORY_LABELS["guns/gun"]).toBe("Stationary guns");
+    expect(GROUP_LABELS.guns).toBe("Stationary Guns");
+    expect(GROUP_ORDER.indexOf("guns")).toBe(GROUP_ORDER.indexOf("switches") + 1);
   });
 });
 

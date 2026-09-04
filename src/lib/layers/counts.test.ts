@@ -50,6 +50,7 @@ describe("buildCounts", () => {
       "locks",
       "hazards",
       "switches",
+      "guns",
       "btr",
     ]);
     expect(groups.map((g) => g.label)).toEqual([
@@ -62,6 +63,7 @@ describe("buildCounts", () => {
       "Locks",
       "Hazards",
       "Switches",
+      "Stationary Guns",
       "BTR",
     ]);
   });

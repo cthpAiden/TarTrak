@@ -10,6 +10,7 @@ export const GLYPHS: Record<GroupId, string> = {
   locks: "🔒",
   hazards: "☢",
   switches: "⏻",
+  guns: "⌖",
   btr: "⛟",
 };
 
@@ -26,6 +27,7 @@ const GROUP_COLORS: Record<GroupId, string> = {
   locks: "#b0b8c0",
   hazards: "#ff5c5c",
   switches: "#5ce0e6",
+  guns: "#d0d0d0",
   btr: "#a8b060",
 };
 
@@ -36,8 +38,13 @@ const CATEGORY_COLORS: Record<string, string> = {
   "extracts/transit": "#c58bff",
   "spawns/pmc": "#f0d060",
   "spawns/scav": "#ffa64d",
-  "spawns/boss": "#ff5c5c",
   "spawns/sniper": "#ffffff",
+  "spawns/boss": "#ff5c5c",
+  "spawns/cultist-priest": "#b06cff",
+  "spawns/rogue": "#ff9c3c",
+  "spawns/black-div": "#c8c8c8",
+  "spawns/af": "#ffd23c",
+  "spawns/bloodhound": "#ff6cb0",
 };
 
 /** Canvas paths ignore CSS classes, so circle markers need the colour as an option. */

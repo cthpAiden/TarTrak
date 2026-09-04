@@ -31,6 +31,7 @@
 .point-icon.locks span { color: #b0b8c0; }
 .point-icon.hazards span { color: #ff5c5c; }
 .point-icon.switches span { color: #5ce0e6; }
+.point-icon.guns span { color: #d0d0d0; }
 .point-icon.btr span { color: #a8b060; }
 
 .map-label { pointer-events: none; }
