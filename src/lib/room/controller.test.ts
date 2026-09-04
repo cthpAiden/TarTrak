@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { RoomController, type RoomClientLike } from "./controller.svelte";
+import type { RoomClientOptions } from "./client";
 import { app } from "../state/app.svelte";
 import type { Position } from "../parse/screenshot";
 import type { ServerMsg } from "./protocol";
@@ -11,7 +12,9 @@ class FakeClient implements RoomClientLike {
   connected = false;
   closed = false;
   sent: { map: string | null; p: Position }[] = [];
-  constructor(readonly onMessage: Handler) {
+  readonly onMessage: Handler;
+  constructor(readonly opts: RoomClientOptions) {
+    this.onMessage = opts.onMessage;
     FakeClient.last = this;
   }
   connect() {
@@ -26,7 +29,7 @@ class FakeClient implements RoomClientLike {
 }
 
 function makeController() {
-  const c = new RoomController((opts) => new FakeClient(opts.onMessage));
+  const c = new RoomController((opts) => new FakeClient(opts));
   c.join("abc123", "Me", "#fff", "wss://relay.test");
   return { room: c, client: FakeClient.last! };
 }
@@ -50,6 +53,7 @@ describe("RoomController", () => {
   beforeEach(() => {
     app.clearTeammates();
     app.ownPos = null;
+    app.toasts = [];
   });
 
   it("replaces the ghost when the same name reconnects under a new id", () => {
@@ -122,5 +126,22 @@ describe("RoomController", () => {
   it("sends nothing on join when no position is known", () => {
     const { client } = makeController();
     expect(client.sent).toEqual([]);
+  });
+
+  it("toasts a connection failure once per outage", () => {
+    const { room: controller, client } = makeController();
+    client.opts.onError?.("bad url");
+    client.opts.onError?.("bad url");
+    expect(app.toasts.map((t) => t.text)).toEqual(["Relay connection failed: bad url"]);
+
+    // A reconnect that got through makes the next failure news again.
+    client.opts.onStatus("open");
+    client.opts.onError?.("bad url");
+    expect(app.toasts).toHaveLength(2);
+
+    app.toasts = [];
+    controller.join("abc123", "Me", "#fff", "wss://relay.test");
+    FakeClient.last!.opts.onError?.("bad url");
+    expect(app.toasts).toHaveLength(1);
   });
 });

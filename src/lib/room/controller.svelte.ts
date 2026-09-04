@@ -14,6 +14,7 @@ export class RoomController {
   code = $state<string | null>(null);
   status = $state<RoomStatus>("closed");
   private client: RoomClientLike | null = null;
+  private errorToasted = false;
 
   constructor(
     private readonly makeClient: (opts: RoomClientOptions) => RoomClientLike = (opts) => new RoomClient(opts),
@@ -22,14 +23,23 @@ export class RoomController {
   join(code: string, name: string, color: string, relayUrl: string): void {
     this.leave();
     this.code = code.toUpperCase();
+    this.errorToasted = false;
     this.client = this.makeClient({
       relayUrl,
       code: this.code,
       name,
       color,
       onMessage: (m) => this.handle(m),
-      onStatus: (s) => (this.status = s),
-      onError: (e) => app.toast(`Relay connection failed: ${e}`),
+      onStatus: (s) => {
+        this.status = s;
+        if (s === "open") this.errorToasted = false;
+      },
+      // The client retries forever, so one toast per outage instead of one every backoff round.
+      onError: (e) => {
+        if (this.errorToasted) return;
+        this.errorToasted = true;
+        app.toast(`Relay connection failed: ${e}`);
+      },
     });
     this.client.connect();
     // Without this the room only learns where we are on our next screenshot.
