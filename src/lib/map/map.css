@@ -1,0 +1,23 @@
+@import "leaflet/dist/leaflet.css";
+.map-root { position: absolute; inset: 0; background: transparent; }
+.leaflet-container { background: transparent; }
+.hidden-layer { display: none; }
+.off-level { opacity: 0.35; }
+.tt-label {
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  border: none;
+  box-shadow: none;
+  padding: 1px 5px;
+  font-size: 11px;
+}
+.tt-label::before { display: none; }
+.floor-bar {
+  position: absolute; top: 8px; right: 8px; z-index: 1000;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.floor-bar button {
+  background: var(--panel); color: var(--fg); border: 1px solid #333; padding: 4px 8px; cursor: pointer;
+}
+.floor-bar button.active { background: var(--accent); color: #000; }
+.map-msg { position: absolute; left: 12px; bottom: 12px; z-index: 1000; color: var(--muted); font-size: 12px; }
