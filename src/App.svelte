@@ -39,9 +39,10 @@
   const extracts = $derived(def ? allExtracts.filter((e) => e.mapKey === def.key) : []);
 
   async function toggleOverlay() {
-    overlay = !overlay;
+    const next = !overlay;
     try {
-      await setOverlay(overlay);
+      await setOverlay(next);
+      overlay = next;
     } catch (e) {
       app.toast(`Could not switch overlay mode: ${e}`);
     }
@@ -54,8 +55,11 @@
 
   /** Registering can fail when another app already owns the key, which must not break startup. */
   async function armHotkeys(s: Settings) {
+    // Dropped before the await so a failure below can never leave a stale unhook behind.
+    const previous = unhookHotkeys;
+    unhookHotkeys = null;
     try {
-      if (unhookHotkeys) await unhookHotkeys();
+      if (previous) await previous();
       unhookHotkeys = await registerHotkeys(s.hotkeyOverlay, s.hotkeyOpacity, { toggleOverlay, cycleOpacity });
     } catch (e) {
       app.toast(`Could not register hotkeys: ${e}`);
@@ -161,7 +165,7 @@
     return () => {
       stop?.();
       stopDrag();
-      void unhookHotkeys?.();
+      unhookHotkeys?.().catch(() => {});
     };
   });
 

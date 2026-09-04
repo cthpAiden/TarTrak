@@ -46,9 +46,15 @@ export function normalizeHotkey(s: string): string | null {
 
 export async function setOverlay(on: boolean): Promise<void> {
   const w = getCurrentWindow();
-  await w.setDecorations(!on);
-  await w.setAlwaysOnTop(on);
-  await w.setSkipTaskbar(on);
+  try {
+    await w.setDecorations(!on);
+    await w.setAlwaysOnTop(on);
+    await w.setSkipTaskbar(on);
+  } catch (e) {
+    // Half-applied is worse than not applied: undo best effort, then let the caller report it.
+    await Promise.allSettled([w.setDecorations(on), w.setAlwaysOnTop(!on), w.setSkipTaskbar(!on)]);
+    throw e;
+  }
   document.body.classList.toggle("overlay", on);
 }
 
@@ -60,11 +66,15 @@ export function applyOpacity(percent: number): void {
 export function installAltDrag(): () => void {
   const onDown = (e: MouseEvent) => {
     if (!e.altKey || e.button !== 0) return;
+    // Capture phase, and the event stops here: Leaflet's Draggable would otherwise start a drag
+    // it never finishes, because the OS drag loop swallows the matching mouseup and leaves the
+    // map unpannable for the rest of the session.
     e.preventDefault();
+    e.stopPropagation();
     void getCurrentWindow().startDragging();
   };
-  window.addEventListener("mousedown", onDown);
-  return () => window.removeEventListener("mousedown", onDown);
+  window.addEventListener("mousedown", onDown, true);
+  return () => window.removeEventListener("mousedown", onDown, true);
 }
 
 export async function registerHotkeys(
@@ -72,20 +82,36 @@ export async function registerHotkeys(
   opacityKey: string,
   handlers: { toggleOverlay(): void; cycleOpacity(): void },
 ): Promise<() => Promise<void>> {
-  const keys: [string, () => void][] = [];
   const ov = normalizeHotkey(overlayKey);
   const op = normalizeHotkey(opacityKey);
+  if (ov && op && ov === op) throw new Error("Overlay and opacity hotkeys must differ");
+  const keys: [string, () => void][] = [];
   if (ov) keys.push([ov, handlers.toggleOverlay]);
-  if (op && op !== ov) keys.push([op, handlers.cycleOpacity]);
-  for (const [k, fn] of keys) {
-    if (await isRegistered(k)) await unregister(k);
-    await register(k, (e) => {
-      if (e.state === "Pressed") fn();
-    });
-  }
-  return async () => {
-    for (const [k] of keys) {
-      if (await isRegistered(k)) await unregister(k);
+  if (op) keys.push([op, handlers.cycleOpacity]);
+
+  // Only keys that actually took are unhooked, so a failure part-way through cannot leak one.
+  const registered: string[] = [];
+  const unhook = async () => {
+    for (const k of registered.splice(0)) {
+      try {
+        if (await isRegistered(k)) await unregister(k);
+      } catch {
+        // Best effort: a key the OS already dropped must not block the rest.
+      }
     }
   };
+
+  try {
+    for (const [k, fn] of keys) {
+      if (await isRegistered(k)) await unregister(k);
+      await register(k, (e) => {
+        if (e.state === "Pressed") fn();
+      });
+      registered.push(k);
+    }
+  } catch (e) {
+    await unhook();
+    throw e;
+  }
+  return unhook;
 }
