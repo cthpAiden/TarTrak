@@ -46,6 +46,7 @@
   const allPoints = $derived(app.questData ? extractPoints(app.questData) : []);
   const mapPoints = $derived(def ? allPoints.filter((p) => p.mapKey === def.key) : []);
   const points = $derived(mapPoints.filter((p) => isOn(layerFilters, p.group, p.category)));
+  const showLabels = $derived(isOn(layerFilters, "labels", "landmark"));
   // Kept unfiltered by the layer toggles so the panel's shown/total can differ.
   const mapQuestMarkersBeforeFilters = $derived(
     def
@@ -270,6 +271,7 @@
           onFloorPinned={(n) => (pinnedFloor = n)}
           {questMarkers}
           {points}
+          {showLabels}
           lineLengthPx={settings?.lineLengthPx ?? DEFAULT_SETTINGS.lineLengthPx}
         />
       {:else}
@@ -279,7 +281,7 @@
     <aside id="side" class="side">
       {#if settings}
         <FilterPanel
-          counts={buildCounts(mapPoints, mapQuestMarkersBeforeFilters, layerFilters)}
+          counts={buildCounts(mapPoints, mapQuestMarkersBeforeFilters, layerFilters, def?.labels.length ?? 0)}
           filters={layerFilters}
           onChange={(f) => patchSettings({ layerFilters: f })}
         />

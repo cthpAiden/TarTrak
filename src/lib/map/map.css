@@ -32,3 +32,6 @@
 .point-icon.hazards span { color: #ff5c5c; }
 .point-icon.switches span { color: #5ce0e6; }
 .point-icon.btr span { color: #a8b060; }
+
+.map-label { pointer-events: none; }
+.map-label span { display: inline-block; white-space: nowrap; color: #e6e9ee; font-weight: 600; letter-spacing: 0.02em; text-shadow: 0 0 3px #000, 0 0 3px #000, 0 1px 2px #000; opacity: 0.9; }

@@ -1,6 +1,7 @@
 export type Filters = Record<string, boolean>;
 
 export const DEFAULT_ON: ReadonlySet<string> = new Set([
+  "labels/landmark",
   "extracts/pmc",
   "extracts/shared",
   "extracts/transit",

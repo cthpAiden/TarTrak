@@ -22,9 +22,10 @@ export interface GroupCount {
 }
 
 /** GROUP_ORDER with the quest markers inserted as a pseudo-group right after extracts. */
-const PANEL_GROUPS: readonly string[] = [GROUP_ORDER[0], "quests", ...GROUP_ORDER.slice(1)];
+/** "labels" and "quests" are pseudo-groups: not MapPoints, but they share the filter tree. */
+const PANEL_GROUPS: readonly string[] = ["labels", GROUP_ORDER[0], "quests", ...GROUP_ORDER.slice(1)];
 
-const PANEL_LABELS: Record<string, string> = { ...GROUP_LABELS, quests: "Map Tasks" };
+const PANEL_LABELS: Record<string, string> = { ...GROUP_LABELS, labels: "Map Labels", quests: "Map Tasks" };
 
 function group(
   g: string,
@@ -57,6 +58,7 @@ export function buildCounts(
   mapPoints: MapPoint[],
   mapQuestMarkers: QuestMarker[],
   filters: Filters,
+  labelCount = 0,
 ): GroupCount[] {
   const pointTotals = new Map<string, number>();
   for (const p of mapPoints) pointTotals.set(filterKey(p), (pointTotals.get(filterKey(p)) ?? 0) + 1);
@@ -64,6 +66,9 @@ export function buildCounts(
   for (const m of mapQuestMarkers) questTotals.set(m.category, (questTotals.get(m.category) ?? 0) + 1);
 
   return PANEL_GROUPS.map((g) => {
+    if (g === "labels") {
+      return group(g, [{ category: "landmark", label: "Landmark labels", total: labelCount }], filters);
+    }
     if (g === "quests") {
       return group(
         g,

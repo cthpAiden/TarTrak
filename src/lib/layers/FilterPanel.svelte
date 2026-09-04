@@ -25,11 +25,12 @@
 
   // Canvas groups have no glyph on the map, so the panel shows a dot in the marker colour instead.
   function glyph(c: CategoryCount): string {
+    if (c.group === "labels") return "Aa";
     if (c.group === "quests") return QUEST_GLYPHS[c.category as QuestCategory] ?? "•";
     return usesCanvas(c.group as GroupId) ? "●" : GLYPHS[c.group as GroupId];
   }
   function color(c: CategoryCount): string {
-    return c.group === "quests" ? "" : `color: ${colorFor({ group: c.group as GroupId, category: c.category })}`;
+    return c.group === "quests" || c.group === "labels" ? "" : `color: ${colorFor({ group: c.group as GroupId, category: c.category })}`;
   }
 
   const empty = $derived(counts.every((g) => g.total === 0));

@@ -37,9 +37,11 @@ function marker(category: QuestMarker["category"], i = 0): QuestMarker {
 const noFilters: Filters = {};
 
 describe("buildCounts", () => {
-  it("orders groups with quests second", () => {
-    const groups = buildCounts([], [], noFilters);
+  it("orders groups with labels first and quests third", () => {
+    const groups = buildCounts([], [], noFilters, 7);
+    expect(groups[0]).toMatchObject({ group: "labels", total: 7, shown: 7, state: "all" });
     expect(groups.map((g) => g.group)).toEqual([
+      "labels",
       "extracts",
       "quests",
       "spawns",
@@ -51,6 +53,7 @@ describe("buildCounts", () => {
       "btr",
     ]);
     expect(groups.map((g) => g.label)).toEqual([
+      "Map Labels",
       "Extracts",
       "Map Tasks",
       "Spawns",

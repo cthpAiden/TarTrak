@@ -10,6 +10,15 @@ export interface MapLayer {
   show?: boolean;
   extents?: MapExtent[];
 }
+/** Landmark text placed at game coordinates [x, z]; `size` is a percentage of the base font. */
+export interface MapLabel {
+  position: [number, number];
+  text: string;
+  rotation?: number;
+  size?: number;
+  top?: number;
+  bottom?: number;
+}
 export interface MapDef {
   key: string;
   name: string;
@@ -20,6 +29,7 @@ export interface MapDef {
   svgLayer?: string;
   heightRange?: [number, number];
   layers: MapLayer[];
+  labels: MapLabel[];
   minZoom: number;
   maxZoom: number;
 }
@@ -50,6 +60,7 @@ interface RawMap {
   svgLayer?: string;
   heightRange?: [number, number];
   layers?: MapLayer[];
+  labels?: MapLabel[];
   minZoom?: number;
   maxZoom?: number;
 }
@@ -76,6 +87,7 @@ export function loadMapDefs(): MapDef[] {
         svgLayer: m.svgLayer,
         heightRange: m.heightRange,
         layers: m.layers ?? [],
+        labels: (m.labels ?? []).filter((l) => Array.isArray(l.position) && typeof l.text === "string"),
         minZoom: m.minZoom ?? 1,
         maxZoom: m.maxZoom ?? 5,
       })),

@@ -12,6 +12,12 @@ describe("loadMapDefs", () => {
     expect(getMapDef("nope")).toBeUndefined();
   });
 
+  it("carries landmark labels", () => {
+    const labels = getMapDef("streets-of-tarkov")!.labels;
+    expect(labels.length).toBeGreaterThan(40);
+    expect(labels[0]).toMatchObject({ text: expect.any(String), position: [expect.any(Number), expect.any(Number)] });
+  });
+
   it("excludes non-interactive projections", () => {
     const defs = loadMapDefs();
     expect(defs).toHaveLength(13);

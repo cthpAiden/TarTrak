@@ -14,6 +14,7 @@
   import type { QuestMarker } from "../quests/markers";
   import type { MapPoint } from "../layers/points";
   import { colorFor, pointDivIcon, usesCanvas } from "../layers/pointLayer";
+  import { labelDivIcon } from "./labels";
 
   let {
     def,
@@ -21,6 +22,7 @@
     onFloorPinned,
     questMarkers,
     points,
+    showLabels,
     lineLengthPx,
   }: {
     def: MapDef | null;
@@ -28,6 +30,7 @@
     onFloorPinned: (name: string | null) => void;
     questMarkers: QuestMarker[];
     points: MapPoint[];
+    showLabels: boolean;
     lineLengthPx: number;
   } = $props();
 
@@ -42,6 +45,7 @@
   // $state so the quest and point effects re-run once build() creates the groups.
   let questGroup = $state<L.LayerGroup | null>(null);
   let pointGroup = $state<L.LayerGroup | null>(null);
+  let labelGroup = $state<L.LayerGroup | null>(null);
   let canvas = L.canvas({ padding: 0.5 });
   /** Bumped by every destroy(); a build whose generation is stale drops its result. */
   let gen = 0;
@@ -62,6 +66,7 @@
     own = null;
     questGroup = null;
     pointGroup = null;
+    labelGroup = null;
     svg = null;
     map?.remove();
     map = null;
@@ -82,9 +87,14 @@
     m.fitBounds(boundsOf(d));
     map = m;
     questGroup = L.layerGroup().addTo(m);
+    // Own panes above the overlay pane (400): the SVG map is added later, and in a shared pane it
+    // would land on top of the canvas and hide every circle marker.
+    m.createPane("points").style.zIndex = "450";
+    m.createPane("labels").style.zIndex = "460";
     // Fresh renderer per map; assigned before pointGroup so the point effect sees the new one.
-    canvas = L.canvas({ padding: 0.5 });
+    canvas = L.canvas({ padding: 0.5, pane: "points" });
     pointGroup = L.layerGroup().addTo(m);
+    labelGroup = L.layerGroup().addTo(m);
     if (!d.svgPath) {
       message = `${d.name}: no vector map available yet`;
       return;
@@ -206,6 +216,18 @@
           })
         : L.marker(ll, { icon: pointDivIcon(p) });
       layer.bindTooltip(esc(p.name)).addTo(g);
+    }
+  });
+
+  $effect(() => {
+    const d = def;
+    const show = showLabels;
+    const g = labelGroup;
+    if (!g) return;
+    g.clearLayers();
+    if (!show || !d) return;
+    for (const l of d.labels) {
+      L.marker(toLatLng(l.position[0], l.position[1]), { icon: labelDivIcon(l), interactive: false, pane: "labels" }).addTo(g);
     }
   });
 
