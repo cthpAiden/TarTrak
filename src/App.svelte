@@ -8,6 +8,7 @@
   import { DEFAULT_SETTINGS, loadSettings, saveSettings, type Settings } from "./lib/settings/store";
   import { room } from "./lib/room/controller.svelte";
   import RoomPanel from "./lib/room/RoomPanel.svelte";
+  import SettingsPanel from "./lib/settings/SettingsPanel.svelte";
   import QuestPanel from "./lib/quests/QuestPanel.svelte";
   import { loadQuestData, defaultDeps } from "./lib/quests/cache";
   import { extractQuestMarkers, extractExtracts } from "./lib/quests/markers";
@@ -68,6 +69,18 @@
     if (stored && (await start(stored))) return;
     if (detected && detected !== stored && (await start(detected))) {
       patchSettings(kind === "screenshots" ? { screenshotsDir: detected } : { logsDir: detected });
+    }
+  }
+
+  /** Persists a settings change, then re-applies the parts of it that are live. */
+  async function applySettings(patch: Partial<Settings>) {
+    const before = settings!;
+    patchSettings(patch);
+    const after = settings!;
+    // Re-arm the watcher through the helper so the dir state still only survives a success.
+    if (patch.deleteScreenshots !== undefined && screenshotsDir) await useScreenshotsDir(screenshotsDir);
+    if (patch.relayUrl !== undefined && patch.relayUrl !== before.relayUrl && room.code) {
+      room.join(room.code, after.name, after.color, after.relayUrl);
     }
   }
 
@@ -162,6 +175,7 @@
           {questMarkers}
           {extracts}
           {showExtracts}
+          lineLengthPx={settings?.lineLengthPx ?? DEFAULT_SETTINGS.lineLengthPx}
         />
       {:else}
         <div class="empty">Pick a map above, or load into a raid.</div>
@@ -175,6 +189,7 @@
           playerLevel={settings.playerLevel}
           onPlayerLevel={(n) => patchSettings({ playerLevel: n })}
         />
+        <SettingsPanel {settings} onChange={applySettings} onPickDir={pickDir} />
       {/if}
     </aside>
   </div>

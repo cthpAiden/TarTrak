@@ -20,6 +20,7 @@
     questMarkers,
     extracts,
     showExtracts,
+    lineLengthPx,
   }: {
     def: MapDef | null;
     pinnedFloor: string | null;
@@ -27,10 +28,10 @@
     questMarkers: QuestMarker[];
     extracts: ExtractMarker[];
     showExtracts: boolean;
+    lineLengthPx: number;
   } = $props();
 
   const OWN_COLOR = "#f0b429";
-  const LINE_PX = 28;
 
   let container: HTMLDivElement;
   // map and svg are $state so the marker and floor effects re-run once build() assigns them.
@@ -122,13 +123,26 @@
     if (s && d) showFloor(s, d.svgLayer, group);
   });
 
+  // A marker bakes its line length in at construction, so a change drops every marker and the two
+  // effects below rebuild them at the new length. untrack: the removal must not track the markers.
+  $effect(() => {
+    void lineLengthPx;
+    untrack(() => {
+      for (const m of mates.values()) m.remove();
+      mates = new Map();
+      own?.remove();
+      own = null;
+    });
+  });
+
   $effect(() => {
     const p = app.ownPos;
     const updatedAt = app.ownUpdatedAt;
     const t = now;
     const m = map;
+    const len = lineLengthPx;
     if (!m || !p) return;
-    if (!own) own = new PositionMarker(m, { color: OWN_COLOR, radius: 6, lineLengthPx: LINE_PX });
+    if (!own) own = new PositionMarker(m, { color: OWN_COLOR, radius: 6, lineLengthPx: len });
     own.update(p.x, p.z, p.yaw);
     own.setOpacity(opacityFor(t - updatedAt));
   });
@@ -138,6 +152,7 @@
     const tick = now;
     const d = def;
     const m = map;
+    const len = lineLengthPx;
     if (!m || !d) return;
     const wanted: Teammate[] = Object.values(all).filter((t) => t.map === d.key);
     const ids = new Set(wanted.map((t) => t.id));
@@ -150,7 +165,7 @@
     for (const t of wanted) {
       let marker = mates.get(t.id);
       if (!marker) {
-        marker = new PositionMarker(m, { color: t.color, radius: 6, lineLengthPx: LINE_PX, label: t.name });
+        marker = new PositionMarker(m, { color: t.color, radius: 6, lineLengthPx: len, label: t.name });
         mates.set(t.id, marker);
       }
       marker.setColor(t.color);
