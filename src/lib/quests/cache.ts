@@ -16,6 +16,13 @@ export interface QuestLoaderDeps {
   now(): number;
 }
 
+/** A valid-JSON-but-wrong-shape cache would throw inside a $derived and blank the app. */
+export function isQuestData(v: unknown): v is QuestData {
+  if (typeof v !== "object" || v === null) return false;
+  const d = v as Record<string, unknown>;
+  return Array.isArray(d.tasks) && Array.isArray(d.maps) && typeof d.fetchedAt === "number";
+}
+
 export function isStale(fetchedAt: number, now: number): boolean {
   return now - fetchedAt > MAX_AGE_MS;
 }
@@ -50,7 +57,8 @@ export function defaultDeps(): QuestLoaderDeps {
   return {
     async readCache() {
       if (!(await exists(CACHE_PATH, APP))) return null;
-      return JSON.parse(await readTextFile(CACHE_PATH, APP)) as QuestData;
+      const parsed: unknown = JSON.parse(await readTextFile(CACHE_PATH, APP));
+      return isQuestData(parsed) ? parsed : null;
     },
     async writeCache(d) {
       if (!(await exists("quests", APP))) await mkdir("quests", { ...APP, recursive: true });

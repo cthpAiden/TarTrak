@@ -8,7 +8,9 @@ export async function checkForUpdate(onInfo: (msg: string) => void): Promise<voi
   try {
     update = await check();
   } catch (e) {
-    onInfo(`Update check failed: ${e}`);
+    // Not toasted: this fails on every launch while offline, and for everyone until the release
+    // endpoint is configured. A failed install below is different — the user asked for that one.
+    console.warn(`Update check failed: ${e}`);
     return;
   }
   if (!update) return;

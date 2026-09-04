@@ -1,12 +1,24 @@
 <script lang="ts">
   import { untrack } from "svelte";
+  import { normalizeHotkey } from "../tauri/window";
   import type { Settings } from "./store";
 
-  let { settings, onChange, onPickDir }: {
+  let { settings, onChange, onPickDir, onInvalid }: {
     settings: Settings;
     onChange: (patch: Partial<Settings>) => void;
     onPickDir: (kind: "screenshots" | "logs") => void;
+    onInvalid?: (msg: string) => void;
   } = $props();
+
+  /** An unparseable hotkey would be stored and the key would then silently stop working. */
+  function commitHotkey(which: "hotkeyOverlay" | "hotkeyOpacity", raw: string) {
+    const text = raw.trim();
+    if (normalizeHotkey(text) === null) {
+      onInvalid?.(`Invalid hotkey: ${text}`);
+      return;
+    }
+    onChange({ [which]: text });
+  }
 
   let open = $state(false);
   // untrack: these are the editable copies, seeded once from the stored settings.
@@ -47,7 +59,7 @@
       <input
         id="set-hk-overlay"
         bind:value={overlayKey}
-        onblur={() => onChange({ hotkeyOverlay: overlayKey.trim() })}
+        onblur={() => commitHotkey("hotkeyOverlay", overlayKey)}
         placeholder="F5"
       />
 
@@ -55,7 +67,7 @@
       <input
         id="set-hk-opacity"
         bind:value={opacityKey}
-        onblur={() => onChange({ hotkeyOpacity: opacityKey.trim() })}
+        onblur={() => commitHotkey("hotkeyOpacity", opacityKey)}
         placeholder="F6"
       />
 

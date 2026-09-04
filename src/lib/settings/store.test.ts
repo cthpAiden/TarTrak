@@ -27,6 +27,33 @@ describe("mergeSettings", () => {
     expect(s.logsDir).toBe("D:\\x\\Logs");
     expect(s.lastMap).toBeNull();
   });
+
+  it("clamps an over-long name and color to 32 chars", () => {
+    const s = mergeSettings({ name: "x".repeat(50), color: "#".repeat(40) });
+    expect(s.name).toHaveLength(32);
+    expect(s.color).toHaveLength(32);
+  });
+
+  it("clamps the heading line length to [8, 120]", () => {
+    expect(mergeSettings({ lineLengthPx: 0 }).lineLengthPx).toBe(8);
+    expect(mergeSettings({ lineLengthPx: 5000 }).lineLengthPx).toBe(120);
+    expect(mergeSettings({ lineLengthPx: 40 }).lineLengthPx).toBe(40);
+  });
+
+  it("clamps the player level to [0, 79]", () => {
+    expect(mergeSettings({ playerLevel: -5 }).playerLevel).toBe(0);
+    expect(mergeSettings({ playerLevel: 300 }).playerLevel).toBe(79);
+    expect(mergeSettings({ playerLevel: 42 }).playerLevel).toBe(42);
+  });
+
+  it("rejects a last room that is not a room code", () => {
+    expect(mergeSettings({ lastRoom: "ABC123" }).lastRoom).toBe("ABC123");
+    expect(mergeSettings({ lastRoom: "" }).lastRoom).toBe("");
+    expect(mergeSettings({ lastRoom: "abc123" }).lastRoom).toBe("");
+    expect(mergeSettings({ lastRoom: "ABC12" }).lastRoom).toBe("");
+    expect(mergeSettings({ lastRoom: "ABC1234" }).lastRoom).toBe("");
+    expect(mergeSettings({ lastRoom: "AB C12" }).lastRoom).toBe("");
+  });
 });
 
 describe("loadSettings", () => {

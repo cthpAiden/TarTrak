@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { loadQuestData, MAX_AGE_MS, type QuestLoaderDeps } from "./cache";
+import { isQuestData, loadQuestData, MAX_AGE_MS, type QuestLoaderDeps } from "./cache";
 import type { QuestData } from "./types";
 
 const d = (fetchedAt: number, tag: string): QuestData => ({
@@ -65,5 +65,22 @@ describe("loadQuestData", () => {
     const onUpdate = vi.fn();
     await loadQuestData(dp, onUpdate);
     expect(onUpdate).not.toHaveBeenCalled();
+  });
+});
+
+describe("isQuestData", () => {
+  it("accepts a well-formed payload", () => {
+    expect(isQuestData(d(1, "ok"))).toBe(true);
+    expect(isQuestData({ tasks: [], maps: [], fetchedAt: 0 })).toBe(true);
+  });
+
+  it("rejects anything the app would choke on", () => {
+    expect(isQuestData(null)).toBe(false);
+    expect(isQuestData("{}")).toBe(false);
+    expect(isQuestData({})).toBe(false);
+    expect(isQuestData({ tasks: [], maps: [] })).toBe(false);
+    expect(isQuestData({ tasks: [], maps: [], fetchedAt: "1" })).toBe(false);
+    expect(isQuestData({ tasks: {}, maps: [], fetchedAt: 1 })).toBe(false);
+    expect(isQuestData({ tasks: [], maps: null, fetchedAt: 1 })).toBe(false);
   });
 });

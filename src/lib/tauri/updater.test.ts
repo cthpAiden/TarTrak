@@ -34,11 +34,15 @@ describe("checkForUpdate", () => {
     expect(messages).toEqual([]);
   });
 
-  it("reports a failed check without prompting", async () => {
+  // A failed check happens on every offline launch, so it is logged rather than toasted.
+  it("logs a failed check without prompting or toasting", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     checkMock.mockRejectedValue(new Error("offline"));
     await checkForUpdate(onInfo);
     expect(askMock).not.toHaveBeenCalled();
-    expect(messages).toEqual(["Update check failed: Error: offline"]);
+    expect(messages).toEqual([]);
+    expect(warn).toHaveBeenCalledWith("Update check failed: Error: offline");
+    warn.mockRestore();
   });
 
   it("does not install when the user declines", async () => {

@@ -1,25 +1,39 @@
 import type { Position } from "../parse/screenshot";
 import { app } from "../state/app.svelte";
-import { RoomClient, type RoomStatus } from "./client";
+import { RoomClient, type RoomClientOptions, type RoomStatus } from "./client";
 import type { ServerMsg } from "./protocol";
+
+/** The part of RoomClient the controller drives; injectable so the message handling is testable. */
+export interface RoomClientLike {
+  connect(): void;
+  close(): void;
+  sendPosition(map: string | null, p: Position): void;
+}
 
 export class RoomController {
   code = $state<string | null>(null);
   status = $state<RoomStatus>("closed");
-  private client: RoomClient | null = null;
+  private client: RoomClientLike | null = null;
+
+  constructor(
+    private readonly makeClient: (opts: RoomClientOptions) => RoomClientLike = (opts) => new RoomClient(opts),
+  ) {}
 
   join(code: string, name: string, color: string, relayUrl: string): void {
     this.leave();
     this.code = code.toUpperCase();
-    this.client = new RoomClient({
+    this.client = this.makeClient({
       relayUrl,
       code: this.code,
       name,
       color,
       onMessage: (m) => this.handle(m),
       onStatus: (s) => (this.status = s),
+      onError: (e) => app.toast(`Relay connection failed: ${e}`),
     });
     this.client.connect();
+    // Without this the room only learns where we are on our next screenshot.
+    if (app.ownPos) this.client.sendPosition(app.currentMap, app.ownPos);
   }
 
   leave(): void {
@@ -34,13 +48,25 @@ export class RoomController {
     this.client?.sendPosition(map, p);
   }
 
+  /** The relay hands out a fresh id per socket, so a reconnect would otherwise leave a frozen twin. */
+  private dropGhost(id: string, name: string): void {
+    if (app.teammates[id]) return;
+    for (const [oldId, t] of Object.entries(app.teammates)) {
+      if (t.left && t.name === name) app.removeTeammate(oldId);
+    }
+  }
+
   private handle(m: ServerMsg): void {
     if (m.type === "leave") {
       // Keep the last known marker; the spec says markers never disappear on their own.
       const t = app.teammates[m.id];
-      if (t) app.toast(`${t.name} left the room`);
+      if (t) {
+        app.upsertTeammate({ ...t, left: true });
+        app.toast(`${t.name} left the room`);
+      }
       return;
     }
+    this.dropGhost(m.id, m.name);
     if (m.type === "hello") {
       if (!app.teammates[m.id]) app.toast(`${m.name} joined the room`);
       return;

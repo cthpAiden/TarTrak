@@ -20,6 +20,8 @@ export interface RoomClientOptions {
   color: string;
   onMessage: (m: ServerMsg) => void;
   onStatus: (s: RoomStatus) => void;
+  /** Called when the socket could not even be constructed (an unusable relay URL). */
+  onError?: (e: unknown) => void;
   wsFactory?: (url: string) => WebSocketLike;
   now?: () => number;
 }
@@ -30,7 +32,9 @@ const BACKOFF_MAX_MS = 30_000;
 const WS_OPEN = 1;
 
 export function roomUrl(relayUrl: string, code: string): string {
-  const base = relayUrl
+  // A pasted host without a scheme is the common case; `new WebSocket` would throw on it.
+  const withScheme = relayUrl.includes("://") ? relayUrl : `wss://${relayUrl}`;
+  const base = withScheme
     .replace(/^http:/, "ws:")
     .replace(/^https:/, "wss:")
     .replace(/\/+$/, "");
@@ -114,9 +118,28 @@ export class RoomClient {
     this.opts.onStatus(s);
   }
 
+  /** Shared by onclose and by a failed socket construction, so a bad URL cannot kill the loop. */
+  private scheduleReconnect(): void {
+    if (this.stopped || this.reconnectTimer) return;
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      if (!this.stopped) this.open();
+    }, this.backoff);
+    this.backoff = Math.min(BACKOFF_MAX_MS, this.backoff * 2);
+  }
+
   private open(): void {
     const factory = this.opts.wsFactory ?? ((url: string) => new WebSocket(url) as unknown as WebSocketLike);
-    const ws = factory(roomUrl(this.opts.relayUrl, this.opts.code));
+    let ws: WebSocketLike;
+    try {
+      ws = factory(roomUrl(this.opts.relayUrl, this.opts.code));
+    } catch (e) {
+      this.ws = null;
+      this.setStatus("closed");
+      this.opts.onError?.(e);
+      this.scheduleReconnect();
+      return;
+    }
     this.ws = ws;
     this.setStatus("connecting");
 
@@ -140,12 +163,7 @@ export class RoomClient {
       if (this.ws !== ws) return;
       this.ws = null;
       this.setStatus("closed");
-      if (this.stopped) return;
-      this.reconnectTimer = setTimeout(() => {
-        this.reconnectTimer = null;
-        if (!this.stopped) this.open();
-      }, this.backoff);
-      this.backoff = Math.min(BACKOFF_MAX_MS, this.backoff * 2);
+      this.scheduleReconnect();
     };
   }
 }

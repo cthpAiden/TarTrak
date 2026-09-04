@@ -6,6 +6,7 @@
   import { setOverlay, applyOpacity, nextOpacity, installAltDrag, registerHotkeys } from "./lib/tauri/window";
   import { detectDirs, startScreenshotWatcher, startLogTail, type DetectedDirs } from "./lib/tauri/commands";
   import { checkForUpdate } from "./lib/tauri/updater";
+  import { retryUntil } from "./lib/tauri/retry";
   import { getMapDef } from "./lib/map/mapsData";
   import { DEFAULT_SETTINGS, loadSettings, saveSettings, type Settings } from "./lib/settings/store";
   import { room } from "./lib/room/controller.svelte";
@@ -20,6 +21,8 @@
   import MapPicker from "./lib/map/MapPicker.svelte";
   import Toasts from "./lib/ui/Toasts.svelte";
   import Banner from "./lib/ui/Banner.svelte";
+
+  const DIR_RETRY_MS = 10_000;
 
   let pinnedFloor = $state<string | null>(null);
   let screenshotsDir = $state<string | null>(null);
@@ -75,32 +78,33 @@
 
   // The dir state is set only once the backend accepts the folder, so a stale or moved folder
   // leaves the banner up instead of silently pretending the watcher runs.
-  async function useScreenshotsDir(dir: string): Promise<boolean> {
+  // `quiet` is for the background retry below: the first failure is worth a toast, one every 10 s is not.
+  async function useScreenshotsDir(dir: string, quiet = false): Promise<boolean> {
     try {
       await startScreenshotWatcher(dir, settings?.deleteScreenshots ?? DEFAULT_SETTINGS.deleteScreenshots);
       screenshotsDir = dir;
       return true;
     } catch (e) {
-      app.toast(`Screenshot folder ${dir}: ${e}`);
+      if (!quiet) app.toast(`Screenshot folder ${dir}: ${e}`);
       return false;
     }
   }
-  async function useLogsDir(dir: string): Promise<boolean> {
+  async function useLogsDir(dir: string, quiet = false): Promise<boolean> {
     try {
       await startLogTail(dir);
       logsDir = dir;
       return true;
     } catch (e) {
-      app.toast(`Log folder ${dir}: ${e}`);
+      if (!quiet) app.toast(`Log folder ${dir}: ${e}`);
       return false;
     }
   }
 
   /** Try the stored folder, then the detected one; remember whichever works. */
-  async function useDir(kind: "screenshots" | "logs", stored: string | null, detected: string | null) {
+  async function useDir(kind: "screenshots" | "logs", stored: string | null, detected: string | null, quiet = false) {
     const start = kind === "screenshots" ? useScreenshotsDir : useLogsDir;
-    if (stored && (await start(stored))) return;
-    if (detected && detected !== stored && (await start(detected))) {
+    if (stored && (await start(stored, quiet))) return;
+    if (detected && detected !== stored && (await start(detected, quiet))) {
       patchSettings(kind === "screenshots" ? { screenshotsDir: detected } : { logsDir: detected });
     }
   }
@@ -132,6 +136,9 @@
 
   onMount(() => {
     let stop: (() => void) | undefined;
+    let stopRetry: (() => void) | undefined;
+    // Startup runs async, so it can still be mid-flight when the component goes away.
+    let disposed = false;
     const stopDrag = installAltDrag();
     // Each phase is isolated: a failure in one must not stop the others from starting.
     (async () => {
@@ -163,11 +170,29 @@
       await useDir("screenshots", s.screenshotsDir, dirs.screenshots);
       await useDir("logs", s.logsDir, dirs.logs);
 
+      // Spec 7: EFT creates the Screenshots folder on the first screenshot ever, so keep looking
+      // (re-detecting each time, since the folder may only appear now) until the watcher is armed.
+      if (!screenshotsDir && !disposed) {
+        stopRetry = retryUntil(async () => {
+          if (screenshotsDir) return true;
+          let again: DetectedDirs = { screenshots: null, logs: null };
+          try {
+            again = await detectDirs();
+          } catch {
+            // Keep retrying; the startup attempt already reported the failure.
+          }
+          await useDir("screenshots", settings?.screenshotsDir ?? null, again.screenshots, true);
+          return screenshotsDir !== null;
+        }, DIR_RETRY_MS);
+      }
+
       checkForUpdate((m) => app.toast(m)).catch((e) => app.toast(`Update failed: ${e}`));
     })().catch((e) => app.toast(`Startup error: ${e}`));
     return () => {
+      disposed = true;
       stop?.();
       stopDrag();
+      stopRetry?.();
       unhookHotkeys?.().catch(() => {});
     };
   });
@@ -235,7 +260,7 @@
           playerLevel={settings.playerLevel}
           onPlayerLevel={(n) => patchSettings({ playerLevel: n })}
         />
-        <SettingsPanel {settings} onChange={applySettings} onPickDir={pickDir} />
+        <SettingsPanel {settings} onChange={applySettings} onPickDir={pickDir} onInvalid={(m) => app.toast(m)} />
       {/if}
     </aside>
   </div>

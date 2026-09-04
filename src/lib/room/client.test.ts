@@ -57,6 +57,10 @@ describe("roomUrl", () => {
     expect(roomUrl("https://relay.test/", "ABC123")).toBe("wss://relay.test/room/ABC123");
     expect(roomUrl("http://localhost:8787", "abc123")).toBe("ws://localhost:8787/room/ABC123");
   });
+
+  it("assumes wss for a pasted host with no scheme", () => {
+    expect(roomUrl("relay.example.workers.dev", "abc123")).toBe("wss://relay.example.workers.dev/room/ABC123");
+  });
 });
 
 describe("RoomClient", () => {
@@ -144,5 +148,29 @@ describe("RoomClient", () => {
     vi.advanceTimersByTime(60_000);
     expect(FakeWs.instances).toHaveLength(before + 1);
     expect(FakeWs.instances.at(-1)!.closed).toBe(true);
+  });
+
+  it("survives a socket factory that throws and keeps retrying", () => {
+    const errors: unknown[] = [];
+    let fail = true;
+    const { client, statuses } = make({
+      onError: (e) => errors.push(e),
+      wsFactory: (url) => {
+        if (fail) throw new SyntaxError("bad url");
+        return new FakeWs(url);
+      },
+    });
+    client.connect();
+    expect(client.status).toBe("closed");
+    expect(statuses).toEqual([]);
+    expect(errors).toHaveLength(1);
+    expect(String(errors[0])).toContain("bad url");
+    expect(FakeWs.instances).toHaveLength(0);
+
+    // The reconnect loop is still alive, so fixing the URL recovers without a rejoin.
+    fail = false;
+    vi.advanceTimersByTime(1000);
+    expect(FakeWs.instances).toHaveLength(1);
+    expect(client.status).toBe("connecting");
   });
 });

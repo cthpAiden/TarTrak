@@ -58,7 +58,11 @@
         min="0"
         max="79"
         value={playerLevel}
-        onchange={(e) => onPlayerLevel(Number(e.currentTarget.value))}
+        onchange={(e) => {
+          // A non-numeric paste yields NaN, which would hide every quest marker.
+          const n = Number(e.currentTarget.value);
+          onPlayerLevel(Number.isFinite(n) ? Math.max(0, Math.min(79, n)) : 0);
+        }}
       />
     </label>
     <label><input type="checkbox" bind:checked={hideDone} /> hide done</label>

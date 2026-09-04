@@ -120,7 +120,7 @@
     const s = svg;
     const d = def;
     const group = floorGroup;
-    if (s && d) showFloor(s, d.svgLayer, group);
+    if (s && d) showFloor(s, d.svgLayer, group, d.layers.map((l) => l.svgLayer).filter((v): v is string => !!v));
   });
 
   // A marker bakes its line length in at construction, so a change drops every marker and the two

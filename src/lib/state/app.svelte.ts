@@ -13,6 +13,8 @@ export interface Teammate {
   yaw: number;
   ts: number;
   receivedAt: number;
+  /** Set when the relay announced their leave; the marker stays, but a reconnect may replace it. */
+  left?: boolean;
 }
 
 export type MapSource = "log" | "manual";

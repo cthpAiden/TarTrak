@@ -5,15 +5,34 @@ export interface LoadedSvg {
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-/** Map SVGs are fetched from the network, so drop anything that could execute. */
+/** Elements that can run script or smuggle HTML into the SVG. */
+const FORBIDDEN_ELEMENTS = new Set([
+  "script",
+  "foreignobject",
+  "set",
+  "animate",
+  "animatemotion",
+  "animatetransform",
+]);
+
+/**
+ * Map SVGs are fetched from the network, so drop anything that could execute: script-bearing
+ * elements, inline handlers, and any link target that is not a same-document fragment.
+ * Note the SVG's own <style> block survives and lands in the document stylesheet scope.
+ */
 function sanitize(root: SVGSVGElement): void {
   for (const el of root.querySelectorAll("*")) {
-    if (el.nodeName.toLowerCase() === "script") {
+    if (FORBIDDEN_ELEMENTS.has(el.nodeName.toLowerCase())) {
       el.remove();
       continue;
     }
     for (const attr of [...el.attributes]) {
-      if (attr.name.toLowerCase().startsWith("on")) el.removeAttribute(attr.name);
+      const name = attr.name.toLowerCase();
+      if (name.startsWith("on")) {
+        el.removeAttribute(attr.name);
+      } else if ((name === "href" || name === "xlink:href") && !attr.value.trim().startsWith("#")) {
+        el.removeAttribute(attr.name);
+      }
     }
   }
 }
@@ -33,14 +52,25 @@ export function buildSvgElement(svgText: string): LoadedSvg {
   return { element, groupIds };
 }
 
-/** Base group is always shown (dimmed when a floor is up); the chosen floor is shown; the rest hidden. */
-export function showFloor(svg: LoadedSvg, baseGroup: string | undefined, floorGroup: string | null): void {
+/**
+ * Base group is always shown (dimmed when a floor is up); the chosen floor is shown; the other
+ * known floors are hidden. Groups the map definition does not mention (Customs' `First_Floor`
+ * holds ground-floor interiors) are left alone — hiding them would drop real map content.
+ */
+export function showFloor(
+  svg: LoadedSvg,
+  baseGroup: string | undefined,
+  floorGroup: string | null,
+  knownFloorGroups: string[],
+): void {
   const inner = svg.element.children[0];
   if (!inner) return;
+  const known = new Set(knownFloorGroups);
   // Matched by id rather than by selector: ids like "4th_Floor" are not valid CSS selectors.
   for (const g of inner.children) {
     if (g.nodeName !== "g" || !g.id) continue;
     const isBase = g.id === baseGroup;
+    if (!isBase && !known.has(g.id)) continue;
     const isFloor = g.id === floorGroup;
     g.classList.toggle("hidden-layer", !isBase && !isFloor);
     g.classList.toggle("off-level", isBase && floorGroup !== null);

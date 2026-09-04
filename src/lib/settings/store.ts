@@ -55,6 +55,12 @@ function accepts(kind: Kind, v: unknown): boolean {
   return typeof v === kind;
 }
 
+function clamp(n: number, lo: number, hi: number): number {
+  return Math.max(lo, Math.min(hi, n));
+}
+
+const ROOM_CODE_RE = /^[A-Z0-9]{6}$|^$/;
+
 export function mergeSettings(partial: unknown): Settings {
   const out: Settings = { ...DEFAULT_SETTINGS };
   if (typeof partial !== "object" || partial === null || Array.isArray(partial)) return out;
@@ -64,6 +70,13 @@ export function mergeSettings(partial: unknown): Settings {
       (out as unknown as Record<string, unknown>)[key] = src[key];
     }
   }
+  // Bounds the UI enforces but a hand-edited store does not. An over-long name would make the
+  // relay drop every message and leave the user invisible with a healthy-looking green dot.
+  out.name = out.name.slice(0, 32);
+  out.color = out.color.slice(0, 32);
+  out.lineLengthPx = clamp(out.lineLengthPx, 8, 120);
+  out.playerLevel = clamp(out.playerLevel, 0, 79);
+  if (!ROOM_CODE_RE.test(out.lastRoom)) out.lastRoom = "";
   return out;
 }
 
