@@ -1,11 +1,17 @@
 import { describe, it, expect, vi } from "vitest";
-import { mergeSettings, loadSettings, DEFAULT_SETTINGS } from "./store";
+import { mergeSettings, loadSettings, DEFAULT_SETTINGS, DEFAULT_RELAY_URL } from "./store";
 
 vi.mock("@tauri-apps/plugin-store", () => ({
   load: () => Promise.reject(new Error("corrupt settings.json")),
 }));
 
 describe("mergeSettings", () => {
+  it("replaces the pre-deploy placeholder relay URL and an empty one with the default", () => {
+    expect(mergeSettings({ relayUrl: "wss://tartrak-relay.example.workers.dev" }).relayUrl).toBe(DEFAULT_RELAY_URL);
+    expect(mergeSettings({ relayUrl: "  " }).relayUrl).toBe(DEFAULT_RELAY_URL);
+    expect(mergeSettings({ relayUrl: "wss://my.relay" }).relayUrl).toBe("wss://my.relay");
+  });
+
   it("returns defaults for garbage", () => {
     expect(mergeSettings(undefined)).toEqual(DEFAULT_SETTINGS);
     expect(mergeSettings("x")).toEqual(DEFAULT_SETTINGS);

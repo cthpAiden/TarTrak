@@ -21,6 +21,8 @@ export interface Settings {
 
 /** Default relay: the project-hosted Cloudflare Worker (relay/). Overridable in Settings. */
 export const DEFAULT_RELAY_URL = "wss://tartrak-relay.aidenmileshp.workers.dev";
+/** Placeholder written by builds before the relay was deployed; a store holding it can never connect. */
+const STALE_RELAY_URL = "wss://tartrak-relay.example.workers.dev";
 
 export const DEFAULT_SETTINGS: Settings = {
   screenshotsDir: null,
@@ -104,6 +106,7 @@ export function mergeSettings(partial: unknown): Settings {
   }
   // Bounds the UI enforces but a hand-edited store does not. An over-long name would make the
   // relay drop every message and leave the user invisible with a healthy-looking green dot.
+  if (out.relayUrl.trim() === "" || out.relayUrl === STALE_RELAY_URL) out.relayUrl = DEFAULT_RELAY_URL;
   out.name = out.name.slice(0, 32);
   out.color = out.color.slice(0, 32);
   out.lineLengthPx = clamp(out.lineLengthPx, 8, 120);
