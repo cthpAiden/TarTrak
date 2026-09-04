@@ -5,15 +5,25 @@ export interface LoadedSvg {
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-/** jsdom has no CSS.escape. */
-const esc = (s: string) =>
-  typeof CSS !== "undefined" && CSS.escape ? CSS.escape(s) : s.replace(/[^\w-]/g, "\$&");
+/** Map SVGs are fetched from the network, so drop anything that could execute. */
+function sanitize(root: SVGSVGElement): void {
+  for (const el of root.querySelectorAll("*")) {
+    if (el.nodeName.toLowerCase() === "script") {
+      el.remove();
+      continue;
+    }
+    for (const attr of [...el.attributes]) {
+      if (attr.name.toLowerCase().startsWith("on")) el.removeAttribute(attr.name);
+    }
+  }
+}
 
 /** Wrap fetched SVG text in a fresh <svg>, copying its viewBox; top-level <g id> are floor groups. */
 export function buildSvgElement(svgText: string): LoadedSvg {
   const element = document.createElementNS(SVG_NS, "svg");
   element.setAttribute("xmlns", SVG_NS);
   element.innerHTML = svgText;
+  sanitize(element);
   const inner = element.children[0];
   const viewBox = inner?.getAttribute("viewBox");
   if (viewBox) element.setAttribute("viewBox", viewBox);
@@ -27,11 +37,11 @@ export function buildSvgElement(svgText: string): LoadedSvg {
 export function showFloor(svg: LoadedSvg, baseGroup: string | undefined, floorGroup: string | null): void {
   const inner = svg.element.children[0];
   if (!inner) return;
-  for (const id of svg.groupIds) {
-    const g = inner.querySelector<SVGGElement>(`#${esc(id)}`);
-    if (!g) continue;
-    const isBase = id === baseGroup;
-    const isFloor = id === floorGroup;
+  // Matched by id rather than by selector: ids like "4th_Floor" are not valid CSS selectors.
+  for (const g of inner.children) {
+    if (g.nodeName !== "g" || !g.id) continue;
+    const isBase = g.id === baseGroup;
+    const isFloor = g.id === floorGroup;
     g.classList.toggle("hidden-layer", !isBase && !isFloor);
     g.classList.toggle("off-level", isBase && floorGroup !== null);
   }

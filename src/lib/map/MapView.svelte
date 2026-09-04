@@ -1,6 +1,6 @@
 <script lang="ts">
   import L from "leaflet";
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import "./map.css";
   import type { MapDef } from "./mapsData";
   import { floorForHeight } from "./mapsData";
@@ -20,10 +20,13 @@
   const LINE_PX = 28;
 
   let container: HTMLDivElement;
-  let map: L.Map | null = null;
-  let svg: LoadedSvg | null = null;
+  // map and svg are $state so the marker and floor effects re-run once build() assigns them.
+  let map = $state<L.Map | null>(null);
+  let svg = $state<LoadedSvg | null>(null);
   let own: PositionMarker | null = null;
   let mates = new Map<string, PositionMarker>();
+  /** Bumped by every destroy(); a build whose generation is stale drops its result. */
+  let gen = 0;
   let message = $state("");
 
   const activeFloor = $derived(
@@ -32,6 +35,7 @@
   const floorGroup = $derived(def?.layers.find((l) => l.name === activeFloor)?.svgLayer ?? null);
 
   function destroy() {
+    gen++;
     for (const m of mates.values()) m.remove();
     mates = new Map();
     own?.remove();
@@ -43,8 +47,9 @@
 
   async function build(d: MapDef) {
     destroy();
+    const my = gen;
     message = "";
-    map = L.map(container, {
+    const m = L.map(container, {
       crs: makeCrs(d),
       minZoom: d.minZoom - 1,
       maxZoom: d.maxZoom + 1,
@@ -52,18 +57,20 @@
       attributionControl: false,
       zoomControl: false,
     });
-    map.fitBounds(boundsOf(d));
+    m.fitBounds(boundsOf(d));
+    map = m;
     if (!d.svgPath) {
       message = `${d.name}: no vector map available yet`;
       return;
     }
     try {
       const text = await fetchTextCached(d.svgPath, `maps/${d.key}.svg`);
-      if (!map) return;
-      svg = buildSvgElement(text);
-      L.svgOverlay(svg.element, boundsOf(d)).addTo(map);
-      showFloor(svg, d.svgLayer, floorGroup);
+      if (my !== gen || !map) return;
+      const loaded = buildSvgElement(text);
+      L.svgOverlay(loaded.element, boundsOf(d)).addTo(m);
+      svg = loaded;
     } catch (e) {
+      if (my !== gen) return;
       message = `Map image failed to load: ${e}`;
     }
   }
@@ -72,40 +79,52 @@
     return () => destroy();
   });
 
+  // untrack: build()/destroy() read and write map and svg, which would otherwise make this
+  // effect depend on the state it assigns.
   $effect(() => {
-    if (def) void build(def);
-    else destroy();
+    const d = def;
+    untrack(() => {
+      if (d) void build(d);
+      else destroy();
+    });
   });
 
   $effect(() => {
-    if (svg && def) showFloor(svg, def.svgLayer, floorGroup);
+    const s = svg;
+    const d = def;
+    const group = floorGroup;
+    if (s && d) showFloor(s, d.svgLayer, group);
   });
 
   $effect(() => {
     const p = app.ownPos;
-    if (!map || !p) return;
-    if (!own) own = new PositionMarker(map, { color: OWN_COLOR, radius: 6, lineLengthPx: LINE_PX });
+    const m = map;
+    if (!m || !p) return;
+    if (!own) own = new PositionMarker(m, { color: OWN_COLOR, radius: 6, lineLengthPx: LINE_PX });
     own.update(p.x, p.z, p.yaw);
   });
 
   $effect(() => {
-    if (!map || !def) return;
-    const wanted: Teammate[] = Object.values(app.teammates).filter((t) => t.map === def.key);
+    const all = app.teammates;
+    const d = def;
+    const m = map;
+    if (!m || !d) return;
+    const wanted: Teammate[] = Object.values(all).filter((t) => t.map === d.key);
     const ids = new Set(wanted.map((t) => t.id));
-    for (const [id, m] of mates) {
+    for (const [id, marker] of mates) {
       if (!ids.has(id)) {
-        m.remove();
+        marker.remove();
         mates.delete(id);
       }
     }
     for (const t of wanted) {
-      let m = mates.get(t.id);
-      if (!m) {
-        m = new PositionMarker(map, { color: t.color, radius: 6, lineLengthPx: LINE_PX, label: t.name });
-        mates.set(t.id, m);
+      let marker = mates.get(t.id);
+      if (!marker) {
+        marker = new PositionMarker(m, { color: t.color, radius: 6, lineLengthPx: LINE_PX, label: t.name });
+        mates.set(t.id, marker);
       }
-      m.setColor(t.color);
-      m.update(t.x, t.z, t.yaw);
+      marker.setColor(t.color);
+      marker.update(t.x, t.z, t.yaw);
     }
   });
 
