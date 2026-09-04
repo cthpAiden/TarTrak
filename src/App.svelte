@@ -7,7 +7,7 @@
   import { detectDirs, startScreenshotWatcher, startLogTail, type DetectedDirs } from "./lib/tauri/commands";
   import { checkForUpdate } from "./lib/tauri/updater";
   import { retryUntil } from "./lib/tauri/retry";
-  import { getMapDef } from "./lib/map/mapsData";
+  import { getMapDef, floorForHeight, visibleOnFloor } from "./lib/map/mapsData";
   import { DEFAULT_SETTINGS, loadSettings, saveSettings, type Settings } from "./lib/settings/store";
   import { room } from "./lib/room/controller.svelte";
   import RoomPanel from "./lib/room/RoomPanel.svelte";
@@ -45,7 +45,17 @@
   const allQuestMarkers = $derived(app.questData ? extractQuestMarkers(app.questData) : []);
   const allPoints = $derived(app.questData ? extractPoints(app.questData) : []);
   const mapPoints = $derived(def ? allPoints.filter((p) => p.mapKey === def.key) : []);
-  const points = $derived(mapPoints.filter((p) => isOn(layerFilters, p.group, p.category)));
+  // The floor the map is showing: the pinned one, or the floor my own height puts me on.
+  const activeFloor = $derived(
+    pinnedFloor === null ? (def && app.ownPos ? floorForHeight(def, app.ownPos) : null) : pinnedFloor || null,
+  );
+  const points = $derived(
+    def
+      ? mapPoints.filter(
+          (p) => isOn(layerFilters, p.group, p.category) && visibleOnFloor(def, activeFloor, p.x, p.z, p.y),
+        )
+      : [],
+  );
   const showLabels = $derived(isOn(layerFilters, "labels", "landmark"));
   // Kept unfiltered by the layer toggles so the panel's shown/total can differ.
   const mapQuestMarkersBeforeFilters = $derived(
@@ -56,7 +66,11 @@
       : [],
   );
   const questMarkers = $derived(
-    mapQuestMarkersBeforeFilters.filter((m) => isOn(layerFilters, "quests", m.category)),
+    def
+      ? mapQuestMarkersBeforeFilters.filter(
+          (m) => isOn(layerFilters, "quests", m.category) && visibleOnFloor(def, activeFloor, m.x, m.z, m.y),
+        )
+      : [],
   );
 
   async function toggleOverlay() {
@@ -268,6 +282,7 @@
           bind:this={mapView}
           {def}
           {pinnedFloor}
+          {activeFloor}
           onFloorPinned={(n) => (pinnedFloor = n)}
           {questMarkers}
           {points}

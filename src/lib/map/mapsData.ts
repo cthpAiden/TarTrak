@@ -116,3 +116,52 @@ export function floorForHeight(def: MapDef, pos: { x: number; y: number; z: numb
   }
   return null;
 }
+
+export type Containment = "full" | "partial" | false;
+
+/**
+ * How a vertical span [bottom, top] at (x, z) relates to one floor layer's extents.
+ * A layer without extents never claims a marker.
+ */
+export function onLayer(layer: MapLayer, x: number, z: number, top: number, bottom: number): Containment {
+  for (const ext of layer.extents ?? []) {
+    const [lo, hi] = ext.height;
+    if (top < lo || bottom >= hi) continue;
+    const how: Containment = bottom >= lo && top <= hi ? "full" : "partial";
+    if (!ext.bounds || ext.bounds.some((b) => inBounds(b, x, z))) return how;
+  }
+  return false;
+}
+
+/**
+ * Whether a marker belongs on the floor currently shown. `activeFloor` null is the base level.
+ * A marker is hidden when it sits fully inside a bounded extent of an inactive layer; otherwise it
+ * is shown when it is on the active layer, or, on the base level, when it lies within
+ * `def.heightRange` and is not fully inside any layer's extents.
+ *
+ * `top`/`bottom` default to `y`. Landmark labels pass the sentinel span [-1000, 1000], which is why
+ * the base-level test uses full containment rather than any overlap: a label that spans every floor
+ * belongs to all of them, exactly as tarkov.dev's "partial" containment keeps it visible.
+ */
+export function visibleOnFloor(
+  def: MapDef,
+  activeFloor: string | null,
+  x: number,
+  z: number,
+  y: number,
+  top = y,
+  bottom = y,
+): boolean {
+  for (const layer of def.layers) {
+    if (layer.name === activeFloor) continue;
+    if (!(layer.extents ?? []).some((e) => e.bounds)) continue;
+    if (onLayer(layer, x, z, top, bottom) === "full") return false;
+  }
+  if (activeFloor !== null) {
+    const layer = def.layers.find((l) => l.name === activeFloor);
+    return !!layer && onLayer(layer, x, z, top, bottom) !== false;
+  }
+  const [lo, hi] = def.heightRange ?? [Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER];
+  if (top < lo || bottom >= hi) return false;
+  return !def.layers.some((l) => onLayer(l, x, z, top, bottom) === "full");
+}

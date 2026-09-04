@@ -28,7 +28,8 @@ Markers never disappear; they dim slowly after 30 s and settle at 35% after 5 mi
 Tasks, Spawns, Containers, Locks, Hazards, Switches and BTR. Each group and each category shows a
 `shown/total` count for the current map, so a group with nothing on this map still appears as `0/0`.
 PMC, co-op and transit extracts plus every map task category are on by default; everything else is
-off. Your choices are saved with the rest of your settings.
+off. Your choices are saved with the rest of your settings. The filter counts are for the whole
+map; the map itself shows only markers on the selected floor.
 
 **Quest list.** Quests are grouped by trader in the usual trader order, with a `done/total` count per
 trader; sections collapse and quests with markers on the current map sort first. The checkbox marks a

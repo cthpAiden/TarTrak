@@ -3,7 +3,7 @@
   import { onMount, untrack } from "svelte";
   import "./map.css";
   import type { MapDef } from "./mapsData";
-  import { floorForHeight } from "./mapsData";
+  import { visibleOnFloor } from "./mapsData";
   import { makeCrs, boundsOf, toLatLng } from "./crs";
   import { buildSvgElement, showFloor, type LoadedSvg } from "./svgLoader";
   import { PositionMarker } from "./markers";
@@ -19,6 +19,7 @@
   let {
     def,
     pinnedFloor,
+    activeFloor,
     onFloorPinned,
     questMarkers,
     points,
@@ -27,6 +28,7 @@
   }: {
     def: MapDef | null;
     pinnedFloor: string | null;
+    activeFloor: string | null;
     onFloorPinned: (name: string | null) => void;
     questMarkers: QuestMarker[];
     points: MapPoint[];
@@ -53,9 +55,6 @@
   /** Ticks once a second so the marker effects re-run and re-apply the age fade. */
   let now = $state(Date.now());
 
-  const activeFloor = $derived(
-    pinnedFloor === null ? (def && app.ownPos ? floorForHeight(def, app.ownPos) : null) : pinnedFloor || null,
-  );
   const floorGroup = $derived(def?.layers.find((l) => l.name === activeFloor)?.svgLayer ?? null);
 
   function destroy() {
@@ -222,11 +221,17 @@
   $effect(() => {
     const d = def;
     const show = showLabels;
+    const floor = activeFloor;
     const g = labelGroup;
     if (!g) return;
     g.clearLayers();
     if (!show || !d) return;
     for (const l of d.labels) {
+      // A label without a vertical span covers every floor; its midpoint is then meaningless.
+      const top = l.top ?? 1000;
+      const bottom = l.bottom ?? -1000;
+      const y = l.top !== undefined && l.bottom !== undefined ? (l.top - l.bottom) / 2 + l.bottom : 0;
+      if (!visibleOnFloor(d, floor, l.position[0], l.position[1], y, top, bottom)) continue;
       L.marker(toLatLng(l.position[0], l.position[1]), { icon: labelDivIcon(l), interactive: false, pane: "labels" }).addTo(g);
     }
   });
