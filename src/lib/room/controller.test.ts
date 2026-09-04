@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { RoomController, type RoomClientLike } from "./controller.svelte";
 import { app } from "../state/app.svelte";
 import type { Position } from "../parse/screenshot";
@@ -65,6 +65,32 @@ describe("RoomController", () => {
     expect(Object.keys(app.teammates)).toEqual(["bbbbbbbb"]);
     expect(app.teammates["bbbbbbbb"].name).toBe("Bob");
     expect(app.teammates["bbbbbbbb"].left).toBeFalsy();
+  });
+
+  it("drops the old marker when the new id's pos arrives before the leave", () => {
+    const { client } = makeController();
+    client.onMessage(pos("aaaaaaaa", "Bob"));
+    client.onMessage(pos("bbbbbbbb", "Bob"));
+    client.onMessage(leave("aaaaaaaa"));
+    expect(Object.keys(app.teammates)).toEqual(["bbbbbbbb"]);
+    expect(app.teammates["bbbbbbbb"].left).toBeFalsy();
+  });
+
+  it("drops a ghost the leave could not judge on the next pos", () => {
+    vi.useFakeTimers();
+    try {
+      const { client } = makeController();
+      client.onMessage(pos("bbbbbbbb", "Bob"));
+      vi.advanceTimersByTime(10);
+      // A last gasp from the old socket, so the leave sees the departing entry as the newest one.
+      client.onMessage(pos("aaaaaaaa", "Bob"));
+      client.onMessage(leave("aaaaaaaa"));
+      expect(app.teammates["aaaaaaaa"].left).toBe(true);
+      client.onMessage(pos("bbbbbbbb", "Bob"));
+      expect(Object.keys(app.teammates)).toEqual(["bbbbbbbb"]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("keeps a live teammate with the same name as a departed one", () => {

@@ -1,5 +1,5 @@
 import type { Position } from "../parse/screenshot";
-import { app } from "../state/app.svelte";
+import { app, type Teammate } from "../state/app.svelte";
 import { RoomClient, type RoomClientOptions, type RoomStatus } from "./client";
 import type { ServerMsg } from "./protocol";
 
@@ -50,10 +50,17 @@ export class RoomController {
 
   /** The relay hands out a fresh id per socket, so a reconnect would otherwise leave a frozen twin. */
   private dropGhost(id: string, name: string): void {
-    if (app.teammates[id]) return;
     for (const [oldId, t] of Object.entries(app.teammates)) {
-      if (t.left && t.name === name) app.removeTeammate(oldId);
+      if (oldId !== id && t.left && t.name === name) app.removeTeammate(oldId);
     }
+  }
+
+  /** True when the same person is already here under a fresher id: the relay's leave lagged. */
+  private isReplaced(id: string, t: Teammate): boolean {
+    // `>=` and not `>`: the new id's first pos and the old id's last one often land in the same ms.
+    return Object.entries(app.teammates).some(
+      ([otherId, o]) => otherId !== id && o.name === t.name && o.receivedAt >= t.receivedAt,
+    );
   }
 
   private handle(m: ServerMsg): void {
@@ -61,7 +68,8 @@ export class RoomController {
       // Keep the last known marker; the spec says markers never disappear on their own.
       const t = app.teammates[m.id];
       if (t) {
-        app.upsertTeammate({ ...t, left: true });
+        if (this.isReplaced(m.id, t)) app.removeTeammate(m.id);
+        else app.upsertTeammate({ ...t, left: true });
         app.toast(`${t.name} left the room`);
       }
       return;
