@@ -11,6 +11,12 @@ describe("loadMapDefs", () => {
     expect(getMapDef("customs")?.svgPath).toMatch(/Customs\.svg$/);
     expect(getMapDef("nope")).toBeUndefined();
   });
+
+  it("excludes non-interactive projections", () => {
+    const defs = loadMapDefs();
+    expect(defs).toHaveLength(13);
+    expect(getMapDef("customs-2d")).toBeUndefined();
+  });
 });
 
 describe("floorForHeight", () => {
@@ -20,6 +26,7 @@ describe("floorForHeight", () => {
     expect(floorForHeight(def, { x: 0, y: 12, z: 0 })).toBe("2nd Floor");
     expect(floorForHeight(def, { x: 0, y: 17, z: 0 })).toBe("3rd Floor");
     expect(floorForHeight(def, { x: 0, y: -8, z: 0 })).toBe("Underground");
+    expect(floorForHeight(def, { x: 0, y: 15, z: 0 })).toBe("3rd Floor"); // half-open boundary: 15 ends 2nd Floor [10,15), starts 3rd [15,20)
   });
 
   it("respects extent bounds when present (customs dorms)", () => {

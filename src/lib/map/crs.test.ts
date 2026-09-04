@@ -19,6 +19,22 @@ describe("makeCrs", () => {
     expect(p.y).toBeCloseTo(136.35, 5);
   });
 
+  it("negates the y axis (customs, z offset)", () => {
+    const def = getMapDef("customs")!;
+    const crs = makeCrs(def);
+    const p = crs.latLngToPoint(toLatLng(0, 100), 0);
+    expect(p.x).toBeCloseTo(168.65, 5);
+    expect(p.y).toBeCloseTo(-0.239 * -100 + 136.35, 5);
+  });
+
+  it("applies rotation direction (factory, 90 degrees)", () => {
+    const def = getMapDef("factory")!;
+    const crs = makeCrs(def);
+    const p = crs.latLngToPoint(toLatLng(10, 20), 0);
+    expect(p.x).toBeCloseTo(1.629 * -20 + 119.9, 2);
+    expect(p.y).toBeCloseTo(-1.629 * 10 + 139.3, 2);
+  });
+
   it("round-trips through pointToLatLng", () => {
     const def = getMapDef("factory")!; // rotation 90
     const crs = makeCrs(def);
