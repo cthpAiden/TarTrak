@@ -14,6 +14,7 @@ function point(group: string, category: string, name = "P", i = 0): MapPoint {
     x: 0,
     y: 0,
     z: 0,
+    details: [],
   };
 }
 

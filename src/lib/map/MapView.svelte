@@ -13,7 +13,7 @@
   import { questDivIcon, questPopupHtml, esc } from "../quests/questLayer";
   import type { QuestMarker } from "../quests/markers";
   import type { MapPoint } from "../layers/points";
-  import { colorFor, pointDivIcon, usesCanvas } from "../layers/pointLayer";
+  import { colorFor, pointDivIcon, pointPopupHtml, usesCanvas } from "../layers/pointLayer";
   import { labelDivIcon } from "./labels";
 
   let {
@@ -219,7 +219,7 @@
             weight: 1,
           })
         : L.marker(ll, { icon: pointDivIcon(p) });
-      layer.bindTooltip(esc(p.name)).addTo(g);
+      layer.bindTooltip(esc(p.name)).bindPopup(pointPopupHtml(p)).addTo(g);
     }
   });
 

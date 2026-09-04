@@ -153,6 +153,47 @@ describe("extractPoints", () => {
   });
 });
 
+describe("point details", () => {
+  it("labels extracts by faction and transits as transits", () => {
+    expect(inGroup("extracts").map((p) => p.details)).toEqual([
+      ["PMC extract"],
+      ["Scav extract"],
+      ["Co-op extract"],
+      ["Transit"],
+    ]);
+  });
+
+  it("labels spawns with their category label", () => {
+    expect(inGroup("spawns").map((p) => p.details[0])).toEqual([
+      "PMC",
+      "Scav",
+      "Boss",
+      "Cultist Priest",
+      "Rogues",
+      "Scav",
+      "Sniper Scav",
+      "Scav",
+    ]);
+  });
+
+  it("lists every loose loot item, not just the three in the name", () => {
+    expect(inGroup("lootLoose").map((p) => p.details)).toEqual([
+      ["Bolts", "Screws", "Nuts", "Nails"],
+      ["Bolts", "Screws"],
+      [],
+    ]);
+  });
+
+  it("spells out lock types and labels the remaining groups", () => {
+    expect(inGroup("locks").map((p) => p.details)).toEqual([["Door"], ["Car door or trunk"]]);
+    expect(inGroup("loot").map((p) => p.details[0])).toEqual(["Container", "Container", "Container"]);
+    expect(inGroup("hazards")[0].details).toEqual(["Sniper zones"]);
+    expect(inGroup("switches")[0].details).toEqual(["Switch"]);
+    expect(inGroup("guns")[0].details).toEqual(["Stationary gun"]);
+    expect(inGroup("btr")[0].details).toEqual(["BTR stop"]);
+  });
+});
+
 describe("spawn labels", () => {
   it("names every spawn category tarkov.dev draws", () => {
     for (const key of [

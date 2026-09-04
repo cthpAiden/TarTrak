@@ -52,6 +52,12 @@ export function colorFor(p: { group: GroupId; category: string }): string {
   return CATEGORY_COLORS[filterKey(p)] ?? GROUP_COLORS[p.group];
 }
 
+/** The point's details plus its height, which is only ever shown here. */
+export function pointPopupHtml(p: MapPoint): string {
+  const lines = [...p.details, `Elevation ${p.y.toFixed(1)}`];
+  return `<b>${esc(p.name)}</b><br><small>${lines.map(esc).join("<br>")}</small>`;
+}
+
 export function pointDivIcon(p: MapPoint): L.DivIcon {
   return L.divIcon({
     className: `point-icon ${p.group} ${p.category}`,

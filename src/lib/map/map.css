@@ -12,6 +12,10 @@
   font-size: 11px;
 }
 .tt-label::before { display: none; }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: #1e222a; color: var(--fg); }
+.leaflet-popup-content { margin: 8px 10px; font-size: 12px; }
+.leaflet-popup-content small { color: var(--muted); }
+.leaflet-container a.leaflet-popup-close-button { color: var(--muted); }
 .floor-bar {
   position: absolute; top: 8px; right: 8px; z-index: 1000;
   display: flex; flex-direction: column; gap: 4px;

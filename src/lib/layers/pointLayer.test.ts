@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { GLYPHS, usesCanvas, pointDivIcon, colorFor } from "./pointLayer";
+import { GLYPHS, usesCanvas, pointDivIcon, pointPopupHtml, colorFor } from "./pointLayer";
 import type { MapPoint } from "./points";
 
 const pt = (over: Partial<MapPoint> = {}): MapPoint => ({
@@ -11,6 +11,7 @@ const pt = (over: Partial<MapPoint> = {}): MapPoint => ({
   x: 0,
   y: 0,
   z: 0,
+  details: [],
   ...over,
 });
 
@@ -40,6 +41,28 @@ describe("pointDivIcon", () => {
     const icon = pointDivIcon(pt({ name: `"><img src=x onerror=alert(1)>` }));
     expect(icon.options.html).not.toContain("<img");
     expect(icon.options.html).toContain("&#34;&#62;&#60;img");
+  });
+});
+
+describe("pointPopupHtml", () => {
+  it("lists the details above the elevation line", () => {
+    const html = pointPopupHtml(pt({ name: "ZB-1011", details: ["PMC extract"], y: 12.345 }));
+    expect(html).toBe("<b>ZB-1011</b><br><small>PMC extract<br>Elevation 12.3</small>");
+  });
+
+  it("still shows the elevation when there are no details", () => {
+    expect(pointPopupHtml(pt({ name: "Safe", y: -4 }))).toBe("<b>Safe</b><br><small>Elevation -4.0</small>");
+  });
+
+  it("joins every detail line", () => {
+    const html = pointPopupHtml(pt({ details: ["Bolts", "Screws", "Nuts"] }));
+    expect(html).toContain("Bolts<br>Screws<br>Nuts<br>Elevation 0.0");
+  });
+
+  it("escapes the name and the details", () => {
+    const html = pointPopupHtml(pt({ name: "<b>x</b>", details: [`<img src=x onerror=alert(1)>`] }));
+    expect(html).not.toContain("<img");
+    expect(html).toContain("&#60;b&#62;x&#60;/b&#62;");
   });
 });
 

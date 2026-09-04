@@ -71,6 +71,8 @@ export interface MapPoint {
   x: number;
   y: number;
   z: number;
+  /** Short, already human-readable extra lines for the point's popup. */
+  details: string[];
 }
 
 export function filterKey(p: { group: string; category: string }): string {
@@ -119,6 +121,20 @@ function looseLootName(items: string[]): string {
   return items.length > 3 ? `${head} +${items.length - 3}` : head;
 }
 
+const EXTRACT_DETAILS: Record<string, string> = {
+  pmc: "PMC extract",
+  scav: "Scav extract",
+  shared: "Co-op extract",
+  transit: "Transit",
+};
+
+const LOCK_DETAILS: Record<string, string> = {
+  door: "Door",
+  container: "Container",
+  trunk: "Car door or trunk",
+  switch: "Switch-operated",
+};
+
 function push(
   out: MapPoint[],
   mapKey: string,
@@ -127,45 +143,53 @@ function push(
   name: string,
   id: string,
   position: Vec3 | null,
+  details: string[],
 ): void {
   if (!position) return;
-  out.push({ id, group, category, name, mapKey, x: position.x, y: position.y, z: position.z });
+  out.push({ id, group, category, name, mapKey, x: position.x, y: position.y, z: position.z, details });
 }
 
 function pointsForMap(m: MapInfo, out: MapPoint[]): void {
   const key = m.normalizedName;
   for (const e of m.extracts ?? []) {
-    push(out, key, "extracts", e.faction, e.name, e.id, e.position);
+    push(out, key, "extracts", e.faction, e.name, e.id, e.position, [EXTRACT_DETAILS[e.faction] ?? e.faction]);
   }
   (m.transits ?? []).forEach((t, i) => {
-    push(out, key, "extracts", "transit", t.description, t.id || `extracts/transit/${i}`, t.position);
+    push(out, key, "extracts", "transit", t.description, t.id || `extracts/transit/${i}`, t.position, [
+      EXTRACT_DETAILS.transit,
+    ]);
   });
   (m.spawns ?? []).forEach((s, i) => {
     const spawn = classifySpawn(s, m.bosses ?? []);
     if (!spawn) return;
-    push(out, key, "spawns", spawn.category, spawn.name, `spawns/${spawn.category}/${i}`, s.position);
+    const detail = CATEGORY_LABELS[`spawns/${spawn.category}`] ?? spawn.category;
+    push(out, key, "spawns", spawn.category, spawn.name, `spawns/${spawn.category}/${i}`, s.position, [detail]);
   });
   (m.lootContainers ?? []).forEach((c, i) => {
     const category = c.lootContainer.normalizedName;
-    push(out, key, "loot", category, c.lootContainer.name, `loot/${category}/${i}`, c.position);
+    push(out, key, "loot", category, c.lootContainer.name, `loot/${category}/${i}`, c.position, ["Container"]);
   });
   (m.lootLoose ?? []).forEach((l, i) => {
-    push(out, key, "lootLoose", "item", looseLootName(l.items), `lootLoose/item/${i}`, l.position);
+    push(out, key, "lootLoose", "item", looseLootName(l.items), `lootLoose/item/${i}`, l.position, [...l.items]);
   });
   (m.locks ?? []).forEach((l, i) => {
-    push(out, key, "locks", l.lockType, l.key ?? `Locked ${l.lockType}`, `locks/${l.lockType}/${i}`, l.position);
+    push(out, key, "locks", l.lockType, l.key ?? `Locked ${l.lockType}`, `locks/${l.lockType}/${i}`, l.position, [
+      LOCK_DETAILS[l.lockType] ?? l.lockType,
+    ]);
   });
   (m.hazards ?? []).forEach((h, i) => {
-    push(out, key, "hazards", h.hazardType, h.name, `hazards/${h.hazardType}/${i}`, h.position);
+    push(out, key, "hazards", h.hazardType, h.name, `hazards/${h.hazardType}/${i}`, h.position, [
+      CATEGORY_LABELS[`hazards/${h.hazardType}`] ?? h.hazardType,
+    ]);
   });
   (m.switches ?? []).forEach((s, i) => {
-    push(out, key, "switches", "switch", s.name, s.id || `switches/switch/${i}`, s.position);
+    push(out, key, "switches", "switch", s.name, s.id || `switches/switch/${i}`, s.position, ["Switch"]);
   });
   (m.stationaryWeapons ?? []).forEach((w, i) => {
-    push(out, key, "guns", "gun", w.name, `guns/gun/${i}`, w.position);
+    push(out, key, "guns", "gun", w.name, `guns/gun/${i}`, w.position, ["Stationary gun"]);
   });
   (m.btrStations ?? []).forEach((b, i) => {
-    push(out, key, "btr", "stop", b.name, b.id || `btr/stop/${i}`, b.position);
+    push(out, key, "btr", "stop", b.name, b.id || `btr/stop/${i}`, b.position, ["BTR stop"]);
   });
 }
 
