@@ -22,6 +22,13 @@
 .floor-bar button.active { background: var(--accent); color: #000; }
 .map-msg { position: absolute; left: 12px; bottom: 12px; z-index: 1000; color: var(--muted); font-size: 12px; }
 
-.quest-icon span, .extract-icon span { display: block; width: 18px; height: 18px; line-height: 18px; text-align: center; font-size: 14px; color: #fff; text-shadow: 0 0 3px #000, 0 0 3px #000; }
-.extract-icon.pmc span { color: #7fd47f; }
-.extract-icon.shared span { color: #7fc7ff; }
+.quest-icon span, .point-icon span { display: block; width: 18px; height: 18px; line-height: 18px; text-align: center; font-size: 14px; color: #fff; text-shadow: 0 0 3px #000, 0 0 3px #000; }
+/* Hex values duplicated in pointLayer.ts: canvas circle markers cannot take their colour from CSS. */
+.point-icon.extracts span { color: #7fd47f; }
+.point-icon.extracts.scav span { color: #ffa64d; }
+.point-icon.extracts.shared span { color: #7fc7ff; }
+.point-icon.extracts.transit span { color: #c58bff; }
+.point-icon.locks span { color: #b0b8c0; }
+.point-icon.hazards span { color: #ff5c5c; }
+.point-icon.switches span { color: #5ce0e6; }
+.point-icon.btr span { color: #a8b060; }

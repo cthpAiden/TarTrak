@@ -10,24 +10,24 @@
   import { fetchTextCached } from "../tauri/http";
   import { opacityFor } from "../room/fade";
   import { app, type Teammate } from "../state/app.svelte";
-  import { questDivIcon, extractDivIcon, questPopupHtml, esc } from "../quests/questLayer";
-  import type { QuestMarker, ExtractMarker } from "../quests/markers";
+  import { questDivIcon, questPopupHtml, esc } from "../quests/questLayer";
+  import type { QuestMarker } from "../quests/markers";
+  import type { MapPoint } from "../layers/points";
+  import { colorFor, pointDivIcon, usesCanvas } from "../layers/pointLayer";
 
   let {
     def,
     pinnedFloor,
     onFloorPinned,
     questMarkers,
-    extracts,
-    showExtracts,
+    points,
     lineLengthPx,
   }: {
     def: MapDef | null;
     pinnedFloor: string | null;
     onFloorPinned: (name: string | null) => void;
     questMarkers: QuestMarker[];
-    extracts: ExtractMarker[];
-    showExtracts: boolean;
+    points: MapPoint[];
     lineLengthPx: number;
   } = $props();
 
@@ -39,9 +39,10 @@
   let svg = $state<LoadedSvg | null>(null);
   let own: PositionMarker | null = null;
   let mates = new Map<string, PositionMarker>();
-  // $state so the quest and extract effects re-run once build() creates the groups.
+  // $state so the quest and point effects re-run once build() creates the groups.
   let questGroup = $state<L.LayerGroup | null>(null);
-  let extractGroup = $state<L.LayerGroup | null>(null);
+  let pointGroup = $state<L.LayerGroup | null>(null);
+  let canvas = L.canvas({ padding: 0.5 });
   /** Bumped by every destroy(); a build whose generation is stale drops its result. */
   let gen = 0;
   let message = $state("");
@@ -60,7 +61,7 @@
     own?.remove();
     own = null;
     questGroup = null;
-    extractGroup = null;
+    pointGroup = null;
     svg = null;
     map?.remove();
     map = null;
@@ -81,7 +82,9 @@
     m.fitBounds(boundsOf(d));
     map = m;
     questGroup = L.layerGroup().addTo(m);
-    extractGroup = L.layerGroup().addTo(m);
+    // Fresh renderer per map; assigned before pointGroup so the point effect sees the new one.
+    canvas = L.canvas({ padding: 0.5 });
+    pointGroup = L.layerGroup().addTo(m);
     if (!d.svgPath) {
       message = `${d.name}: no vector map available yet`;
       return;
@@ -185,14 +188,24 @@
   });
 
   $effect(() => {
-    const all = extracts;
-    const show = showExtracts;
-    const g = extractGroup;
+    const all = points;
+    const g = pointGroup;
     if (!g) return;
     g.clearLayers();
-    if (!show) return;
-    for (const e of all) {
-      L.marker(toLatLng(e.x, e.z), { icon: extractDivIcon(e) }).bindTooltip(esc(e.name)).addTo(g);
+    for (const p of all) {
+      const ll = toLatLng(p.x, p.z);
+      const layer = usesCanvas(p.group)
+        ? L.circleMarker(ll, {
+            renderer: canvas,
+            radius: 4,
+            className: `point-canvas ${p.group} ${p.category}`,
+            color: colorFor(p),
+            fillColor: colorFor(p),
+            fillOpacity: 0.9,
+            weight: 1,
+          })
+        : L.marker(ll, { icon: pointDivIcon(p) });
+      layer.bindTooltip(esc(p.name)).addTo(g);
     }
   });
 
