@@ -27,6 +27,7 @@
   import Banner from "./lib/ui/Banner.svelte";
 
   const DIR_RETRY_MS = 10_000;
+  const QUEST_RETRY_MS = 300_000;
 
   let pinnedFloor = $state<string | null>(null);
   let screenshotsDir = $state<string | null>(null);
@@ -36,6 +37,7 @@
   let overlay = $state(false);
   let opacity = $state(100);
   let unhookHotkeys: (() => Promise<void>) | null = null;
+  let stopQuestRetry: (() => void) | null = null;
 
   const def = $derived(app.currentMap ? (getMapDef(app.currentMap) ?? null) : null);
   const layerFilters = $derived(settings?.layerFilters ?? {});
@@ -170,9 +172,18 @@
         app.toast(`Could not load quest progress: ${e}`);
       }
       // Fire and forget: quest data arrives whenever it arrives, the UI never waits for it.
-      loadQuestData(defaultDeps(), (d, src) => app.setQuestData(d, src)).catch((e) =>
-        app.toast(`Quest data error: ${e}`),
-      );
+      const deps = defaultDeps();
+      loadQuestData(deps, (d, src) => app.setQuestData(d, src))
+        .catch((e) => app.toast(`Quest data error: ${e}`))
+        .then(() => {
+          // With no cache and no snapshot, a tarkov.dev outage at startup would otherwise leave the
+          // map and every filter empty until the next launch. Keep asking while it stays empty.
+          if (app.questData || disposed) return;
+          stopQuestRetry = retryUntil(async () => {
+            await loadQuestData(deps, (d, src) => app.setQuestData(d, src));
+            return app.questData !== null;
+          }, QUEST_RETRY_MS);
+        });
 
       let dirs: DetectedDirs = { screenshots: null, logs: null };
       try {
@@ -207,6 +218,7 @@
       stop?.();
       stopDrag();
       stopRetry?.();
+      stopQuestRetry?.();
       unhookHotkeys?.().catch(() => {});
     };
   });

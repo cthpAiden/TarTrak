@@ -32,6 +32,8 @@
     return c.group === "quests" ? "" : `color: ${colorFor({ group: c.group as GroupId, category: c.category })}`;
   }
 
+  const empty = $derived(counts.every((g) => g.total === 0));
+
   const shownGroups = $derived.by(() => {
     const q = search.trim().toLowerCase();
     if (!q) return counts.map((g) => ({ g, rows: g.categories }));
@@ -44,6 +46,7 @@
 <section class="panel filters">
   <h2>Filters</h2>
   <input class="search" aria-label="Search filters" placeholder="Search" bind:value={search} />
+  {#if empty}<p class="muted note">Nothing to filter yet: no map data loaded.</p>{/if}
   <div class="groups">
     {#each shownGroups as { g, rows } (g.group)}
       <div class="group">
@@ -95,6 +98,7 @@
   input[type="checkbox"] { padding: 0; }
   .search { width: 100%; box-sizing: border-box; }
   .groups { overflow-y: auto; max-height: 240px; }
+  .note { margin: 0; font-size: 11px; }
   .hdr { display: flex; align-items: center; gap: 6px; font-size: 13px; padding: 3px 0; }
   .tri { background: none; border: none; color: var(--muted); cursor: pointer; padding: 0; width: 12px; font-size: 11px; }
   .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
