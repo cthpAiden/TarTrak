@@ -334,3 +334,64 @@ Props: `{ markers: QuestMarker[]; playerLevel: number; onPlayerLevel: (n: number
 - [ ] **Step 2: Wire App.svelte**: `hiddenQuests={settings.hiddenQuests} onHiddenChange={(h) => patchSettings({ hiddenQuests: h })}`.
 - [ ] **Step 3: README**: under usage, add a "Filters" paragraph (groups, counts, defaults, persisted) and update the quest list description (by trader, eye toggle).
 - [ ] **Step 4: Verify**: `npm test && npm run check && npm run build`. Commit: `Group the quest panel by trader with per-quest map toggles`.
+
+---
+
+### Task 10: Switch the data source to json.tarkov.dev
+
+**Why:** tarkov.dev retired its GraphQL endpoint (every query returns HTTP 422 "GraphQL server unavailable"; the site itself no longer calls it). The site loads static JSON from `https://json.tarkov.dev/regular/<file>`. Those files carry every layer we need plus loose loot.
+
+**Files:**
+- Create: `src/lib/quests/jsonSource.ts` (pure adapter), `src/lib/quests/jsonSource.test.ts`
+- Modify: `src/lib/quests/query.ts` (fetch the six files, run the adapter; delete the GraphQL query, `QUEST_QUERY_MINIMAL` and its fallback), `src/lib/quests/query.test.ts`
+- Modify: `src/lib/quests/types.ts` (`QUEST_SCHEMA_VERSION = 3`; `MapInfo.lootLoose?: MapLootLoose[] | null` with `MapLootLoose { position: Vec3 | null; items: string[] }`; `MapLock.key` becomes `string | null` (an item id; we do not fetch item names))
+- Modify: `src/lib/layers/points.ts` + test (new group `lootLoose`, spawn and hazard mapping below), `src/lib/layers/pointLayer.ts` + test (`usesCanvas("lootLoose")` true, colour `#e0d8a0`), `src/lib/layers/counts.ts` (no change expected; `GROUP_ORDER` drives it)
+- Modify: `scripts/snapshot.ts` (download the six files, run the same adapter, write compact `data/snapshot/{tasks,maps,meta}.json` with `schemaVersion: 3`), `data/snapshot/README.md`
+- Modify: `src-tauri/capabilities/default.json` (add `{ "url": "https://json.tarkov.dev/*" }` to the http scope; keep the existing entries)
+- Generate and commit: `data/snapshot/tasks.json`, `data/snapshot/maps.json`, `data/snapshot/meta.json` via `npm run snapshot`
+
+**Source shapes** (verified 2026-09-04 against the live files):
+
+| File | Shape |
+|---|---|
+| `maps` | `{ data: { maps: Record<id, RawMap>, lootContainers: Record<id, { id, name, normalizedName }>, mobs, goonReports, stationaryWeapons }, translations: string[] }` |
+| `maps_en` | `{ data: Record<translationKey, string> }` |
+| `tasks` | `{ data: { tasks: Record<id, RawTask>, questItems, achievements, prestige }, translations }` |
+| `tasks_en` | `{ data: Record<translationKey, string> }` (some values are `""`) |
+| `traders` | `{ data: Record<id, { id, name, normalizedName }> }` (no wrapper key; `name` is a translation key like `"<id> Nickname"`) |
+| `traders_en` | `{ data: Record<translationKey, string> }` |
+
+`RawMap`: `id, name (key), normalizedName, extracts[{ id, name (plain text), faction: "pmc"|"scav"|"shared", position }], transits[{ id, description (key e.g. "LIG_TRANSIT_21_DESC"), map, position }], spawns[{ position, sides: ("pmc"|"scav"|"all"|"none")[], categories: ("player"|"bot"|"botpmc"|"boss"|"sniper"|"all"|"none"|"season01")[], zoneName }], lootContainers[{ lootContainer: id, position }], lootLoose[{ position, items: id[] }], locks[{ id, lockType: "door"|"container"|"trunk"|"switch", key: id, needsPower, position }], hazards[{ id, hazardType: "minefield"|"hazard"|"sniper", name (key, e.g. "ScavRole/Marksman" -> "Sniper"), position }], switches[{ id, name, position }], btrStops[{ name (key), x, y, z }]`. All `position` are `{x,y,z}`; every entry also has `size`/`outline`/`top`/`bottom` which we ignore.
+
+`RawTask`: `id, name (key), trader: id, minPlayerLevel, map: id | null, objectives[{ id, type, description (key), optional, zones?: [{ id, map: id, position, ... }] }]` plus many fields we ignore. Objective `type` values seen: buildWeapon, dialogue, experience, extract, findItem, findQuestItem, giveItem, giveQuestItem, globalVariable, mark, plantItem, plantQuestItem, sellItem, shoot, skill, taskStatus, traderLevel, traderStanding, useItem, visit.
+
+**Adapter contract** (`jsonSource.ts`):
+```ts
+export const JSON_TARKOV_DEV = "https://json.tarkov.dev/regular";
+export const JSON_FILES = ["maps", "maps_en", "tasks", "tasks_en", "traders", "traders_en"] as const;
+export interface RawBundle { maps: unknown; mapsEn: unknown; tasks: unknown; tasksEn: unknown; traders: unknown; tradersEn: unknown }
+/** `en[key]` when it is a non-empty string, else `key` itself. */
+export function tr(en: Record<string, unknown>, key: string): string;
+/** Throws with a clear message when a required top-level shape is missing (e.g. `maps.data.maps`). */
+export function toQuestData(raw: RawBundle, now: number): QuestData;
+```
+Mapping rules:
+- `QuestTask.name = tr(tasksEn, t.name)`; `trader.name = tr(tradersEn, traders[t.trader]?.name ?? t.trader)`; `minPlayerLevel = t.minPlayerLevel ?? 0`; objectives keep `id`, `type`, `description = tr(tasksEn, o.description)`, `maps = unique zone map ids as [{id}] (or [{ id: t.map }] when no zones and t.map is set, else [])`, `zones = (o.zones ?? []).map(z => ({ id: z.id, map: { id: z.map }, position: z.position }))`. Objectives without zones still appear (the panel lists all tasks). Tasks are `Object.values(tasks.data.tasks)`.
+- `MapInfo.name = tr(mapsEn, m.name)`; `normalizedName` as is; `extracts` keep `id,name,faction,position`; `transits` -> `{ id, description: tr(mapsEn, description), position }`; `spawns` keep `zoneName, sides, categories, position`; `lootContainers` -> `{ lootContainer: { id, name: tr(mapsEn, containers[id]?.name ?? id), normalizedName: containers[id]?.normalizedName ?? id }, position }`; `lootLoose` -> `{ position, items }`; `locks` -> `{ lockType, key: lock.key ?? null, position }`; `hazards` -> `{ hazardType, name: tr(mapsEn, name), position }`; `switches` -> `{ id, name, position }`; `btrStations` <- `btrStops.map(b => ({ id: b.name, name: tr(mapsEn, b.name), position: { x: b.x, y: b.y, z: b.z } }))`.
+- Missing arrays are `[]`. Result has `schemaVersion: QUEST_SCHEMA_VERSION` and `fetchedAt: now`.
+
+**Point mapping changes** (`points.ts`):
+- Spawn category: `boss` if categories has `boss`; else `sniper` if categories has `sniper`; else `pmc` if sides has `pmc` or `all`; else `scav`. Existing tests must still pass (`["pmc","scav"]` -> pmc, `["scav"]` -> scav).
+- Hazard labels: `"hazards/minefield": "Minefields"`, `"hazards/hazard": "Hazards"`, `"hazards/sniper": "Sniper zones"`. Lock label `"locks/switch": "Switches"`.
+- New group `lootLoose` after `loot` in `GROUP_ORDER`, label `"Loose Loot"`, single category `item` labelled `"Loose loot"`, point name `"Loose loot"`. `usesCanvas("lootLoose")` is true; colour `#e0d8a0`.
+
+**Fetching** (`query.ts`): `fetchQuestData(get = defaultGet)` where `get(url): Promise<string>` uses `@tauri-apps/plugin-http` `fetch` with GET; fetch the six files in parallel with `Promise.all`, `JSON.parse` each, call `toQuestData(bundle, Date.now())`. Any non-2xx or parse failure throws (the loader already swallows it). Tests: a fake `get` keyed by URL serving tiny fixtures; asserts the six URLs requested and the adapter output.
+
+**Snapshot script**: import `toQuestData` from `../src/lib/quests/jsonSource.ts` (explicit `.ts` extension; Node 24 `--experimental-strip-types`; `jsonSource.ts` must only `import type` from `./types` for this to work, and `types.ts` must have no runtime imports; if `QUEST_SCHEMA_VERSION` is needed at runtime, import it from `types.ts` with the `.ts` extension too and verify Node accepts it). Write `tasks.json` = `data.tasks`, `maps.json` = `data.maps`, `meta.json` = `{ fetchedAt, schemaVersion: 3 }`.
+
+**Steps:**
+- [ ] Failing tests for `tr`, `toQuestData` (fixture: one map with one of every layer incl. a btrStop and a lootLoose point, one task with a zoned objective and one without, trader lookup, missing translation fallback, missing `lootLoose` array -> `[]`), points changes, `usesCanvas`, and the new `fetchQuestData` contract. Run red.
+- [ ] Implement. `npm test && npm run check && npm run build` green.
+- [ ] Add the capability URL. Run `npm run snapshot`; confirm `data/snapshot/maps.json` has 17 maps and `tasks.json` has about 517 tasks; note the file sizes in the report.
+- [ ] Update `data/snapshot/README.md` to describe json.tarkov.dev.
+- [ ] Commit everything including the three snapshot files: `Load quest and map data from json.tarkov.dev and bundle a snapshot`.
