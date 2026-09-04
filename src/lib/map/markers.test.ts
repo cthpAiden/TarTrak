@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import L from "leaflet";
-import { PositionMarker } from "./markers";
+import { PLAYER_PANE, PositionMarker } from "./markers";
 import { makeCrs, boundsOf, toLatLng } from "./crs";
 import { getMapDef } from "./mapsData";
 
@@ -162,5 +162,19 @@ describe("PositionMarker view cone", () => {
     expect(map.hasLayer(m.cone!)).toBe(true);
     m.remove();
     expect(map.hasLayer(m.cone!)).toBe(false);
+  });
+});
+
+describe("player pane", () => {
+  it("draws every part in a pane above the marker pane", () => {
+    const map = makeMap();
+    const m = new PositionMarker(map, { color: "#fff", radius: 6, lineLengthPx: 28, cone: true });
+    const pane = map.getPane(PLAYER_PANE)!;
+    expect(Number(pane.style.zIndex)).toBeGreaterThan(600);
+    expect(m.circle.options.pane).toBe(PLAYER_PANE);
+    expect(m.line.options.pane).toBe(PLAYER_PANE);
+    expect(m.cone!.options.pane).toBe(PLAYER_PANE);
+    // Adding a second marker to the same map must reuse the pane, not throw on a duplicate.
+    new PositionMarker(map, { color: "#fff", radius: 6, lineLengthPx: 28 });
   });
 });

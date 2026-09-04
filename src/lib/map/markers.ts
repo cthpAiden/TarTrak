@@ -19,6 +19,18 @@ const CONE_STEPS = 9;
 const CONE_RADIUS = 1.6;
 const CONE_FILL = 0.18;
 
+/**
+ * Players draw in their own pane above the marker pane (600) and far above the overlay pane (400)
+ * that holds the map SVG. In the shared overlay pane the map, loaded later, sat on top of the
+ * vector renderer and hid every player once a floor redrew.
+ */
+export const PLAYER_PANE = "players";
+const PLAYER_PANE_Z = "620";
+
+function ensurePlayerPane(map: L.Map): void {
+  if (!map.getPane(PLAYER_PANE)) map.createPane(PLAYER_PANE).style.zIndex = PLAYER_PANE_Z;
+}
+
 /** A player: filled circle plus a heading line with a fixed on-screen length. */
 export class PositionMarker {
   readonly circle: L.CircleMarker;
@@ -34,7 +46,9 @@ export class PositionMarker {
     private readonly map: L.Map,
     private readonly style: MarkerStyle,
   ) {
+    ensurePlayerPane(map);
     this.circle = L.circleMarker([0, 0], {
+      pane: PLAYER_PANE,
       radius: style.radius,
       color: "#000",
       weight: 1.5,
@@ -42,9 +56,9 @@ export class PositionMarker {
       fillOpacity: 1,
       opacity: 1,
     });
-    this.line = L.polyline([], { color: style.color, weight: 3, opacity: 1, lineCap: "round" });
+    this.line = L.polyline([], { pane: PLAYER_PANE, color: style.color, weight: 3, opacity: 1, lineCap: "round" });
     this.cone = style.cone
-      ? L.polygon([], { fillColor: style.color, fillOpacity: CONE_FILL, stroke: false })
+      ? L.polygon([], { pane: PLAYER_PANE, fillColor: style.color, fillOpacity: CONE_FILL, stroke: false })
       : null;
     if (style.label) {
       this.circle.bindTooltip(style.label, {
