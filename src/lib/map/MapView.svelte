@@ -4,18 +4,30 @@
   import "./map.css";
   import type { MapDef } from "./mapsData";
   import { floorForHeight } from "./mapsData";
-  import { makeCrs, boundsOf } from "./crs";
+  import { makeCrs, boundsOf, toLatLng } from "./crs";
   import { buildSvgElement, showFloor, type LoadedSvg } from "./svgLoader";
   import { PositionMarker } from "./markers";
   import { fetchTextCached } from "../tauri/http";
   import { opacityFor } from "../room/fade";
   import { app, type Teammate } from "../state/app.svelte";
+  import { questDivIcon, extractDivIcon, questPopupHtml } from "../quests/questLayer";
+  import type { QuestMarker, ExtractMarker } from "../quests/markers";
 
   let {
     def,
     pinnedFloor,
     onFloorPinned,
-  }: { def: MapDef | null; pinnedFloor: string | null; onFloorPinned: (name: string | null) => void } = $props();
+    questMarkers,
+    extracts,
+    showExtracts,
+  }: {
+    def: MapDef | null;
+    pinnedFloor: string | null;
+    onFloorPinned: (name: string | null) => void;
+    questMarkers: QuestMarker[];
+    extracts: ExtractMarker[];
+    showExtracts: boolean;
+  } = $props();
 
   const OWN_COLOR = "#f0b429";
   const LINE_PX = 28;
@@ -26,6 +38,9 @@
   let svg = $state<LoadedSvg | null>(null);
   let own: PositionMarker | null = null;
   let mates = new Map<string, PositionMarker>();
+  // $state so the quest and extract effects re-run once build() creates the groups.
+  let questGroup = $state<L.LayerGroup | null>(null);
+  let extractGroup = $state<L.LayerGroup | null>(null);
   /** Bumped by every destroy(); a build whose generation is stale drops its result. */
   let gen = 0;
   let message = $state("");
@@ -43,6 +58,8 @@
     mates = new Map();
     own?.remove();
     own = null;
+    questGroup = null;
+    extractGroup = null;
     svg = null;
     map?.remove();
     map = null;
@@ -62,6 +79,8 @@
     });
     m.fitBounds(boundsOf(d));
     map = m;
+    questGroup = L.layerGroup().addTo(m);
+    extractGroup = L.layerGroup().addTo(m);
     if (!d.svgPath) {
       message = `${d.name}: no vector map available yet`;
       return;
@@ -137,6 +156,28 @@
       marker.setColor(t.color);
       marker.update(t.x, t.z, t.yaw);
       marker.setOpacity(opacityFor(tick - t.receivedAt));
+    }
+  });
+
+  $effect(() => {
+    const markers = questMarkers;
+    const g = questGroup;
+    if (!g) return;
+    g.clearLayers();
+    for (const m of markers) {
+      L.marker(toLatLng(m.x, m.z), { icon: questDivIcon(m) }).bindPopup(questPopupHtml(m)).addTo(g);
+    }
+  });
+
+  $effect(() => {
+    const all = extracts;
+    const show = showExtracts;
+    const g = extractGroup;
+    if (!g) return;
+    g.clearLayers();
+    if (!show) return;
+    for (const e of all) {
+      L.marker(toLatLng(e.x, e.z), { icon: extractDivIcon(e) }).bindTooltip(e.name).addTo(g);
     }
   });
 

@@ -8,6 +8,11 @@
   import { DEFAULT_SETTINGS, loadSettings, saveSettings, type Settings } from "./lib/settings/store";
   import { room } from "./lib/room/controller.svelte";
   import RoomPanel from "./lib/room/RoomPanel.svelte";
+  import QuestPanel from "./lib/quests/QuestPanel.svelte";
+  import { loadQuestData, defaultDeps } from "./lib/quests/cache";
+  import { extractQuestMarkers, extractExtracts } from "./lib/quests/markers";
+  import { visibleQuestMarkers } from "./lib/quests/questLayer";
+  import { loadDone } from "./lib/quests/done";
   import MapView from "./lib/map/MapView.svelte";
   import MapPicker from "./lib/map/MapPicker.svelte";
   import Toasts from "./lib/ui/Toasts.svelte";
@@ -17,9 +22,16 @@
   let screenshotsDir = $state<string | null>(null);
   let logsDir = $state<string | null>(null);
   let settings = $state<Settings | null>(null);
+  let showExtracts = $state(true);
   let mapView = $state<ReturnType<typeof MapView>>();
 
   const def = $derived(app.currentMap ? (getMapDef(app.currentMap) ?? null) : null);
+  const allQuestMarkers = $derived(app.questData ? extractQuestMarkers(app.questData) : []);
+  const allExtracts = $derived(app.questData ? extractExtracts(app.questData) : []);
+  const questMarkers = $derived(
+    def ? visibleQuestMarkers(allQuestMarkers, def.key, app.doneQuests, settings?.playerLevel ?? 0) : [],
+  );
+  const extracts = $derived(def ? allExtracts.filter((e) => e.mapKey === def.key) : []);
 
   function patchSettings(patch: Partial<Settings>) {
     if (!settings) return;
@@ -79,6 +91,14 @@
       settings = s;
       if (s.lastMap && !app.currentMap) app.setMap(s.lastMap, "manual");
 
+      try {
+        app.setDone(await loadDone());
+      } catch (e) {
+        app.toast(`Could not load quest progress: ${e}`);
+      }
+      // Fire and forget: quest data arrives whenever it arrives, the UI never waits for it.
+      void loadQuestData(defaultDeps(), (d, src) => app.setQuestData(d, src));
+
       let dirs: DetectedDirs = { screenshots: null, logs: null };
       try {
         dirs = await detectDirs();
@@ -110,6 +130,7 @@
       }}
     />
     {#if app.mapSource === "log"}<span class="muted">auto</span>{/if}
+    <label class="muted"><input type="checkbox" bind:checked={showExtracts} /> extracts</label>
     <span class="grow"></span>
     {#if app.ownPos}
       <span class="coords">x {app.ownPos.x.toFixed(0)} · y {app.ownPos.y.toFixed(0)} · z {app.ownPos.z.toFixed(0)} · {app.ownPos.yaw.toFixed(0)}°</span>
@@ -130,13 +151,28 @@
   <div class="body">
     <section class="map">
       {#if def}
-        <MapView bind:this={mapView} {def} {pinnedFloor} onFloorPinned={(n) => (pinnedFloor = n)} />
+        <MapView
+          bind:this={mapView}
+          {def}
+          {pinnedFloor}
+          onFloorPinned={(n) => (pinnedFloor = n)}
+          {questMarkers}
+          {extracts}
+          {showExtracts}
+        />
       {:else}
         <div class="empty">Pick a map above, or load into a raid.</div>
       {/if}
     </section>
     <aside id="side" class="side">
-      {#if settings}<RoomPanel {settings} onSettingsChange={patchSettings} />{/if}
+      {#if settings}
+        <RoomPanel {settings} onSettingsChange={patchSettings} />
+        <QuestPanel
+          markers={allQuestMarkers}
+          playerLevel={settings.playerLevel}
+          onPlayerLevel={(n) => patchSettings({ playerLevel: n })}
+        />
+      {/if}
     </aside>
   </div>
 </div>

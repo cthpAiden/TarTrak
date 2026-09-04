@@ -1,4 +1,6 @@
 import type { Position } from "../parse/screenshot";
+import type { QuestSource } from "../quests/cache";
+import type { QuestData } from "../quests/types";
 
 export interface Teammate {
   id: string;
@@ -22,7 +24,19 @@ export class AppState {
   mapSource = $state<MapSource | null>(null);
   teammates = $state<Record<string, Teammate>>({});
   toasts = $state<{ id: number; text: string }[]>([]);
+  questData = $state<QuestData | null>(null);
+  questSource = $state<QuestSource>("none");
+  doneQuests = $state<Record<string, true>>({});
   private nextToastId = 1;
+
+  setQuestData(d: QuestData, s: QuestSource): void {
+    this.questData = d;
+    this.questSource = s;
+  }
+
+  setDone(done: Record<string, true>): void {
+    this.doneQuests = done;
+  }
 
   setOwnPosition(p: Position, now: number = Date.now()): void {
     this.ownPos = p;
