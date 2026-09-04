@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extractQuestMarkers, extractExtracts } from "./markers";
+import { extractQuestMarkers } from "./markers";
 import { QUEST_SCHEMA_VERSION, type QuestData } from "./types";
 
 const data: QuestData = {
@@ -60,6 +60,7 @@ describe("extractQuestMarkers", () => {
       trader: "Prapor",
       minLevel: 1,
       objectiveType: "visit",
+      category: "visit",
       description: "Locate the bunker",
       mapKey: "customs",
       x: 10,
@@ -73,12 +74,8 @@ describe("extractQuestMarkers", () => {
     const ids = extractQuestMarkers(data).map((m) => m.id);
     expect(ids).not.toContain("z3");
   });
-});
 
-describe("extractExtracts", () => {
-  it("keeps pmc and shared extracts that have a position", () => {
-    const ex = extractExtracts(data);
-    expect(ex.map((e) => e.id)).toEqual(["e1", "e3"]);
-    expect(ex[0]).toEqual({ id: "e1", name: "ZB-1011", mapKey: "customs", faction: "pmc", x: 1, y: 2, z: 3 });
+  it("sets the filter category from the objective type", () => {
+    expect(extractQuestMarkers(data).map((m) => m.category)).toEqual(["visit", "visit"]);
   });
 });

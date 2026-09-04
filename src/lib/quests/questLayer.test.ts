@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { esc, iconFor, visibleQuestMarkers, questDivIcon, extractDivIcon } from "./questLayer";
-import type { ExtractMarker, QuestMarker } from "./markers";
+import { esc, iconFor, questCategory, visibleQuestMarkers, questDivIcon } from "./questLayer";
+import type { QuestMarker } from "./markers";
 
 const mk = (id: string, over: Partial<QuestMarker> = {}): QuestMarker => ({
   id,
@@ -9,6 +9,7 @@ const mk = (id: string, over: Partial<QuestMarker> = {}): QuestMarker => ({
   trader: "Prapor",
   minLevel: 1,
   objectiveType: "visit",
+  category: "visit",
   description: "d",
   mapKey: "customs",
   x: 0,
@@ -27,6 +28,22 @@ describe("iconFor", () => {
     ["mark", "⚑"],
     ["shoot", "•"],
   ])("%s -> %s", (t, icon) => expect(iconFor(t)).toBe(icon));
+});
+
+describe("questCategory", () => {
+  it.each([
+    ["visit", "visit"],
+    ["findQuestItem", "questItem"],
+    ["mark", "mark"],
+    ["findItem", "item"],
+    ["giveItem", "item"],
+    ["plantItem", "item"],
+    ["plantQuestItem", "item"],
+    ["giveQuestItem", "item"],
+    ["buildWeapon", "item"],
+    ["sellItem", "item"],
+    ["shoot", "other"],
+  ])("%s -> %s", (t, c) => expect(questCategory(t)).toBe(c));
 });
 
 describe("visibleQuestMarkers", () => {
@@ -58,29 +75,5 @@ describe("esc", () => {
 
   it("leaves ordinary names alone", () => {
     expect(esc("ZB-1011")).toBe("ZB-1011");
-  });
-});
-
-describe("extractDivIcon", () => {
-  const ex = (over: Partial<ExtractMarker> = {}): ExtractMarker => ({
-    id: "e1",
-    name: "ZB-1011",
-    mapKey: "customs",
-    faction: "pmc",
-    x: 0,
-    y: 0,
-    z: 0,
-    ...over,
-  });
-
-  it("puts the faction in the class name", () => {
-    expect(extractDivIcon(ex()).options.className).toBe("extract-icon pmc");
-    expect(extractDivIcon(ex({ faction: "shared" })).options.className).toBe("extract-icon shared");
-  });
-
-  it("escapes the name in the title attribute", () => {
-    const icon = extractDivIcon(ex({ name: `"><img src=x onerror=alert(1)>` }));
-    expect(icon.options.html).not.toContain("<img");
-    expect(icon.options.html).toContain("&#34;&#62;&#60;img");
   });
 });

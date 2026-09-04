@@ -1,14 +1,38 @@
 import L from "leaflet";
-import type { ExtractMarker, QuestMarker } from "./markers";
+import type { QuestMarker } from "./markers";
 
 const ITEM_TYPES = new Set(["findItem", "giveItem", "plantItem", "plantQuestItem", "giveQuestItem", "buildWeapon", "sellItem"]);
 
+export type QuestCategory = "visit" | "questItem" | "mark" | "item" | "other";
+
+export const QUEST_CATEGORIES: readonly QuestCategory[] = ["visit", "questItem", "mark", "item", "other"];
+
+export const QUEST_CATEGORY_LABELS: Record<QuestCategory, string> = {
+  visit: "Visit",
+  questItem: "Quest items",
+  mark: "Mark",
+  item: "Items",
+  other: "Other",
+};
+
+export function questCategory(objectiveType: string): QuestCategory {
+  if (objectiveType === "visit") return "visit";
+  if (objectiveType === "findQuestItem") return "questItem";
+  if (objectiveType === "mark") return "mark";
+  if (ITEM_TYPES.has(objectiveType)) return "item";
+  return "other";
+}
+
+const GLYPHS: Record<QuestCategory, string> = {
+  visit: "◎",
+  questItem: "★",
+  mark: "⚑",
+  item: "▣",
+  other: "•",
+};
+
 export function iconFor(objectiveType: string): string {
-  if (objectiveType === "visit") return "◎";
-  if (objectiveType === "findQuestItem") return "★";
-  if (objectiveType === "mark") return "⚑";
-  if (ITEM_TYPES.has(objectiveType)) return "▣";
-  return "•";
+  return GLYPHS[questCategory(objectiveType)];
 }
 
 export function visibleQuestMarkers(
@@ -31,15 +55,6 @@ export function questDivIcon(m: QuestMarker): L.DivIcon {
   return L.divIcon({
     className: "quest-icon",
     html: `<span title="${esc(m.taskName)}">${iconFor(m.objectiveType)}</span>`,
-    iconSize: [18, 18],
-    iconAnchor: [9, 9],
-  });
-}
-
-export function extractDivIcon(e: ExtractMarker): L.DivIcon {
-  return L.divIcon({
-    className: `extract-icon ${e.faction}`,
-    html: `<span title="${esc(e.name)}">⇲</span>`,
     iconSize: [18, 18],
     iconAnchor: [9, 9],
   });

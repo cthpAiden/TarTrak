@@ -1,3 +1,4 @@
+import { questCategory, type QuestCategory } from "./questLayer";
 import type { QuestData } from "./types";
 
 export interface QuestMarker {
@@ -7,18 +8,9 @@ export interface QuestMarker {
   trader: string;
   minLevel: number;
   objectiveType: string;
+  category: QuestCategory;
   description: string;
   mapKey: string;
-  x: number;
-  y: number;
-  z: number;
-}
-
-export interface ExtractMarker {
-  id: string;
-  name: string;
-  mapKey: string;
-  faction: string;
   x: number;
   y: number;
   z: number;
@@ -43,6 +35,7 @@ export function extractQuestMarkers(data: QuestData): QuestMarker[] {
           trader: task.trader.name,
           minLevel: task.minPlayerLevel,
           objectiveType: obj.type,
+          category: questCategory(obj.type),
           description: obj.description,
           mapKey,
           x: zone.position.x,
@@ -50,17 +43,6 @@ export function extractQuestMarkers(data: QuestData): QuestMarker[] {
           z: zone.position.z,
         });
       }
-    }
-  }
-  return out;
-}
-
-export function extractExtracts(data: QuestData): ExtractMarker[] {
-  const out: ExtractMarker[] = [];
-  for (const m of data.maps) {
-    for (const e of m.extracts) {
-      if (!e.position || (e.faction !== "pmc" && e.faction !== "shared")) continue;
-      out.push({ id: e.id, name: e.name, mapKey: m.normalizedName, faction: e.faction, x: e.position.x, y: e.position.y, z: e.position.z });
     }
   }
   return out;
