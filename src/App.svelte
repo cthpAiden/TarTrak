@@ -5,6 +5,7 @@
   import { startEventBridge } from "./lib/tauri/events";
   import { setOverlay, applyOpacity, nextOpacity, installAltDrag, registerHotkeys } from "./lib/tauri/window";
   import { detectDirs, startScreenshotWatcher, startLogTail, type DetectedDirs } from "./lib/tauri/commands";
+  import { checkForUpdate } from "./lib/tauri/updater";
   import { getMapDef } from "./lib/map/mapsData";
   import { DEFAULT_SETTINGS, loadSettings, saveSettings, type Settings } from "./lib/settings/store";
   import { room } from "./lib/room/controller.svelte";
@@ -161,6 +162,8 @@
 
       await useDir("screenshots", s.screenshotsDir, dirs.screenshots);
       await useDir("logs", s.logsDir, dirs.logs);
+
+      void checkForUpdate((m) => app.toast(m));
     })().catch((e) => app.toast(`Startup error: ${e}`));
     return () => {
       stop?.();
