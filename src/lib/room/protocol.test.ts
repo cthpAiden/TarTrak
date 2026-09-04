@@ -68,6 +68,20 @@ describe("parseClientMessage", () => {
     const parsed = parseClientMessage(JSON.stringify({ ...pos, extra: 1 }));
     expect(parsed).toEqual(pos);
   });
+
+  it("rejects an oversized map string and accepts one at the 32-char limit", () => {
+    expect(parseClientMessage(JSON.stringify({ ...pos, map: "x".repeat(33) }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ ...pos, map: "x".repeat(32) }))).not.toBeNull();
+  });
+
+  it("accepts a message at exactly 511 bytes and rejects one at exactly 512 bytes", () => {
+    const at511 = JSON.stringify({ type: "hello", name: "a", color: "b", pad: "p".repeat(463) });
+    const at512 = JSON.stringify({ type: "hello", name: "a", color: "b", pad: "p".repeat(464) });
+    expect(new TextEncoder().encode(at511).length).toBe(511);
+    expect(new TextEncoder().encode(at512).length).toBe(512);
+    expect(parseClientMessage(at511)).not.toBeNull();
+    expect(parseClientMessage(at512)).toBeNull();
+  });
 });
 
 describe("parseServerMessage", () => {
@@ -85,5 +99,14 @@ describe("parseServerMessage", () => {
   it("rejects messages without an id", () => {
     expect(parseServerMessage(JSON.stringify(pos))).toBeNull();
     expect(parseServerMessage(JSON.stringify({ type: "leave" }))).toBeNull();
+  });
+
+  it("enforces id bounds: rejects empty and over-32-char ids, accepts a relay-sized 8-char id", () => {
+    expect(parseServerMessage(JSON.stringify({ type: "leave", id: "" }))).toBeNull();
+    expect(parseServerMessage(JSON.stringify({ type: "leave", id: "x".repeat(33) }))).toBeNull();
+    expect(parseServerMessage(JSON.stringify({ type: "leave", id: "x".repeat(8) }))).toEqual({
+      type: "leave",
+      id: "x".repeat(8),
+    });
   });
 });

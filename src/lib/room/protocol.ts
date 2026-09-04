@@ -26,6 +26,8 @@ export interface PosMsg {
 }
 
 export type ClientMsg = HelloMsg | PosMsg;
+
+/** `id` is relay-assigned, 1..32 chars. */
 export type ServerMsg = (HelloMsg & { id: string }) | (PosMsg & { id: string }) | { type: "leave"; id: string };
 
 export function isValidRoomCode(code: string): boolean {
@@ -101,7 +103,7 @@ export function parseServerMessage(raw: string): ServerMsg | null {
   const o = parseJson(raw);
   if (!o) return null;
   const id = str(o.id);
-  if (id === null) return null;
+  if (id === null || id.length === 0) return null;
   if (o.type === "leave") return { type: "leave", id };
   const body = o.type === "hello" ? readHello(o) : o.type === "pos" ? readPos(o) : null;
   return body ? { ...body, id } : null;
