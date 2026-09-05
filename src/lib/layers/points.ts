@@ -172,7 +172,10 @@ function pointsForMap(m: MapInfo, out: MapPoint[]): void {
     push(out, key, "extracts", e.faction, e.name, e.id, e.position, extractDetails(e), e);
   }
   (m.transits ?? []).forEach((t, i) => {
-    push(out, key, "extracts", "transit", t.description, t.id || `extracts/transit/${i}`, t.position, [EXTRACT_DETAILS.transit], t);
+    push(out, key, "extracts", "transit", t.description, t.id || `extracts/transit/${i}`, t.position, [
+      EXTRACT_DETAILS.transit,
+      ...(t.conditions ? [t.conditions] : []),
+    ], t);
   });
   (m.spawns ?? []).forEach((s, i) => {
     const spawn = classifySpawn(s, m.bosses ?? []);
@@ -199,7 +202,9 @@ function pointsForMap(m: MapInfo, out: MapPoint[]): void {
     ], h);
   });
   (m.switches ?? []).forEach((s, i) => {
-    push(out, key, "switches", "switch", s.name, s.id || `switches/switch/${i}`, s.position, ["Switch"]);
+    // "Unlocks Saferoom Exfil", "Locks Alarm Switch": the operation verb plus its target.
+    const does = (s.activates ?? []).map((a) => `${a.operation}s ${a.target}`);
+    push(out, key, "switches", "switch", s.name, s.id || `switches/switch/${i}`, s.position, ["Switch", ...does]);
   });
   (m.stationaryWeapons ?? []).forEach((w, i) => {
     push(out, key, "guns", "gun", w.name, `guns/gun/${i}`, w.position, ["Stationary gun"]);

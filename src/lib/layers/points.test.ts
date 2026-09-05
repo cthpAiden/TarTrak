@@ -37,7 +37,7 @@ const data: QuestData = {
         { id: "e5", name: "Ark", faction: "coop", position: { x: 1, y: 1, z: 1 }, requiredItem: { name: "Ark key", count: 1 } },
         { id: "e4", name: "No pos", faction: "pmc", position: null },
       ],
-      transits: [{ id: "tr1", description: "To Woods", position: { x: 10, y: 0, z: 11 } }],
+      transits: [{ id: "tr1", description: "To Woods", position: { x: 10, y: 0, z: 11 }, conditions: "Labs keycard required" }],
       spawns: [
         { zoneName: "z1", position: { x: 20, y: 0, z: 21 }, sides: ["pmc", "scav"], categories: ["player"] },
         { zoneName: "z2", position: { x: 22, y: 0, z: 23 }, sides: ["scav"], categories: ["bot"] },
@@ -78,7 +78,17 @@ const data: QuestData = {
         { hazardType: "sniper", name: "Sniper zone", position: { x: 50, y: 0, z: 51 } },
         { hazardType: "mortar", name: "Mortar", position: { x: 52, y: 0, z: 53 }, outline: [[0, 0], [9, 0], [9, 9]], top: 7, bottom: -3 },
       ],
-      switches: [{ id: "sw1", name: "Power switch", position: { x: 60, y: 0, z: 61 } }],
+      switches: [
+        {
+          id: "sw1",
+          name: "Power switch",
+          position: { x: 60, y: 0, z: 61 },
+          activates: [
+            { operation: "Unlock", target: "Basement" },
+            { operation: "Lock", target: "Alarm switch" },
+          ],
+        },
+      ],
       btrStations: [{ id: "bt1", name: "Stop 1", position: { x: 70, y: 0, z: 71 } }],
       stationaryWeapons: [
         { id: "gun1", name: "NSV Utyos 12.7x108 heavy machine gun", position: { x: 72, y: 0, z: 73 } },
@@ -176,7 +186,7 @@ describe("point details", () => {
       ["Scav extract"],
       ["PMC & Scav extract", "Activated by switch: Basement switch", "Requires Roubles ×20,000"],
       ["coop extract", "Requires Ark key"],
-      ["Transit"],
+      ["Transit", "Labs keycard required"],
     ]);
   });
 
@@ -216,7 +226,7 @@ describe("point details", () => {
     expect(inGroup("locks").map((p) => p.details)).toEqual([["Door"], ["Car door or trunk"], ["Door", "Needs power"]]);
     expect(inGroup("loot").map((p) => p.details[0])).toEqual(["Container", "Container", "Container"]);
     expect(inGroup("hazards")[0].details).toEqual(["Sniper zones"]);
-    expect(inGroup("switches")[0].details).toEqual(["Switch"]);
+    expect(inGroup("switches")[0].details).toEqual(["Switch", "Unlocks Basement", "Locks Alarm switch"]);
     expect(inGroup("guns")[0].details).toEqual(["Stationary gun"]);
     expect(inGroup("btr")[0].details).toEqual(["BTR stop"]);
   });

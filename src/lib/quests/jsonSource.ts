@@ -177,12 +177,16 @@ function toMap(
     }
     return out;
   });
-  const transits: MapTransit[] = list(m.transits).map((t) => ({
-    id: str(t.id),
-    description: tr(mapsEn, str(t.description)),
-    position: pos(t.position),
-    ...footprint(t),
-  }));
+  const transits: MapTransit[] = list(m.transits).map((t) => {
+    const out: MapTransit = {
+      id: str(t.id),
+      description: tr(mapsEn, str(t.description)),
+      position: pos(t.position),
+      ...footprint(t),
+    };
+    if (typeof t.conditions === "string" && t.conditions !== "") out.conditions = tr(mapsEn, t.conditions);
+    return out;
+  });
   const spawns: MapSpawn[] = list(m.spawns).map((s) => ({
     zoneName: typeof s.zoneName === "string" ? s.zoneName : null,
     position: pos(s.position),
@@ -229,11 +233,17 @@ function toMap(
       ...footprint(z),
     })),
   ];
-  const switches: MapSwitch[] = list(m.switches).map((s) => ({
-    id: str(s.id),
-    name: tr(mapsEn, str(s.name)),
-    position: pos(s.position),
-  }));
+  const extractNames = new Map(list(m.extracts).map((e) => [str(e.id), tr(mapsEn, str(e.name))]));
+  const switches: MapSwitch[] = list(m.switches).map((s) => {
+    const out: MapSwitch = { id: str(s.id), name: tr(mapsEn, str(s.name)), position: pos(s.position) };
+    const activates = list(s.activates).flatMap((a) => {
+      const target =
+        typeof a.extract === "string" ? extractNames.get(a.extract) : typeof a.switch === "string" ? switchNames.get(a.switch) : undefined;
+      return target ? [{ operation: str(a.operation, "Unlock"), target }] : [];
+    });
+    if (activates.length > 0) out.activates = activates;
+    return out;
+  });
   const btrStations: MapBtrStation[] = list(m.btrStops).map((b) => ({
     id: str(b.name),
     name: tr(mapsEn, str(b.name)),

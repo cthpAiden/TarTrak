@@ -63,5 +63,15 @@ describe("data snapshot", () => {
     const saferoom = ic.extracts.find((e) => e.name === "Saferoom Exfil")!;
     expect(saferoom.switches?.length).toBe(1);
     expect(ic.extracts.find((e) => e.name === "Power Station V-Ex")!.requiredItem).toEqual({ name: "Roubles", count: 20000 });
+    expect(ic.switches?.find((s) => s.name === "Saferoom Exfil Switch")?.activates).toEqual([{ operation: "Unlock", target: "Saferoom Exfil" }]);
+  });
+
+  it("names every switch and hazard in plain English, not a translation key", () => {
+    for (const m of maps) {
+      for (const sw of m.switches ?? []) expect(sw.name, m.normalizedName).not.toMatch(/^switch_/);
+      for (const h of m.hazards ?? []) expect(h.name, m.normalizedName).not.toMatch(/\//);
+    }
+    const labs = maps.find((m) => m.normalizedName === "factory")!;
+    expect(labs.transits?.find((t) => t.conditions)?.conditions).toMatch(/keycard/);
   });
 });

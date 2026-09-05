@@ -52,6 +52,8 @@ export interface MapTransit extends Footprint {
   id: string;
   description: string;
   position: Vec3 | null;
+  /** Access condition, e.g. "TerraGroup Labs access keycard required (1)". */
+  conditions?: string;
 }
 export interface MapSpawn {
   zoneName: string | null;
@@ -86,6 +88,8 @@ export interface MapSwitch {
   id: string;
   name: string;
   position: Vec3 | null;
+  /** What flipping it does: operation ("Unlock", "Lock", "Open") and the extract or switch it acts on. */
+  activates?: { operation: string; target: string }[];
 }
 export interface MapBoss {
   name: string;

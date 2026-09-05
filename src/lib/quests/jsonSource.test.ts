@@ -25,7 +25,9 @@ const raw: RawBundle = {
             },
           ],
           artillery: { zones: [{ id: "13", position: { x: 149, y: 2, z: -122 }, outline: [{ x: 1, y: 2, z: 1 }, { x: 2, y: 2, z: 1 }, { x: 2, y: 2, z: 2 }], top: 7, botom: -3 }] },
-          transits: [{ id: "12", description: "FAC_TRANSIT_12_DESC", map: "m2", position: { x: 4, y: 5, z: 6 } }],
+          transits: [
+            { id: "12", description: "FAC_TRANSIT_12_DESC", map: "m2", position: { x: 4, y: 5, z: 6 }, conditions: "FAC_TRANSIT_12_COND" },
+          ],
           spawns: [
             { position: { x: 7, y: 8, z: 9 }, sides: ["all"], categories: ["player"], zoneName: "z1" },
             { position: { x: 7, y: 8, z: 9 }, sides: ["savage"], categories: ["boss"], zoneName: "5c0a1ff6d174af02a012e42b" },
@@ -38,7 +40,19 @@ const raw: RawBundle = {
             { id: "l3", lockType: "door", key: "k1", needsPower: true, position: { x: 1, y: 1, z: 1 } },
           ],
           hazards: [{ id: "h1", hazardType: "sniper", name: "ScavRole/Marksman", position: { x: 22, y: 23, z: 24 } }],
-          switches: [{ id: "sw1", name: "ZB013_switch", position: { x: 25, y: 26, z: 27 } }],
+          switches: [
+            {
+              id: "sw1",
+              name: "ZB013_switch",
+              position: { x: 25, y: 26, z: 27 },
+              activates: [
+                { operation: "Unlock", extract: "e2" },
+                { operation: "Lock", switch: "sw2" },
+                { operation: "Unlock", extract: "gone" },
+              ],
+            },
+            { id: "sw2", name: "sw2 name", position: { x: 1, y: 2, z: 3 }, activates: [] },
+          ],
           btrStops: [{ name: "Taxi/p5/Name", x: 28, y: 29, z: 30 }],
           bosses: [
             {
@@ -73,6 +87,7 @@ const raw: RawBundle = {
       bossTagilla: "Tagilla",
       "gun2 Name": "AGS-30 30x29mm automatic grenade launcher",
       FAC_TRANSIT_12_DESC: "Transit to Woods",
+      FAC_TRANSIT_12_COND: "Labs keycard required",
       "ScavRole/Marksman": "Sniper",
       "lc1 Name": "Weapon box",
       "Taxi/p5/Name": "Sawmill",
@@ -231,7 +246,9 @@ describe("toQuestData", () => {
         bottom: 1,
       },
     ]);
-    expect(m.transits).toEqual([{ id: "12", description: "Transit to Woods", position: { x: 4, y: 5, z: 6 } }]);
+    expect(m.transits).toEqual([
+      { id: "12", description: "Transit to Woods", position: { x: 4, y: 5, z: 6 }, conditions: "Labs keycard required" },
+    ]);
     expect(m.spawns).toEqual([
       { zoneName: "z1", position: { x: 7, y: 8, z: 9 }, sides: ["all"], categories: ["player"] },
       { zoneName: "5c0a1ff6d174af02a012e42b", position: { x: 7, y: 8, z: 9 }, sides: ["savage"], categories: ["boss"] },
@@ -249,7 +266,19 @@ describe("toQuestData", () => {
       { hazardType: "sniper", name: "Sniper", position: { x: 22, y: 23, z: 24 } },
       { hazardType: "mortar", name: "Mortar", position: { x: 149, y: 2, z: -122 }, outline: [[1, 1], [2, 1], [2, 2]], top: 7, bottom: -3 },
     ]);
-    expect(m.switches).toEqual([{ id: "sw1", name: "ZB-013 Power Switch", position: { x: 25, y: 26, z: 27 } }]);
+    expect(m.switches).toEqual([
+      {
+        id: "sw1",
+        name: "ZB-013 Power Switch",
+        position: { x: 25, y: 26, z: 27 },
+        // An activation whose target is unknown is dropped rather than shown as an id.
+        activates: [
+          { operation: "Unlock", target: "Saferoom" },
+          { operation: "Lock", target: "sw2 name" },
+        ],
+      },
+      { id: "sw2", name: "sw2 name", position: { x: 1, y: 2, z: 3 } },
+    ]);
     expect(m.btrStations).toEqual([{ id: "Taxi/p5/Name", name: "Sawmill", position: { x: 28, y: 29, z: 30 } }]);
   });
 
