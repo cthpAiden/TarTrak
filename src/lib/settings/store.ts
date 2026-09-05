@@ -49,7 +49,7 @@ export const DEFAULT_SETTINGS: Settings = {
   hotkeyOpacity: "F6",
   lastMap: null,
   lastRoom: "",
-  lineLengthM: 50,
+  lineLengthM: 125,
   followMe: true,
   questsAvailableOnly: false,
   layerFilters: {},
@@ -131,7 +131,7 @@ export function mergeSettings(partial: unknown): Settings {
   if (out.relayUrl.trim() === "" || out.relayUrl === STALE_RELAY_URL) out.relayUrl = DEFAULT_RELAY_URL;
   out.name = out.name.slice(0, 32);
   out.color = out.color.slice(0, 32);
-  out.lineLengthM = clamp(out.lineLengthM, 5, 50);
+  out.lineLengthM = clamp(out.lineLengthM, 5, 125);
   out.playerLevel = clamp(out.playerLevel, 0, 79);
   if (!GAME_MODES.includes(out.gameMode)) out.gameMode = DEFAULT_SETTINGS.gameMode;
   if (!ROOM_CODE_RE.test(out.lastRoom)) out.lastRoom = "";

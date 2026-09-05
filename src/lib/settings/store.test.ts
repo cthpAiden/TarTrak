@@ -54,7 +54,7 @@ describe("mergeSettings", () => {
 
   it("clamps the heading line length to [8, 120]", () => {
     expect(mergeSettings({ lineLengthM: 0 }).lineLengthM).toBe(5);
-    expect(mergeSettings({ lineLengthM: 5000 }).lineLengthM).toBe(50);
+    expect(mergeSettings({ lineLengthM: 5000 }).lineLengthM).toBe(125);
     expect(mergeSettings({ lineLengthM: 40 }).lineLengthM).toBe(40);
   });
 

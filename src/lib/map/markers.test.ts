@@ -49,7 +49,8 @@ describe("PositionMarker", () => {
     expect(b.lat).toBeCloseTo(-50, 6);
     expect(m.center().lng).toBe(100);
     expect(m.center().lat).toBe(-50);
-    expect(m.line.options.dashArray).toBe("1 6");
+    expect(m.line.options.dashArray).toBe("2 10");
+    expect(m.line.options.weight).toBe(3);
   });
 
   it("puts the line end 28 m along the CRS heading direction", () => {

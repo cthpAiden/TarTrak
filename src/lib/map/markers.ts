@@ -81,7 +81,7 @@ export class PositionMarker {
       opacity: 1,
     });
     // Dotted, thin and fading: a line of sight that hides as little of the map as it can.
-    this.line = L.polyline([], { pane, color: style.color, weight: 2, opacity: 0.85, dashArray: "1 6", lineCap: "round" });
+    this.line = L.polyline([], { pane, color: style.color, weight: 3, opacity: 0.85, dashArray: "2 10", lineCap: "round" });
     this.gradient = document.createElementNS(SVG_NS, "linearGradient");
     this.gradient.setAttribute("id", this.gradientId);
     this.gradient.setAttribute("gradientUnits", "userSpaceOnUse");

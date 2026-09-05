@@ -99,14 +99,14 @@
         placeholder="F6"
       />
 
-      <label for="set-line">Heading line (m, max 50)</label>
+      <label for="set-line">Heading line (m, max 125)</label>
       <input
         id="set-line"
         type="number"
         min="5"
-        max="50"
+        max="125"
         bind:value={lineLen}
-        onchange={() => onChange({ lineLengthM: Number(lineLen) || 50 })}
+        onchange={() => onChange({ lineLengthM: Number(lineLen) || 125 })}
       />
     </div>
     <p class="muted small">Overlay mode needs the game in borderless windowed mode. Alt+drag moves the overlay.</p>
