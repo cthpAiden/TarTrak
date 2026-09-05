@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.1 - 2026-09-06
 
 ### Map
 - The heading line is a thin dotted line of sight, 50 m long in game units (Settings: 5 to 50 m), so it scales with the map and shows what a teammate calls out on V without hiding the map.
