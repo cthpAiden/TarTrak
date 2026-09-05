@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { esc, iconFor, questCategory, visibleQuestMarkers, questDivIcon } from "./questLayer";
+import { esc, questCategory, visibleQuestMarkers, questIcon, questIconFile } from "./questLayer";
 import type { QuestMarker } from "./markers";
 
 const mk = (id: string, over: Partial<QuestMarker> = {}): QuestMarker => ({
@@ -18,16 +18,14 @@ const mk = (id: string, over: Partial<QuestMarker> = {}): QuestMarker => ({
   ...over,
 });
 
-describe("iconFor", () => {
+describe("questIconFile", () => {
   it.each([
-    ["visit", "◎"],
-    ["findItem", "▣"],
-    ["giveItem", "▣"],
-    ["plantItem", "▣"],
-    ["findQuestItem", "★"],
-    ["mark", "⚑"],
-    ["shoot", "•"],
-  ])("%s -> %s", (t, icon) => expect(iconFor(t)).toBe(icon));
+    ["visit", "quest_objective"],
+    ["mark", "quest_objective"],
+    ["other", "quest_objective"],
+    ["questItem", "quest_item"],
+    ["item", "quest_item"],
+  ] as const)("%s -> %s", (c, file) => expect(questIconFile(c)).toBe(file));
 });
 
 describe("questCategory", () => {
@@ -60,11 +58,13 @@ describe("visibleQuestMarkers", () => {
   });
 });
 
-describe("questDivIcon", () => {
-  it("renders the icon glyph and task name as title", () => {
-    const icon = questDivIcon(mk("a", { objectiveType: "mark" }));
-    expect(icon.options.html).toContain("⚑");
+describe("questIcon", () => {
+  it("is a 24px image marker carrying the category as a class", () => {
+    const icon = questIcon(mk("a", { objectiveType: "mark", category: "mark" }));
+    expect(icon.options.iconUrl).toBe("/icons/quest_objective.png");
+    expect(icon.options.iconSize).toEqual([24, 24]);
     expect(icon.options.className).toContain("quest-icon");
+    expect(icon.options.className).toContain("mark");
   });
 });
 

@@ -23,16 +23,13 @@ export function questCategory(objectiveType: string): QuestCategory {
   return "other";
 }
 
-export const QUEST_GLYPHS: Record<QuestCategory, string> = {
-  visit: "◎",
-  questItem: "★",
-  mark: "⚑",
-  item: "▣",
-  other: "•",
-};
+/** tarkov.dev draws two quest icons: one for quest items, one for every other objective. */
+export function questIconFile(category: QuestCategory): string {
+  return category === "questItem" || category === "item" ? "quest_item" : "quest_objective";
+}
 
-export function iconFor(objectiveType: string): string {
-  return QUEST_GLYPHS[questCategory(objectiveType)];
+export function questIconUrl(category: QuestCategory): string {
+  return `/icons/${questIconFile(category)}.png`;
 }
 
 export function visibleQuestMarkers(
@@ -51,12 +48,14 @@ export function esc(s: string): string {
   return s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
-export function questDivIcon(m: QuestMarker): L.DivIcon {
-  return L.divIcon({
-    className: "quest-icon",
-    html: `<span title="${esc(m.taskName)}">${iconFor(m.objectiveType)}</span>`,
-    iconSize: [18, 18],
-    iconAnchor: [9, 9],
+/** 24px image marker, the same size and drop shadow as the other point markers. */
+export function questIcon(m: QuestMarker): L.Icon {
+  return L.icon({
+    iconUrl: questIconUrl(m.category),
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+    popupAnchor: [0, -12],
+    className: `point-icon quest-icon quests ${m.category}`,
   });
 }
 

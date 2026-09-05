@@ -4,7 +4,7 @@
   import { isOn, setCategory, setGroup, type Filters } from "./filters";
   import { iconUrl } from "./pointLayer";
   import type { GroupId } from "./points";
-  import { QUEST_GLYPHS, type QuestCategory } from "../quests/questLayer";
+  import { questIconUrl, type QuestCategory } from "../quests/questLayer";
   import type { CategoryCount, GroupCount } from "./counts";
   import Chevron from "../ui/Chevron.svelte";
 
@@ -24,12 +24,11 @@
     btr: true,
   });
 
-  // Labels and quests are pseudo-groups without a picture; every real group shows its map icon.
-  function glyph(c: CategoryCount): string {
-    return c.group === "labels" ? "Aa" : QUEST_GLYPHS[c.category as QuestCategory] ?? "•";
-  }
-  function isPseudo(c: CategoryCount): boolean {
-    return c.group === "labels" || c.group === "quests";
+  // Labels are the one pseudo-group without a picture; every other row shows its map icon.
+  function rowIcon(c: CategoryCount): string {
+    return c.group === "quests"
+      ? questIconUrl(c.category as QuestCategory)
+      : iconUrl({ group: c.group as GroupId, category: c.category });
   }
 
   const empty = $derived(counts.every((g) => g.total === 0));
@@ -80,10 +79,10 @@
                   checked={isOn(filters, c.group, c.category)}
                   onchange={(e) => onChange(setCategory(filters, c.group, c.category, e.currentTarget.checked))}
                 />
-                {#if isPseudo(c)}
-                  <span class="row-icon glyph">{glyph(c)}</span>
+                {#if c.group === "labels"}
+                  <span class="row-icon glyph">Aa</span>
                 {:else}
-                  <img class="row-icon" alt="" src={iconUrl({ group: c.group as GroupId, category: c.category })} />
+                  <img class="row-icon" alt="" src={rowIcon(c)} />
                 {/if}
                 <span class="label">{c.label}</span>
                 <span class="cnt">{c.shown}/{c.total}</span>
