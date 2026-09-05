@@ -130,13 +130,26 @@ const raw: RawBundle = {
               ],
             },
             { id: "o2", type: "findItem", description: "o2 desc" },
+            {
+              id: "o4",
+              type: "findQuestItem",
+              description: "o4 desc",
+              questItem: "qi1",
+              possibleLocations: [
+                { map: "m1", positions: [{ x: 1, y: 2, z: 3 }, { x: 4, y: 5, z: 6 }] },
+                { map: "m2", positions: [] },
+              ],
+            },
           ],
         },
         t2: { id: "t2", name: "t2 name", trader: "tr2", map: null, objectives: [{ id: "o3", type: "shoot", description: "o3 desc" }] },
       },
+      questItems: { qi1: { id: "qi1", name: "qi1 Name" } },
     },
   },
-  tasksEn: { data: { "t1 name": "Debut", "o1 desc": "Visit the medical camp", "o2 desc": "", "t2 name": "Checking" } },
+  tasksEn: {
+    data: { "t1 name": "Debut", "o1 desc": "Visit the medical camp", "o2 desc": "", "t2 name": "Checking", "qi1 Name": "Secure folder 0013" },
+  },
   traders: { data: { tr1: { id: "tr1", name: "tr1 Nickname", normalizedName: "prapor" } } },
   tradersEn: { data: { "tr1 Nickname": "Prapor" } },
   itemsEn: {
@@ -225,7 +238,15 @@ describe("toQuestData", () => {
     ]);
     expect(t1.objectives[1].maps).toEqual([{ id: "m1" }]);
     expect(t1.objectives[1].zones).toEqual([]);
+    expect(t1.objectives[1].locations).toBeUndefined();
     expect(t2.objectives[0].maps).toEqual([]);
+  });
+
+  it("keeps quest item spawn points per map, named, and counts their maps as the objective's", () => {
+    const o4 = d.tasks[0].objectives[2];
+    expect(o4.locations).toEqual([{ map: { id: "m1" }, positions: [{ x: 1, y: 2, z: 3 }, { x: 4, y: 5, z: 6 }] }]);
+    expect(o4.questItem).toEqual({ id: "qi1", name: "Secure folder 0013" });
+    expect(o4.maps).toEqual([{ id: "m1" }]);
   });
 
   it("maps every layer of a map", () => {

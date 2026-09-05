@@ -60,5 +60,6 @@ export function questIcon(m: QuestMarker): L.Icon {
 }
 
 export function questPopupHtml(m: QuestMarker): string {
-  return `<b>${esc(m.taskName)}</b><br><small>${esc(m.trader)} · lvl ${m.minLevel}</small><br>${esc(m.description)}`;
+  const item = m.itemName ? `<br><small>Quest item: ${esc(m.itemName)}</small>` : "";
+  return `<b>${esc(m.taskName)}</b><br><small>${esc(m.trader)} · lvl ${m.minLevel}</small><br>${esc(m.description)}${item}`;
 }

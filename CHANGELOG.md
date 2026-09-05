@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Quests
+- Quest item spawn points are on the map: every place a quest item can be found (tarkov.dev's "possibleLocations"), with the item's name in the popup. They were missing before, so a map like Lighthouse showed only objective zones and none of the hundred-plus item spots. Filter: Quests → Quest items. Data schema 7 (caches refresh on first start).
+
 ## 0.2.2 - 2026-09-06
 
 ### Squad

@@ -10,6 +10,8 @@ export interface QuestMarker {
   objectiveType: string;
   category: QuestCategory;
   description: string;
+  /** Name of the quest item this marker is a spawn point of; unset for zone markers. */
+  itemName?: string;
   mapKey: string;
   x: number;
   y: number;
@@ -49,6 +51,30 @@ export function extractQuestMarkers(data: QuestData): QuestMarker[] {
           outline: zone.outline,
           top: zone.top ?? zone.position.y,
           bottom: zone.bottom ?? zone.position.y,
+        });
+      }
+      // Quest item spawn points, one marker per position, as tarkov.dev's "quest_item" layer draws them.
+      for (const loc of obj.locations ?? []) {
+        const mapKey = keys.get(loc.map.id);
+        if (!mapKey) continue;
+        loc.positions.forEach((p, i) => {
+          out.push({
+            id: `${obj.id}/${loc.map.id}/${i}`,
+            taskId: task.id,
+            taskName: task.name,
+            trader: task.trader.name,
+            minLevel: task.minPlayerLevel,
+            objectiveType: obj.type,
+            category: questCategory(obj.type),
+            description: obj.description,
+            itemName: obj.questItem?.name,
+            mapKey,
+            x: p.x,
+            y: p.y,
+            z: p.z,
+            top: p.y,
+            bottom: p.y,
+          });
         });
       }
     }

@@ -51,6 +51,17 @@ const data: QuestData = {
           maps: [],
           zones: [{ id: "z3", map: { id: "m-unknown" }, position: { x: 1, y: 1, z: 1 } }],
         },
+        {
+          id: "o4",
+          type: "findQuestItem",
+          description: "Find the watch",
+          maps: [{ id: "m-customs" }],
+          questItem: { id: "qi1", name: "Bronze pocket watch" },
+          locations: [
+            { map: { id: "m-customs" }, positions: [{ x: 1, y: 2, z: 3 }, { x: 4, y: 5, z: 6 }] },
+            { map: { id: "m-unknown" }, positions: [{ x: 9, y: 9, z: 9 }] },
+          ],
+        },
       ],
     },
   ],
@@ -59,7 +70,7 @@ const data: QuestData = {
 describe("extractQuestMarkers", () => {
   it("creates one marker per zone with task metadata and resolved map key", () => {
     const ms = extractQuestMarkers(data);
-    expect(ms).toHaveLength(2);
+    expect(ms).toHaveLength(4);
     expect(ms[0]).toEqual({
       id: "z1",
       taskId: "t1",
@@ -87,7 +98,16 @@ describe("extractQuestMarkers", () => {
     expect(ids).not.toContain("z3");
   });
 
+  it("draws one marker per quest item spawn point on a known map, named after the item", () => {
+    const items = extractQuestMarkers(data).filter((m) => m.itemName);
+    expect(items.map((m) => [m.id, m.x, m.z, m.top])).toEqual([
+      ["o4/m-customs/0", 1, 3, 2],
+      ["o4/m-customs/1", 4, 6, 5],
+    ]);
+    expect(items[0]).toMatchObject({ taskName: "Debut", category: "questItem", itemName: "Bronze pocket watch", description: "Find the watch" });
+  });
+
   it("sets the filter category from the objective type", () => {
-    expect(extractQuestMarkers(data).map((m) => m.category)).toEqual(["visit", "visit"]);
+    expect(extractQuestMarkers(data).map((m) => m.category)).toEqual(["visit", "visit", "questItem", "questItem"]);
   });
 });

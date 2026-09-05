@@ -19,6 +19,7 @@ import type {
   QuestTask,
   TaskObjective,
   TaskZone,
+  QuestItemLocation,
   Vec3,
 } from "./types.ts";
 
@@ -111,16 +112,25 @@ function footprint(o: Dict): Footprint {
   return f;
 }
 
-function toObjective(o: Dict, tasksEn: Record<string, unknown>, taskMap: string | null): TaskObjective {
+function toObjective(o: Dict, tasksEn: Record<string, unknown>, taskMap: string | null, questItems: Dict): TaskObjective {
   const zones: TaskZone[] = list(o.zones).map((z) => ({
     id: str(z.id),
     map: { id: str(z.map) },
     position: pos(z.position) ?? { x: 0, y: 0, z: 0 },
     ...footprint(z),
   }));
-  const zoneMaps = [...new Set(zones.map((z) => z.map.id))].map((id) => ({ id }));
-  const maps = zoneMaps.length > 0 ? zoneMaps : taskMap ? [{ id: taskMap }] : [];
-  return { id: str(o.id), type: str(o.type), description: tr(tasksEn, str(o.description)), maps, zones };
+  // Quest item spawn points; a map entry with no positions has nothing to draw and is dropped.
+  const locations: QuestItemLocation[] = list(o.possibleLocations)
+    .map((l) => ({ map: { id: str(l.map) }, positions: list(l.positions).map(pos).filter((p): p is Vec3 => p !== null) }))
+    .filter((l) => l.map.id !== "" && l.positions.length > 0);
+  const placedMaps = [...new Set([...zones.map((z) => z.map.id), ...locations.map((l) => l.map.id)])].map((id) => ({ id }));
+  const maps = placedMaps.length > 0 ? placedMaps : taskMap ? [{ id: taskMap }] : [];
+  const out: TaskObjective = { id: str(o.id), type: str(o.type), description: tr(tasksEn, str(o.description)), maps, zones };
+  if (locations.length > 0) out.locations = locations;
+  if (typeof o.questItem === "string") {
+    out.questItem = { id: o.questItem, name: tr(tasksEn, str(dict(questItems[o.questItem]).name, `${o.questItem} Name`)) };
+  }
+  return out;
 }
 
 function toTask(
@@ -130,6 +140,7 @@ function toTask(
   tradersEn: Record<string, unknown>,
   itemsEn: Record<string, unknown>,
   mapsEn: Record<string, unknown>,
+  questItems: Dict,
 ): QuestTask {
   const traderId = str(t.trader);
   const traderKey = str(dict(traders[traderId]).name, traderId);
@@ -143,7 +154,7 @@ function toTask(
     name: tr(tasksEn, str(t.name)),
     trader: { name: tr(tradersEn, traderKey) },
     minPlayerLevel: typeof t.minPlayerLevel === "number" ? t.minPlayerLevel : 0,
-    objectives: list(t.objectives).map((o) => toObjective(o, tasksEn, taskMap)),
+    objectives: list(t.objectives).map((o) => toObjective(o, tasksEn, taskMap, questItems)),
     requires,
     kappaRequired: t.kappaRequired === true,
     lightkeeperRequired: t.lightkeeperRequired === true,
@@ -285,7 +296,9 @@ export function toQuestData(raw: RawBundle, now: number): QuestData {
   const rawMaps = need(mapsData.maps, "maps.data.maps");
   const containers = dict(mapsData.lootContainers);
   const mobs = dict(mapsData.mobs);
-  const rawTasks = need(need(dict(raw.tasks).data, "tasks.data").tasks, "tasks.data.tasks");
+  const tasksData = need(dict(raw.tasks).data, "tasks.data");
+  const rawTasks = need(tasksData.tasks, "tasks.data.tasks");
+  const questItems = dict(tasksData.questItems);
   const traders = need(dict(raw.traders).data, "traders.data");
   const mapsEn = en(raw.mapsEn);
   const tasksEn = en(raw.tasksEn);
@@ -293,7 +306,7 @@ export function toQuestData(raw: RawBundle, now: number): QuestData {
   const itemsEn = en(raw.itemsEn);
   return {
     schemaVersion: QUEST_SCHEMA_VERSION,
-    tasks: Object.values(rawTasks).map((t) => toTask(dict(t), tasksEn, traders, tradersEn, itemsEn, mapsEn)),
+    tasks: Object.values(rawTasks).map((t) => toTask(dict(t), tasksEn, traders, tradersEn, itemsEn, mapsEn, questItems)),
     maps: Object.values(rawMaps).map((m) => toMap(dict(m), mapsEn, itemsEn, containers, mobs)),
     fetchedAt: now,
   };

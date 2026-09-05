@@ -2,11 +2,14 @@
 // every extract must land in a known, default-visible category, and the maps stay recognisable.
 import { describe, it, expect } from "vitest";
 import snapshot from "../../../data/snapshot/maps.json";
-import type { MapInfo } from "../quests/types";
+import tasksSnapshot from "../../../data/snapshot/tasks.json";
+import type { MapInfo, QuestTask } from "../quests/types";
+import { extractQuestMarkers } from "../quests/markers";
 import { extractPoints, CATEGORY_LABELS } from "./points";
 import { isOn } from "./filters";
 
 const maps = snapshot as unknown as MapInfo[];
+const tasks = tasksSnapshot as unknown as QuestTask[];
 const points = extractPoints({ schemaVersion: 0, fetchedAt: 0, tasks: [], maps });
 const KNOWN_FACTIONS = ["pmc", "scav", "shared"];
 const placed = <T extends { position: unknown }>(list: T[] | null | undefined) => (list ?? []).filter((e) => e.position);
@@ -69,6 +72,15 @@ describe("data snapshot", () => {
     expect(saferoom.switches?.length).toBe(1);
     expect(ic.extracts.find((e) => e.name === "Power Station V-Ex")!.requiredItem).toEqual({ name: "Roubles", count: 20000 });
     expect(ic.switches?.find((s) => s.name === "Saferoom Exfil Switch")?.activates).toEqual([{ operation: "Unlock", target: "Saferoom Exfil" }]);
+  });
+
+  it("draws quest item spawn points as well as objective zones, Lighthouse included", () => {
+    const qm = extractQuestMarkers({ schemaVersion: 0, fetchedAt: 0, tasks, maps });
+    const lighthouse = qm.filter((m) => m.mapKey === "lighthouse");
+    // tarkov.dev's map shows well over a hundred item spawn points on Lighthouse alone.
+    expect(lighthouse.filter((m) => m.itemName).length).toBeGreaterThan(50);
+    expect(lighthouse.some((m) => m.category === "visit")).toBe(true);
+    for (const m of qm.filter((m) => m.itemName)) expect(m.itemName, m.taskName).not.toMatch(/ Name$/);
   });
 
   it("names every switch and hazard in plain English, not a translation key", () => {

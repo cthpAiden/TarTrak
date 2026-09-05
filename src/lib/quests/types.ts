@@ -1,4 +1,4 @@
-export const QUEST_SCHEMA_VERSION = 6;
+export const QUEST_SCHEMA_VERSION = 7;
 
 export interface Vec3 {
   x: number;
@@ -16,12 +16,20 @@ export interface TaskZone extends Footprint {
   map: { id: string };
   position: Vec3;
 }
+/** Where a quest item can spawn on one map (tarkov.dev "possibleLocations"). */
+export interface QuestItemLocation {
+  map: { id: string };
+  positions: Vec3[];
+}
 export interface TaskObjective {
   id: string;
   type: string;
   description: string;
   maps: { id: string }[];
   zones?: TaskZone[];
+  /** Spawn points of the quest item a findQuestItem objective looks for; drawn like tarkov.dev's item markers. */
+  locations?: QuestItemLocation[];
+  questItem?: { id: string; name: string };
 }
 export interface QuestTask {
   id: string;
