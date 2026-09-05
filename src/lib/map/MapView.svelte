@@ -16,6 +16,7 @@
   import type { MapPoint } from "../layers/points";
   import { pointIcon, pointPopupHtml } from "../layers/pointLayer";
   import { labelDivIcon } from "./labels";
+  import { watchSize } from "./resize";
 
   let {
     def,
@@ -58,6 +59,7 @@
   let labelGroup = $state<L.LayerGroup | null>(null);
   /** Bumped by every destroy(); a build whose generation is stale drops its result. */
   let gen = 0;
+  let stopSizeWatch: (() => void) | null = null;
   let message = $state("");
   /** Ticks once a second so the marker effects re-run and re-apply the age fade. */
   let now = $state(Date.now());
@@ -74,6 +76,8 @@
     pointGroup = null;
     labelGroup = null;
     svg = null;
+    stopSizeWatch?.();
+    stopSizeWatch = null;
     map?.remove();
     map = null;
   }
@@ -91,6 +95,8 @@
       zoomControl: false,
     });
     m.fitBounds(boundsOf(d));
+    // The sidebar and top bar come and go with overlay mode; Leaflet only watches the window.
+    stopSizeWatch = watchSize(container, () => m.invalidateSize({ animate: false }));
     map = m;
     questGroup = L.layerGroup().addTo(m);
     // Own pane above the overlay pane (400) so the SVG map, added later, cannot cover the labels.
