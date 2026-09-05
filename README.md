@@ -64,8 +64,6 @@ The default relay (`DEFAULT_RELAY_URL` in `src/lib/settings/store.ts`) is
 your own, deploy `relay/` (`cd relay && npm ci && npx wrangler deploy`) and paste the resulting
 `wss://...workers.dev` URL into Settings > Relay URL.
 
-To run your own: `cd relay && npm ci && npx wrangler deploy`, then paste the URL into Settings > Relay URL.
-
 ## Build from source
 
 Node 24, Rust stable (MSVC), WebView2 (ships with Windows 10/11).
@@ -83,9 +81,8 @@ The updater private key lives only in the `TAURI_SIGNING_PRIVATE_KEY` repository
 must change the owner there.
 
 Quest data is fetched live from tarkov.dev and cached locally. `npm run snapshot` writes an offline
-fallback into `data/snapshot/`, used when tarkov.dev is unreachable and no cache exists; refresh it before
-tagging. No snapshot ships in v1 - tarkov.dev was returning errors when this release was cut - so a first
-run with tarkov.dev down shows no quest markers.
+fallback into `data/snapshot/` (PvP data), used when tarkov.dev is unreachable and no cache exists; refresh
+it before tagging.
 
 ## Credits and licenses
 

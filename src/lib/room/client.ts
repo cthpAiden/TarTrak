@@ -51,6 +51,8 @@ export class RoomClient {
   private throttleTimer: ReturnType<typeof setTimeout> | null = null;
   private pingTimer: ReturnType<typeof setInterval> | null = null;
   private pongTimer: ReturnType<typeof setTimeout> | null = null;
+  /** True once this socket has answered a ping; until then a missing pong means an older relay. */
+  private pongSeen = false;
   private pending: PosMsg | null = null;
   private lastPos: PosMsg | null = null;
   private lastSentAt = -Infinity;
@@ -130,6 +132,7 @@ export class RoomClient {
   /** A half-open socket never fires onclose, so an unanswered ping is what tells us to reconnect. */
   private startHeartbeat(ws: WebSocketLike): void {
     this.stopHeartbeat();
+    this.pongSeen = false;
     this.pingTimer = setInterval(() => {
       if (this.ws !== ws) return;
       ws.send("ping");
@@ -137,6 +140,11 @@ export class RoomClient {
       this.pongTimer = setTimeout(() => {
         this.pongTimer = null;
         if (this.ws !== ws) return;
+        // A relay that has never answered does not speak ping; keep the socket and stop asking.
+        if (!this.pongSeen) {
+          this.stopHeartbeat();
+          return;
+        }
         this.ws = null;
         this.stopHeartbeat();
         ws.close();
@@ -192,6 +200,7 @@ export class RoomClient {
     ws.onmessage = (ev) => {
       if (this.ws !== ws || typeof ev.data !== "string") return;
       if (ev.data === "pong") {
+        this.pongSeen = true;
         if (this.pongTimer) clearTimeout(this.pongTimer);
         this.pongTimer = null;
         return;

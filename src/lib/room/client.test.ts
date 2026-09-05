@@ -183,11 +183,13 @@ describe("RoomClient", () => {
     expect(FakeWs.instances).toHaveLength(1);
   });
 
-  it("closes and reconnects a socket that never answers a ping", () => {
+  it("closes and reconnects a socket that stops answering pings", () => {
     const { client, statuses } = make();
     client.connect();
     const ws = FakeWs.instances[0];
     ws.open();
+    vi.advanceTimersByTime(PING_INTERVAL_MS);
+    ws.receiveRaw("pong");
     vi.advanceTimersByTime(PING_INTERVAL_MS);
     vi.advanceTimersByTime(PONG_TIMEOUT_MS - 1);
     expect(ws.closed).toBe(false);
@@ -196,6 +198,20 @@ describe("RoomClient", () => {
     expect(statuses).toEqual(["connecting", "open", "closed"]);
     vi.advanceTimersByTime(1000);
     expect(FakeWs.instances).toHaveLength(2);
+  });
+
+  it("keeps a socket whose relay never answered a ping and stops pinging it", () => {
+    const { client, statuses } = make();
+    client.connect();
+    const ws = FakeWs.instances[0];
+    ws.open();
+    ws.sent.length = 0;
+    vi.advanceTimersByTime(PING_INTERVAL_MS + PONG_TIMEOUT_MS);
+    expect(ws.closed).toBe(false);
+    expect(statuses).toEqual(["connecting", "open"]);
+    vi.advanceTimersByTime(PING_INTERVAL_MS * 3);
+    expect(ws.sent).toEqual(["ping"]);
+    expect(FakeWs.instances).toHaveLength(1);
   });
 
   it("stops pinging after close()", () => {
