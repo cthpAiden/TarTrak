@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.1 - 2026-09-06
 
 ### Map data
 - Extracts tarkov.dev marks "shared" (usable by PMCs and Scavs, such as Interchange's Emercom Checkpoint and Railway) are labelled "PMC & Scav Extracts" instead of "Co-op Extracts", and the extracts group is on by default as a whole so a new faction can never be hidden. Every extract, transit and hazard footprint is drawn in tarkov.dev's colours; extract popups name the switch that opens them and the item they cost (V-Ex fee, secret-extract item); locks say when they need power; artillery zones appear as "Mortar zones". Data schema 6 (caches refresh on first start).
