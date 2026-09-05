@@ -3,6 +3,14 @@
   import { normalizeHotkey } from "../tauri/window";
   import { DEFAULT_RELAY_URL, type Settings } from "./store";
   import { GAME_MODES, GAME_MODE_LABELS, type GameMode } from "../quests/jsonSource";
+  import { openUrl } from "@tauri-apps/plugin-opener";
+
+  /** The webview opens no new windows on its own; links go to the system browser. */
+  function external(e: MouseEvent) {
+    e.preventDefault();
+    const href = (e.currentTarget as HTMLAnchorElement).href;
+    openUrl(href).catch((err) => onInvalid?.(`Could not open ${href}: ${err}`));
+  }
 
   let { settings, onChange, onPickDir, onInvalid }: {
     settings: Settings;
@@ -112,8 +120,9 @@
       <summary>About</summary>
       <p class="small">
         TarTrak is free and open source (MIT). It only reads screenshot filenames and the game's text logs.
-        Map images: <a href="https://github.com/the-hideout/tarkov-dev-svg-maps" target="_blank" rel="noreferrer">tarkov-dev-svg-maps</a> (CC BY-NC-SA 4.0).
-        Map math and quest data: <a href="https://tarkov.dev" target="_blank" rel="noreferrer">tarkov.dev</a> (MIT). Not affiliated with Battlestate Games.
+        Map images: <a href="https://github.com/the-hideout/tarkov-dev-svg-maps" onclick={external}>tarkov-dev-svg-maps</a> (CC BY-NC-SA 4.0).
+        Map math and quest data: <a href="https://tarkov.dev" onclick={external}>tarkov.dev</a> (MIT). Not affiliated with Battlestate Games.
+        Source and issues: <a href="https://github.com/cthpAiden/TarTrak" onclick={external}>github.com/cthpAiden/TarTrak</a>.
       </p>
     </details>
 </section>
