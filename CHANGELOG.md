@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Performance
+- Less memory: the offline fallback data set is no longer inlined into the app's script (4 MB parsed at every start and kept all session); it is loaded from a file only when there is no cached data. Map points are built for the map on screen instead of all seventeen maps.
+
 ## 0.3.0 - 2026-09-06
 
 ### Map

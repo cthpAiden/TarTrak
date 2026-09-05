@@ -54,6 +54,17 @@ describe("loadQuestData", () => {
     expect(dp.written).toHaveLength(0);
   });
 
+  it("awaits a lazily loaded snapshot and survives one that rejects", async () => {
+    const dp = deps({ snapshot: async () => d(1, "snap") });
+    const updates: string[] = [];
+    await loadQuestData(dp, (data, src) => updates.push(`${src}:${data.tasks[0].id}`));
+    expect(updates).toEqual(["snapshot:snap"]);
+    const bad = deps({ snapshot: () => Promise.reject(new Error("no file")) });
+    const none: string[] = [];
+    await loadQuestData(bad, (data, src) => none.push(`${src}:${data.tasks[0].id}`));
+    expect(none).toEqual([]);
+  });
+
   it("fetches when there is no cache and prefers network over snapshot", async () => {
     const dp = deps({ snapshot: () => d(1, "snap"), fetchRemote: async () => d(2, "net") });
     const updates: string[] = [];

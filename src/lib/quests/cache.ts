@@ -17,7 +17,8 @@ export interface QuestLoaderDeps {
   readCache(): Promise<QuestData | null>;
   writeCache(d: QuestData): Promise<void>;
   fetchRemote(): Promise<QuestData>;
-  snapshot(): QuestData | null;
+  /** The bundled fallback; loaded lazily, so it may be a promise. */
+  snapshot(): QuestData | null | Promise<QuestData | null>;
   now(): number;
 }
 
@@ -43,7 +44,12 @@ export async function loadQuestData(deps: QuestLoaderDeps, onUpdate: (d: QuestDa
   }
   if (cached) onUpdate(cached, "cache");
   else {
-    const snap = deps.snapshot();
+    let snap: QuestData | null = null;
+    try {
+      snap = await deps.snapshot();
+    } catch {
+      snap = null;
+    }
     if (snap) onUpdate(snap, "snapshot");
   }
   if (cached && !isStale(cached.fetchedAt, deps.now())) return;

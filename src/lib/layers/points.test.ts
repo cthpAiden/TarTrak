@@ -126,6 +126,15 @@ describe("extractPoints", () => {
     ]);
   });
 
+  it("builds points for one map when asked", () => {
+    const key = data.maps[0].normalizedName;
+    const one = extractPoints(data, key);
+    expect(one.length).toBeGreaterThan(0);
+    expect(one.length).toBeLessThanOrEqual(points.length);
+    expect(one.every((p) => p.mapKey === key)).toBe(true);
+    expect(extractPoints(data, "no-such-map")).toEqual([]);
+  });
+
   it("uses container normalized names for loot categories and container names for labels", () => {
     const loot = inGroup("loot");
     expect(loot.map((p) => p.category)).toEqual(["safe", "safe", "medcase"]);

@@ -63,8 +63,8 @@
   const layerFilters = $derived(settings?.layerFilters ?? {});
   const hiddenQuests = $derived(settings?.hiddenQuests ?? {});
   const allQuestMarkers = $derived(app.questData ? extractQuestMarkers(app.questData) : []);
-  const allPoints = $derived(app.questData ? extractPoints(app.questData) : []);
-  const mapPoints = $derived(def ? allPoints.filter((p) => p.mapKey === def.key) : []);
+  // Only the current map's points are built; the other maps' thousands would sit in memory unused.
+  const mapPoints = $derived(def && app.questData ? extractPoints(app.questData, def.key) : []);
   // The floor the map is showing: the pinned one, or the floor my own height puts me on.
   const activeFloor = $derived(
     pinnedFloor === null ? (def && app.ownPos ? floorForHeight(def, app.ownPos) : null) : pinnedFloor || null,

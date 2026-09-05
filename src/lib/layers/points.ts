@@ -224,9 +224,10 @@ function pointsForMap(m: MapInfo, out: MapPoint[]): void {
   });
 }
 
-export function extractPoints(data: QuestData): MapPoint[] {
+/** Points of every map, or of the one map `mapKey` names. */
+export function extractPoints(data: QuestData, mapKey?: string): MapPoint[] {
   const out: MapPoint[] = [];
-  for (const m of data.maps) pointsForMap(m, out);
+  for (const m of data.maps) if (mapKey === undefined || m.normalizedName === mapKey) pointsForMap(m, out);
   return out;
 }
 
