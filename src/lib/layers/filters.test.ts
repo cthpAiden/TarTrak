@@ -6,6 +6,11 @@ describe("isOn", () => {
     expect(isOn({}, "extracts", "pmc")).toBe(true);
     expect(isOn({}, "loot", "safe")).toBe(false);
     expect(isOn({}, "extracts", "scav")).toBe(false);
+    expect(isOn({}, "extracts", "shared")).toBe(true);
+    expect(isOn({}, "extracts", "transit")).toBe(true);
+    // A faction tarkov.dev has not published yet must not be hidden by default.
+    expect(isOn({}, "extracts", "coop")).toBe(true);
+    expect(isOn({}, "hazards", "mortar")).toBe(false);
   });
 
   it("prefers the category key over the group key", () => {

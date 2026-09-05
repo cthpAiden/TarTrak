@@ -43,10 +43,9 @@ const SPAWN_ICONS: Record<string, string> = {
   bloodhound: "spawn_bloodhound",
 };
 
-const GROUP_ICONS: Record<Exclude<GroupId, "extracts" | "spawns" | "loot">, string> = {
+const GROUP_ICONS: Record<Exclude<GroupId, "extracts" | "spawns" | "loot" | "hazards">, string> = {
   lootLoose: "loose_loot",
   locks: "lock",
-  hazards: "hazard",
   switches: "switch",
   guns: "stationarygun",
   btr: "btr_stop",
@@ -57,6 +56,8 @@ export function iconFile(p: { group: GroupId; category: string }): string {
   switch (p.group) {
     case "extracts":
       return `extract_${p.category}`;
+    case "hazards":
+      return p.category === "mortar" ? "hazard_mortar" : "hazard";
     case "spawns":
       return SPAWN_ICONS[p.category] ?? "spawn_boss";
     case "loot": {
@@ -66,6 +67,18 @@ export function iconFile(p: { group: GroupId; category: string }): string {
     default:
       return GROUP_ICONS[p.group];
   }
+}
+
+/** Footprint colours, as tarkov.dev's map draws them. */
+const OUTLINE_COLORS: Record<string, string> = {
+  "extracts/pmc": "#00e599",
+  "extracts/shared": "#00e4e5",
+  "extracts/scav": "#ff7800",
+  "extracts/transit": "#e53500",
+};
+
+export function outlineColor(p: { group: GroupId; category: string }): string {
+  return OUTLINE_COLORS[`${p.group}/${p.category}`] ?? (p.group === "hazards" ? "#ff0000" : "#ffffff");
 }
 
 export function iconUrl(p: { group: GroupId; category: string }): string {

@@ -1,10 +1,12 @@
 export type Filters = Record<string, boolean>;
 
+/**
+ * Keys (group/category) or whole groups that start on. The extracts group is on as a whole so a
+ * faction tarkov.dev adds later is never hidden by default; only Scav extracts start off.
+ */
 export const DEFAULT_ON: ReadonlySet<string> = new Set([
   "labels/landmark",
-  "extracts/pmc",
-  "extracts/shared",
-  "extracts/transit",
+  "extracts",
   "quests/visit",
   "quests/questItem",
   "quests/mark",
@@ -14,11 +16,14 @@ export const DEFAULT_ON: ReadonlySet<string> = new Set([
 
 export const FILTER_KEY_RE = /^[a-z]+(\/[a-z0-9_-]+)?$/i;
 
+const DEFAULT_OFF: ReadonlySet<string> = new Set(["extracts/scav"]);
+
 export function isOn(f: Filters, group: string, category: string): boolean {
   const key = `${group}/${category}`;
   if (typeof f[key] === "boolean") return f[key];
   if (typeof f[group] === "boolean") return f[group];
-  return DEFAULT_ON.has(key);
+  if (DEFAULT_OFF.has(key)) return false;
+  return DEFAULT_ON.has(key) || DEFAULT_ON.has(group);
 }
 
 export type GroupState = "all" | "none" | "some";

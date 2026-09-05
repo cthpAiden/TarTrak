@@ -2,6 +2,7 @@
 // user-facing string held as a translation key that the matching `*_en` file resolves.
 import { QUEST_SCHEMA_VERSION } from "./types.ts";
 import type {
+  Footprint,
   MapBoss,
   MapBtrStation,
   MapExtract,
@@ -95,18 +96,28 @@ function strings(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
 }
 
+/** Outline and height span of anything that has them; only the fields present are set. */
+function footprint(o: Dict): Footprint {
+  const outline = list(o.outline)
+    .map((c) => pos(c))
+    .filter((c): c is Vec3 => c !== null)
+    .map((c): [number, number] => [c.x, c.z]);
+  const f: Footprint = {};
+  if (outline.length >= 3) f.outline = outline;
+  if (typeof o.top === "number") f.top = o.top;
+  // tarkov.dev's artillery zones spell it "botom".
+  const bottom = typeof o.bottom === "number" ? o.bottom : o.botom;
+  if (typeof bottom === "number") f.bottom = bottom;
+  return f;
+}
+
 function toObjective(o: Dict, tasksEn: Record<string, unknown>, taskMap: string | null): TaskObjective {
-  const zones: TaskZone[] = list(o.zones).map((z) => {
-    const outline = list(z.outline)
-      .map((c) => pos(c))
-      .filter((c): c is Vec3 => c !== null)
-      .map((c): [number, number] => [c.x, c.z]);
-    const zone: TaskZone = { id: str(z.id), map: { id: str(z.map) }, position: pos(z.position) ?? { x: 0, y: 0, z: 0 } };
-    if (outline.length >= 3) zone.outline = outline;
-    if (typeof z.top === "number") zone.top = z.top;
-    if (typeof z.bottom === "number") zone.bottom = z.bottom;
-    return zone;
-  });
+  const zones: TaskZone[] = list(o.zones).map((z) => ({
+    id: str(z.id),
+    map: { id: str(z.map) },
+    position: pos(z.position) ?? { x: 0, y: 0, z: 0 },
+    ...footprint(z),
+  }));
   const zoneMaps = [...new Set(zones.map((z) => z.map.id))].map((id) => ({ id }));
   const maps = zoneMaps.length > 0 ? zoneMaps : taskMap ? [{ id: taskMap }] : [];
   return { id: str(o.id), type: str(o.type), description: tr(tasksEn, str(o.description)), maps, zones };
@@ -149,16 +160,28 @@ function toMap(
   containers: Dict,
   mobs: Dict,
 ): MapInfo {
-  const extracts: MapExtract[] = list(m.extracts).map((e) => ({
-    id: str(e.id),
-    name: tr(mapsEn, str(e.name)),
-    faction: str(e.faction),
-    position: pos(e.position),
-  }));
+  const switchNames = new Map(list(m.switches).map((sw) => [str(sw.id), tr(mapsEn, str(sw.name))]));
+  const extracts: MapExtract[] = list(m.extracts).map((e) => {
+    const out: MapExtract = {
+      id: str(e.id),
+      name: tr(mapsEn, str(e.name)),
+      faction: str(e.faction),
+      position: pos(e.position),
+      ...footprint(e),
+    };
+    const switches = strings(e.switches).map((id) => switchNames.get(id) ?? id);
+    if (switches.length > 0) out.switches = switches;
+    const transfer = dict(e.transferItem);
+    if (typeof transfer.item === "string") {
+      out.requiredItem = { name: itemName(itemsEn, mapsEn, transfer.item), count: num(transfer.count, 1) };
+    }
+    return out;
+  });
   const transits: MapTransit[] = list(m.transits).map((t) => ({
     id: str(t.id),
     description: tr(mapsEn, str(t.description)),
     position: pos(t.position),
+    ...footprint(t),
   }));
   const spawns: MapSpawn[] = list(m.spawns).map((s) => ({
     zoneName: typeof s.zoneName === "string" ? s.zoneName : null,
@@ -182,16 +205,30 @@ function toMap(
     position: pos(l.position),
     items: [...new Set(strings(l.items).map((id) => itemName(itemsEn, mapsEn, id)))],
   }));
-  const locks: MapLock[] = list(m.locks).map((l) => ({
-    lockType: str(l.lockType),
-    key: typeof l.key === "string" ? itemName(itemsEn, mapsEn, l.key) : null,
-    position: pos(l.position),
-  }));
-  const hazards: MapHazard[] = list(m.hazards).map((h) => ({
-    hazardType: str(h.hazardType),
-    name: tr(mapsEn, str(h.name)),
-    position: pos(h.position),
-  }));
+  const locks: MapLock[] = list(m.locks).map((l) => {
+    const lock: MapLock = {
+      lockType: str(l.lockType),
+      key: typeof l.key === "string" ? itemName(itemsEn, mapsEn, l.key) : null,
+      position: pos(l.position),
+    };
+    if (l.needsPower === true) lock.needsPower = true;
+    return lock;
+  });
+  const hazards: MapHazard[] = [
+    ...list(m.hazards).map((h) => ({
+      hazardType: str(h.hazardType),
+      name: tr(mapsEn, str(h.name)),
+      position: pos(h.position),
+      ...footprint(h),
+    })),
+    // Artillery zones are a separate map field on tarkov.dev; its map draws them as "Mortar" hazards.
+    ...list(dict(m.artillery).zones).map((z) => ({
+      hazardType: "mortar",
+      name: "Mortar",
+      position: pos(z.position),
+      ...footprint(z),
+    })),
+  ];
   const switches: MapSwitch[] = list(m.switches).map((s) => ({
     id: str(s.id),
     name: tr(mapsEn, str(s.name)),

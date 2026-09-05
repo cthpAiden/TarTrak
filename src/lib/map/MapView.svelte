@@ -14,7 +14,7 @@
   import { questIcon, questPopupHtml, esc } from "../quests/questLayer";
   import type { QuestMarker } from "../quests/markers";
   import type { MapPoint } from "../layers/points";
-  import { pointIcon, pointPopupHtml } from "../layers/pointLayer";
+  import { outlineColor, pointIcon, pointPopupHtml } from "../layers/pointLayer";
   import { labelDivIcon } from "./labels";
   import { watchSize } from "./resize";
   import { pinIcon, pinPopup } from "./pins";
@@ -258,6 +258,18 @@
     if (!g) return;
     g.clearLayers();
     for (const p of all) {
+      if (p.outline) {
+        const color = outlineColor(p);
+        L.polygon(p.outline.map(([x, z]) => toLatLng(x, z)), {
+          pane: "zones",
+          color,
+          weight: 1,
+          opacity: 0.7,
+          fillColor: color,
+          fillOpacity: 0.12,
+          interactive: false,
+        }).addTo(g);
+      }
       const layer = L.marker(toLatLng(p.x, p.z), { icon: pointIcon(p, hits.has(p.id)) });
       layer.bindTooltip(esc(p.name)).bindPopup(pointPopupHtml(p)).addTo(g);
     }

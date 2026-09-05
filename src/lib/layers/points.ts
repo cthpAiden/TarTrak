@@ -1,4 +1,4 @@
-import type { MapBoss, MapInfo, MapSpawn, QuestData, Vec3 } from "../quests/types";
+import type { Footprint, MapBoss, MapInfo, MapSpawn, QuestData, Vec3 } from "../quests/types";
 
 export type GroupId =
   | "extracts"
@@ -38,7 +38,7 @@ export const GROUP_LABELS: Record<GroupId, string> = {
 export const CATEGORY_LABELS: Record<string, string> = {
   "extracts/pmc": "PMC Extracts",
   "extracts/scav": "SCAV Extracts",
-  "extracts/shared": "Co-op Extracts",
+  "extracts/shared": "PMC & Scav Extracts",
   "extracts/transit": "Transit Zones",
   "spawns/pmc": "PMC",
   "spawns/scav": "Scav",
@@ -57,12 +57,13 @@ export const CATEGORY_LABELS: Record<string, string> = {
   "hazards/minefield": "Minefields",
   "hazards/hazard": "Hazards",
   "hazards/sniper": "Sniper zones",
+  "hazards/mortar": "Mortar zones",
   "switches/switch": "Switches",
   "guns/gun": "Stationary guns",
   "btr/stop": "BTR stops",
 };
 
-export interface MapPoint {
+export interface MapPoint extends Footprint {
   id: string;
   group: GroupId;
   category: string;
@@ -124,7 +125,7 @@ function looseLootName(items: string[]): string {
 const EXTRACT_DETAILS: Record<string, string> = {
   pmc: "PMC extract",
   scav: "Scav extract",
-  shared: "Co-op extract",
+  shared: "PMC & Scav extract",
   transit: "Transit",
 };
 
@@ -144,20 +145,34 @@ function push(
   id: string,
   position: Vec3 | null,
   details: string[],
+  foot?: Footprint,
 ): void {
   if (!position) return;
-  out.push({ id, group, category, name, mapKey, x: position.x, y: position.y, z: position.z, details });
+  const p: MapPoint = { id, group, category, name, mapKey, x: position.x, y: position.y, z: position.z, details };
+  if (foot?.outline) p.outline = foot.outline;
+  if (foot?.top !== undefined) p.top = foot.top;
+  if (foot?.bottom !== undefined) p.bottom = foot.bottom;
+  out.push(p);
+}
+
+function extractDetails(e: MapInfo["extracts"][number]): string[] {
+  // An unknown faction still gets a readable line rather than vanishing behind a missing label.
+  const details = [EXTRACT_DETAILS[e.faction] ?? `${e.faction} extract`];
+  for (const sw of e.switches ?? []) details.push(`Activated by switch: ${sw}`);
+  if (e.requiredItem) {
+    const count = e.requiredItem.count > 1 ? ` ×${e.requiredItem.count.toLocaleString("en-US")}` : "";
+    details.push(`Requires ${e.requiredItem.name}${count}`);
+  }
+  return details;
 }
 
 function pointsForMap(m: MapInfo, out: MapPoint[]): void {
   const key = m.normalizedName;
   for (const e of m.extracts ?? []) {
-    push(out, key, "extracts", e.faction, e.name, e.id, e.position, [EXTRACT_DETAILS[e.faction] ?? e.faction]);
+    push(out, key, "extracts", e.faction, e.name, e.id, e.position, extractDetails(e), e);
   }
   (m.transits ?? []).forEach((t, i) => {
-    push(out, key, "extracts", "transit", t.description, t.id || `extracts/transit/${i}`, t.position, [
-      EXTRACT_DETAILS.transit,
-    ]);
+    push(out, key, "extracts", "transit", t.description, t.id || `extracts/transit/${i}`, t.position, [EXTRACT_DETAILS.transit], t);
   });
   (m.spawns ?? []).forEach((s, i) => {
     const spawn = classifySpawn(s, m.bosses ?? []);
@@ -175,12 +190,13 @@ function pointsForMap(m: MapInfo, out: MapPoint[]): void {
   (m.locks ?? []).forEach((l, i) => {
     push(out, key, "locks", l.lockType, l.key ?? `Locked ${l.lockType}`, `locks/${l.lockType}/${i}`, l.position, [
       LOCK_DETAILS[l.lockType] ?? l.lockType,
+      ...(l.needsPower ? ["Needs power"] : []),
     ]);
   });
   (m.hazards ?? []).forEach((h, i) => {
     push(out, key, "hazards", h.hazardType, h.name, `hazards/${h.hazardType}/${i}`, h.position, [
       CATEGORY_LABELS[`hazards/${h.hazardType}`] ?? h.hazardType,
-    ]);
+    ], h);
   });
   (m.switches ?? []).forEach((s, i) => {
     push(out, key, "switches", "switch", s.name, s.id || `switches/switch/${i}`, s.position, ["Switch"]);

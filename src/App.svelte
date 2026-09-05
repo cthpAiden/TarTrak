@@ -70,7 +70,7 @@
       ? mapPoints.filter(
           (p) =>
             (hitIds.has(p.id) || isOn(layerFilters, p.group, p.category)) &&
-            visibleOnFloor(def, activeFloor, p.x, p.z, p.y),
+            visibleOnFloor(def, activeFloor, p.x, p.z, p.y, p.top, p.bottom),
         )
       : [],
   );

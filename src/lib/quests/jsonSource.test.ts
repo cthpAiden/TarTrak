@@ -10,7 +10,21 @@ const raw: RawBundle = {
           id: "m1",
           name: "m1 Name",
           normalizedName: "factory",
-          extracts: [{ id: "e1", name: "E8_yard", faction: "pmc", position: { x: 1, y: 2, z: 3 } }],
+          extracts: [
+            { id: "e1", name: "E8_yard", faction: "pmc", position: { x: 1, y: 2, z: 3 } },
+            {
+              id: "e2",
+              name: "Saferoom",
+              faction: "shared",
+              position: { x: 2, y: 3, z: 4 },
+              switches: ["sw1", "sw-unknown"],
+              transferItem: { item: "i1", count: 20000 },
+              outline: [{ x: 0, y: 3, z: 0 }, { x: 4, y: 3, z: 0 }, { x: 4, y: 3, z: 4 }],
+              top: 6,
+              bottom: 1,
+            },
+          ],
+          artillery: { zones: [{ id: "13", position: { x: 149, y: 2, z: -122 }, outline: [{ x: 1, y: 2, z: 1 }, { x: 2, y: 2, z: 1 }, { x: 2, y: 2, z: 2 }], top: 7, botom: -3 }] },
           transits: [{ id: "12", description: "FAC_TRANSIT_12_DESC", map: "m2", position: { x: 4, y: 5, z: 6 } }],
           spawns: [
             { position: { x: 7, y: 8, z: 9 }, sides: ["all"], categories: ["player"], zoneName: "z1" },
@@ -21,6 +35,7 @@ const raw: RawBundle = {
           locks: [
             { id: "l1", lockType: "door", key: "k1", position: { x: 16, y: 17, z: 18 } },
             { id: "l2", lockType: "trunk", position: { x: 19, y: 20, z: 21 } },
+            { id: "l3", lockType: "door", key: "k1", needsPower: true, position: { x: 1, y: 1, z: 1 } },
           ],
           hazards: [{ id: "h1", hazardType: "sniper", name: "ScavRole/Marksman", position: { x: 22, y: 23, z: 24 } }],
           switches: [{ id: "sw1", name: "ZB013_switch", position: { x: 25, y: 26, z: 27 } }],
@@ -202,7 +217,20 @@ describe("toQuestData", () => {
     const m = d.maps[0];
     expect(m.name).toBe("Factory");
     expect(m.normalizedName).toBe("factory");
-    expect(m.extracts).toEqual([{ id: "e1", name: "Courtyard", faction: "pmc", position: { x: 1, y: 2, z: 3 } }]);
+    expect(m.extracts).toEqual([
+      { id: "e1", name: "Courtyard", faction: "pmc", position: { x: 1, y: 2, z: 3 } },
+      {
+        id: "e2",
+        name: "Saferoom",
+        faction: "shared",
+        position: { x: 2, y: 3, z: 4 },
+        switches: ["ZB-013 Power Switch", "sw-unknown"],
+        requiredItem: { name: "Bolts", count: 20000 },
+        outline: [[0, 0], [4, 0], [4, 4]],
+        top: 6,
+        bottom: 1,
+      },
+    ]);
     expect(m.transits).toEqual([{ id: "12", description: "Transit to Woods", position: { x: 4, y: 5, z: 6 } }]);
     expect(m.spawns).toEqual([
       { zoneName: "z1", position: { x: 7, y: 8, z: 9 }, sides: ["all"], categories: ["player"] },
@@ -215,8 +243,12 @@ describe("toQuestData", () => {
     expect(m.locks).toEqual([
       { lockType: "door", key: "Factory emergency exit key", position: { x: 16, y: 17, z: 18 } },
       { lockType: "trunk", key: null, position: { x: 19, y: 20, z: 21 } },
+      { lockType: "door", key: "Factory emergency exit key", position: { x: 1, y: 1, z: 1 }, needsPower: true },
     ]);
-    expect(m.hazards).toEqual([{ hazardType: "sniper", name: "Sniper", position: { x: 22, y: 23, z: 24 } }]);
+    expect(m.hazards).toEqual([
+      { hazardType: "sniper", name: "Sniper", position: { x: 22, y: 23, z: 24 } },
+      { hazardType: "mortar", name: "Mortar", position: { x: 149, y: 2, z: -122 }, outline: [[1, 1], [2, 1], [2, 2]], top: 7, bottom: -3 },
+    ]);
     expect(m.switches).toEqual([{ id: "sw1", name: "ZB-013 Power Switch", position: { x: 25, y: 26, z: 27 } }]);
     expect(m.btrStations).toEqual([{ id: "Taxi/p5/Name", name: "Sawmill", position: { x: 28, y: 29, z: 30 } }]);
   });

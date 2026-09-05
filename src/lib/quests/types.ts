@@ -1,18 +1,20 @@
-export const QUEST_SCHEMA_VERSION = 5;
+export const QUEST_SCHEMA_VERSION = 6;
 
 export interface Vec3 {
   x: number;
   y: number;
   z: number;
 }
-export interface TaskZone {
-  id: string;
-  map: { id: string };
-  position: Vec3;
-  /** Corners of the zone's footprint as [x, z] pairs, when tarkov.dev has them. */
+/** Anything with an area: the corners of its footprint as [x, z] pairs, and the heights it spans. */
+export interface Footprint {
   outline?: [number, number][];
   top?: number;
   bottom?: number;
+}
+export interface TaskZone extends Footprint {
+  id: string;
+  map: { id: string };
+  position: Vec3;
 }
 export interface TaskObjective {
   id: string;
@@ -35,13 +37,18 @@ export interface QuestTask {
   /** Display names of the keys the task needs, deduplicated. */
   neededKeys?: string[];
 }
-export interface MapExtract {
+export interface MapExtract extends Footprint {
   id: string;
   name: string;
+  /** tarkov.dev factions: "pmc", "scav", or "shared" (usable by both). */
   faction: string;
   position: Vec3 | null;
+  /** Names of the switches that must be flipped before it opens. */
+  switches?: string[];
+  /** Item handed over to use it: the V-Ex fee, a secret-extract item. */
+  requiredItem?: { name: string; count: number };
 }
-export interface MapTransit {
+export interface MapTransit extends Footprint {
   id: string;
   description: string;
   position: Vec3 | null;
@@ -66,8 +73,11 @@ export interface MapLock {
   /** Name of the key that opens it, null when the lock needs none. */
   key: string | null;
   position: Vec3 | null;
+  /** Set when the lock only works while the map's power is on. */
+  needsPower?: true;
 }
-export interface MapHazard {
+/** Sniper and minefield zones from tarkov.dev's hazards, plus its artillery zones as "mortar". */
+export interface MapHazard extends Footprint {
   hazardType: string;
   name: string;
   position: Vec3 | null;

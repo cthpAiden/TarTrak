@@ -23,7 +23,18 @@ const data: QuestData = {
       extracts: [
         { id: "e1", name: "Crossroads", faction: "pmc", position: { x: 1, y: 2, z: 3 } },
         { id: "e2", name: "Scav bridge", faction: "scav", position: { x: 4, y: 5, z: 6 } },
-        { id: "e3", name: "Basement", faction: "shared", position: { x: 7, y: 8, z: 9 } },
+        {
+          id: "e3",
+          name: "Basement",
+          faction: "shared",
+          position: { x: 7, y: 8, z: 9 },
+          switches: ["Basement switch"],
+          requiredItem: { name: "Roubles", count: 20000 },
+          outline: [[0, 0], [1, 0], [1, 1]],
+          top: 12,
+          bottom: 4,
+        },
+        { id: "e5", name: "Ark", faction: "coop", position: { x: 1, y: 1, z: 1 }, requiredItem: { name: "Ark key", count: 1 } },
         { id: "e4", name: "No pos", faction: "pmc", position: null },
       ],
       transits: [{ id: "tr1", description: "To Woods", position: { x: 10, y: 0, z: 11 } }],
@@ -61,8 +72,12 @@ const data: QuestData = {
       locks: [
         { lockType: "door", key: "Factory emergency exit key", position: { x: 40, y: 0, z: 41 } },
         { lockType: "trunk", key: null, position: { x: 42, y: 0, z: 43 } },
+        { lockType: "door", key: "Lab key", needsPower: true, position: { x: 46, y: 0, z: 47 } },
       ],
-      hazards: [{ hazardType: "sniper", name: "Sniper zone", position: { x: 50, y: 0, z: 51 } }],
+      hazards: [
+        { hazardType: "sniper", name: "Sniper zone", position: { x: 50, y: 0, z: 51 } },
+        { hazardType: "mortar", name: "Mortar", position: { x: 52, y: 0, z: 53 }, outline: [[0, 0], [9, 0], [9, 9]], top: 7, bottom: -3 },
+      ],
       switches: [{ id: "sw1", name: "Power switch", position: { x: 60, y: 0, z: 61 } }],
       btrStations: [{ id: "bt1", name: "Stop 1", position: { x: 70, y: 0, z: 71 } }],
       stationaryWeapons: [
@@ -81,9 +96,9 @@ const inGroup = (g: string) => points.filter((p) => p.group === g);
 describe("extractPoints", () => {
   it("derives extract categories, skips positionless entries, and adds transits", () => {
     const ex = inGroup("extracts");
-    expect(ex.map((p) => p.category)).toEqual(["pmc", "scav", "shared", "transit"]);
+    expect(ex.map((p) => p.category)).toEqual(["pmc", "scav", "shared", "coop", "transit"]);
     expect(ex.some((p) => p.name === "No pos")).toBe(false);
-    const transit = ex[3];
+    const transit = ex[4];
     expect(filterKey(transit)).toBe("extracts/transit");
     expect(transit.name).toBe("To Woods");
   });
@@ -109,8 +124,8 @@ describe("extractPoints", () => {
 
   it("names locks by their key, falling back to the lock type", () => {
     const locks = inGroup("locks");
-    expect(locks.map((p) => p.category)).toEqual(["door", "trunk"]);
-    expect(locks.map((p) => p.name)).toEqual(["Factory emergency exit key", "Locked trunk"]);
+    expect(locks.map((p) => p.category)).toEqual(["door", "trunk", "door"]);
+    expect(locks.map((p) => p.name)).toEqual(["Factory emergency exit key", "Locked trunk", "Lab key"]);
   });
 
   it("names loose loot after its first three items", () => {
@@ -120,7 +135,7 @@ describe("extractPoints", () => {
   });
 
   it("maps hazards, switches and BTR stations", () => {
-    expect(inGroup("hazards").map((p) => p.category)).toEqual(["sniper"]);
+    expect(inGroup("hazards").map((p) => p.category)).toEqual(["sniper", "mortar"]);
     expect(inGroup("switches").map((p) => p.category)).toEqual(["switch"]);
     expect(inGroup("btr").map((p) => p.category)).toEqual(["stop"]);
   });
@@ -155,13 +170,25 @@ describe("extractPoints", () => {
 });
 
 describe("point details", () => {
-  it("labels extracts by faction and transits as transits", () => {
+  it("labels extracts by faction, names their switch and fee, and transits as transits", () => {
     expect(inGroup("extracts").map((p) => p.details)).toEqual([
       ["PMC extract"],
       ["Scav extract"],
-      ["Co-op extract"],
+      ["PMC & Scav extract", "Activated by switch: Basement switch", "Requires Roubles ×20,000"],
+      ["coop extract", "Requires Ark key"],
       ["Transit"],
     ]);
+  });
+
+  it("carries an extract's or hazard's footprint onto its point", () => {
+    const basement = points.find((p) => p.id === "e3")!;
+    expect(basement.outline).toEqual([[0, 0], [1, 0], [1, 1]]);
+    expect(basement.top).toBe(12);
+    expect(basement.bottom).toBe(4);
+    expect(points.find((p) => p.id === "e1")).not.toHaveProperty("outline");
+    const mortar = inGroup("hazards").find((p) => p.category === "mortar")!;
+    expect(mortar.outline).toHaveLength(3);
+    expect(mortar.details).toEqual(["Mortar zones"]);
   });
 
   it("labels spawns with their category label", () => {
@@ -186,7 +213,7 @@ describe("point details", () => {
   });
 
   it("spells out lock types and labels the remaining groups", () => {
-    expect(inGroup("locks").map((p) => p.details)).toEqual([["Door"], ["Car door or trunk"]]);
+    expect(inGroup("locks").map((p) => p.details)).toEqual([["Door"], ["Car door or trunk"], ["Door", "Needs power"]]);
     expect(inGroup("loot").map((p) => p.details[0])).toEqual(["Container", "Container", "Container"]);
     expect(inGroup("hazards")[0].details).toEqual(["Sniper zones"]);
     expect(inGroup("switches")[0].details).toEqual(["Switch"]);

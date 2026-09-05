@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { iconFile, iconUrl, pointIcon, pointPopupHtml } from "./pointLayer";
+import { iconFile, iconUrl, outlineColor, pointIcon, pointPopupHtml } from "./pointLayer";
 import type { MapPoint } from "./points";
 
 const pt = (over: Partial<MapPoint> = {}): MapPoint => ({
@@ -13,6 +13,16 @@ const pt = (over: Partial<MapPoint> = {}): MapPoint => ({
   z: 0,
   details: [],
   ...over,
+});
+
+describe("outlineColor", () => {
+  it("uses tarkov.dev's faction colours, red for hazards, white otherwise", () => {
+    expect(outlineColor({ group: "extracts", category: "pmc" })).toBe("#00e599");
+    expect(outlineColor({ group: "extracts", category: "shared" })).toBe("#00e4e5");
+    expect(outlineColor({ group: "extracts", category: "transit" })).toBe("#e53500");
+    expect(outlineColor({ group: "hazards", category: "mortar" })).toBe("#ff0000");
+    expect(outlineColor({ group: "locks", category: "door" })).toBe("#ffffff");
+  });
 });
 
 describe("iconFile", () => {
