@@ -2,7 +2,7 @@
   import { onMount, untrack } from "svelte";
   import { room } from "./controller.svelte";
   import { generateRoomCode, isValidRoomCode } from "./protocol";
-  import { safeColor, squadRows, type SquadRow } from "./squad";
+  import { floorTag, mateLabel, safeColor, squadRows, type SquadRow } from "./squad";
   import { app } from "../state/app.svelte";
   import { getMapDef, floorForHeight } from "../map/mapsData";
   import { DEFAULT_SETTINGS, type Settings } from "../settings/store";
@@ -57,7 +57,6 @@
   }
 
   const def = $derived(app.currentMap ? (getMapDef(app.currentMap) ?? null) : null);
-  const myFloor = $derived(def && app.ownPos ? floorForHeight(def, app.ownPos) : null);
   const rows = $derived(
     squadRows(
       Object.values(app.teammates),
@@ -66,6 +65,7 @@
       {
         mapName: (k) => getMapDef(k)?.name ?? null,
         floorOf: (t) => (def ? floorForHeight(def, t) : null),
+        colorOverrides: settings.mateColors,
       },
     ),
   );
@@ -73,14 +73,18 @@
   function where(r: SquadRow): string {
     if (r.noPosition) return "no position yet";
     if (!r.sameMap) return r.mapName ?? "elsewhere";
-    const base = r.distanceM !== null ? `${r.distanceM} m` : r.mapUnknown ? "map unknown" : "same map";
-    // On a multi-floor map, a teammate above or below me is not where the distance suggests.
-    return r.floor !== myFloor ? `${base} · ${r.floor ?? "Ground"}` : base;
+    return r.distanceM !== null ? `${r.distanceM} m` : r.mapUnknown ? "map unknown" : "same map";
   }
   function rowTitle(r: SquadRow): string {
     if (r.noPosition) return `${r.name} has not taken a screenshot yet`;
     if (r.mapUnknown) return `${r.name} has no map detected; shown on your map`;
     return r.sameMap ? `Centre the map on ${r.name}` : "";
+  }
+
+  /** Only on this screen: they keep sending their own colour, and see me in whatever colour they picked. */
+  function setMateColor(name: string, color: string | null) {
+    const { [name]: _drop, ...rest } = settings.mateColors;
+    onSettingsChange({ mateColors: color === null ? rest : { ...rest, [name]: color } });
   }
 
   /** The code is persisted only on join, so a half-typed one is never stored. */
@@ -131,12 +135,21 @@
       <ul class="squad">
         {#each rows as r (r.id)}
           <li>
+            <input
+              type="color"
+              class="swatch"
+              value={safeColor(r.color)}
+              title="Colour for {r.name}, on your screen only"
+              onchange={(e) => setMateColor(r.name, e.currentTarget.value)}
+            />
             <button class="mate" disabled={!r.sameMap} title={rowTitle(r)} onclick={() => onFocus(r.id)}>
-              <span class="swatch" style="background: {safeColor(r.color)}"></span>
-              <span class="mate-name">{r.name}</span>
+              <span class="mate-name">{mateLabel(r.name, floorTag(r.floor))}</span>
               <span class="muted">{where(r)}</span>
               <span class="muted age">{r.noPosition ? "" : `${r.ageSec}s`}</span>
             </button>
+            {#if r.customColor}
+              <button class="reset" title="Back to the colour {r.name} chose" onclick={() => setMateColor(r.name, null)}>↺</button>
+            {/if}
           </li>
         {/each}
       </ul>
@@ -158,13 +171,18 @@
   .dot.connecting { background: #cc3; }
   h3 { margin: 6px 0 0; font-size: 13px; }
   .squad { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  .squad li { display: grid; grid-template-columns: auto 1fr auto; gap: 4px; align-items: center; }
   .mate {
-    width: 100%; display: grid; grid-template-columns: 10px 1fr auto auto; gap: 6px;
+    min-width: 0; display: grid; grid-template-columns: 1fr auto auto; gap: 6px;
     align-items: center; text-align: left; font-size: 12px; padding: 2px 4px;
   }
   .mate:disabled { cursor: default; }
   .mate-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .swatch { width: 10px; height: 10px; border-radius: 50%; }
+  /* The swatch is the colour picker: clicking a teammate's dot recolours them for me. */
+  input.swatch { width: 14px; height: 14px; padding: 0; border: none; border-radius: 50%; background: none; cursor: pointer; }
+  input.swatch::-webkit-color-swatch-wrapper { padding: 0; }
+  input.swatch::-webkit-color-swatch { border: 1px solid #000; border-radius: 50%; }
+  .reset { padding: 0 4px; font-size: 12px; line-height: 1.2; }
   .age { min-width: 34px; text-align: right; }
   .small { font-size: 11px; }
 </style>

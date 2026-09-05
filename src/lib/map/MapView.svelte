@@ -3,13 +3,13 @@
   import { onMount, untrack } from "svelte";
   import "./map.css";
   import type { MapDef } from "./mapsData";
-  import { visibleOnFloor } from "./mapsData";
+  import { floorForHeight, visibleOnFloor } from "./mapsData";
   import { makeCrs, boundsOf, toLatLng } from "./crs";
   import { buildSvgElement, showFloor, type LoadedSvg } from "./svgLoader";
   import { OWN_PANE, PositionMarker } from "./markers";
   import { fetchTextCached } from "../tauri/http";
   import { opacityFor } from "../room/fade";
-  import { safeColor } from "../room/squad";
+  import { floorTag, mateColor, mateLabel, safeColor } from "../room/squad";
   import { app, type Teammate } from "../state/app.svelte";
   import { questIcon, questPopupHtml, esc } from "../quests/questLayer";
   import type { QuestMarker } from "../quests/markers";
@@ -30,6 +30,7 @@
     hitIds,
     showLabels,
     lineLengthPx,
+    mateColors,
     canShare,
     onPin,
     onRemovePin,
@@ -44,6 +45,8 @@
     hitIds: ReadonlySet<string>;
     showLabels: boolean;
     lineLengthPx: number;
+    /** Colours I picked for teammates, by name; only on this screen. */
+    mateColors: Record<string, string>;
     /** In a room with the socket up: the right-click menu offers a shared marker. */
     canShare: boolean;
     onPin: (p: { x: number; z: number; label: string; shared: boolean }) => void;
@@ -208,6 +211,7 @@
     const d = def;
     const m = map;
     const len = lineLengthPx;
+    const colors = mateColors;
     if (!m || !d) return;
     // A teammate whose game log was not found reports no map; a squad shares a raid, so they go on mine.
     const wanted: Teammate[] = Object.values(all).filter((t) => !t.noPosition && (t.map === d.key || t.map === null));
@@ -219,12 +223,16 @@
       }
     }
     for (const t of wanted) {
+      const color = mateColor(t.name, t.color, colors);
+      // "Aiden [2F]": the floor their height puts them on, so a squadmate above me is not read as beside me.
+      const label = mateLabel(t.name, floorTag(floorForHeight(d, t)));
       let marker = mates.get(t.id);
       if (!marker) {
-        marker = new PositionMarker(m, { color: safeColor(t.color), radius: 6, lineLengthPx: len, label: t.name });
+        marker = new PositionMarker(m, { color, radius: 6, lineLengthPx: len, label });
         mates.set(t.id, marker);
       }
-      marker.setColor(safeColor(t.color));
+      marker.setColor(color);
+      marker.setLabel(label);
       marker.update(t.x, t.z, t.yaw);
       marker.setOpacity(opacityFor(tick - t.receivedAt));
     }
@@ -327,15 +335,18 @@
   $effect(() => {
     const pins = app.pins;
     const mates = app.teammates;
+    const colors = mateColors;
     const d = def;
     const g = pinGroup;
     if (!g || !d) return;
     g.clearLayers();
     for (const p of Object.values(pins)) {
       if (p.map !== d.key) continue;
-      const marker = L.marker(toLatLng(p.x, p.z), { icon: pinIcon(p), pane: "pins" });
-      if (p.label) marker.bindTooltip(esc(p.label), { permanent: true, direction: "top", className: "tt-label", pane: "pins", interactive: false });
       const placedBy = p.from ? (mates[p.from]?.name ?? null) : null;
+      // A teammate's shared marker takes the colour I picked for them, like their position marker.
+      const shown = placedBy && colors[placedBy] ? { ...p, color: safeColor(colors[placedBy]) } : p;
+      const marker = L.marker(toLatLng(p.x, p.z), { icon: pinIcon(shown), pane: "pins" });
+      if (p.label) marker.bindTooltip(esc(p.label), { permanent: true, direction: "top", className: "tt-label", pane: "pins", interactive: false });
       marker.bindPopup(() => pinPopup(p, placedBy, () => onRemovePin(p.id)));
       marker.addTo(g);
     }

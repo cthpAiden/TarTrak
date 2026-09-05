@@ -69,6 +69,14 @@ describe("mergeSettings", () => {
     expect(mergeSettings(undefined).hiddenQuests).toEqual({});
   });
 
+  it("keeps teammate colours that are hex colours keyed by a name, and resets anything else", () => {
+    expect(mergeSettings({ mateColors: { Bob: "#a1b2c3", Al: "#fff" } }).mateColors).toEqual({ Bob: "#a1b2c3", Al: "#fff" });
+    expect(mergeSettings({ mateColors: { Bob: "red" } }).mateColors).toEqual({});
+    expect(mergeSettings({ mateColors: { "": "#fff" } }).mateColors).toEqual({});
+    expect(mergeSettings({ mateColors: "x" }).mateColors).toEqual({});
+    expect(mergeSettings(undefined).mateColors).toEqual({});
+  });
+
   it("keeps valid layer filter keys", () => {
     const s = mergeSettings({ layerFilters: { loot: true, "loot/safe": false } });
     expect(s.layerFilters).toEqual({ loot: true, "loot/safe": false });

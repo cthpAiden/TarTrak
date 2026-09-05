@@ -38,6 +38,7 @@ export class PositionMarker {
   private x = 0;
   private z = 0;
   private yaw = 0;
+  private label: string | undefined;
   private readonly onZoom = () => this.redraw();
 
   constructor(
@@ -45,6 +46,7 @@ export class PositionMarker {
     private readonly style: MarkerStyle,
   ) {
     ensurePlayerPanes(map);
+    this.label = style.label;
     const pane = style.pane ?? PLAYER_PANE;
     this.circle = L.circleMarker([0, 0], {
       pane,
@@ -97,6 +99,13 @@ export class PositionMarker {
   setColor(color: string): void {
     this.circle.setStyle({ fillColor: color });
     this.line.setStyle({ color });
+  }
+
+  /** Replaces the name label, e.g. when the teammate changes floor. No-op for a marker made without one. */
+  setLabel(text: string): void {
+    if (text === this.label) return;
+    this.label = text;
+    this.circle.getTooltip()?.setContent(esc(text));
   }
 
   remove(): void {

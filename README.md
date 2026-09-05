@@ -33,6 +33,8 @@ markers live as long as the room does, and go away when you leave it.
 
 **Squad.** Every player marker has a heading line (length adjustable in Settings). While you are in a room, the Squad tab lists your teammates: distance to you when they are on
 your map, otherwise the map they are on, plus how long ago they last reported. Click a row to center on them.
+Names carry the floor a teammate is on, like "Aiden [2F]". Click the colour dot in a row to pick the colour that
+teammate is drawn in on your screen; it is yours alone, they keep their own colour on theirs (↺ goes back).
 A teammate whose game log was not found reports no map and is drawn on yours, marked "map unknown". The app
 pings the relay every 20 s; if the connection drops, a small "Squad: reconnecting" pill appears next to the
 corner button and the app reconnects by itself, with one notice on loss and one on recovery.

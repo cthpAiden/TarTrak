@@ -23,6 +23,8 @@ export interface Settings {
   questsAvailableOnly: boolean;
   layerFilters: Record<string, boolean>;
   hiddenQuests: Record<string, true>;
+  /** Colours I picked for teammates, by name. Only this screen: they still send their own colour. */
+  mateColors: Record<string, string>;
 }
 
 /** Default relay: the project-hosted Cloudflare Worker (relay/). Overridable in Settings. */
@@ -48,6 +50,7 @@ export const DEFAULT_SETTINGS: Settings = {
   questsAvailableOnly: false,
   layerFilters: {},
   hiddenQuests: {},
+  mateColors: {},
 };
 
 type Kind = "string" | "number" | "boolean" | "string?" | "record";
@@ -69,6 +72,7 @@ const SHAPE: Record<keyof Settings, Kind> = {
   questsAvailableOnly: "boolean",
   layerFilters: "record",
   hiddenQuests: "record",
+  mateColors: "record",
 };
 
 function accepts(kind: Kind, v: unknown): boolean {
@@ -86,6 +90,8 @@ const ROOM_CODE_RE = /^[A-Z0-9]{6}$|^$/;
 
 const MAX_FILTERS = 500;
 const MAX_HIDDEN_QUESTS = 2000;
+const MAX_MATE_COLORS = 200;
+const COLOR_RE = /^#[0-9a-fA-F]{3,8}$/;
 
 /** Any bad key or value resets the whole record: a partial filter set is more confusing than none. */
 function cleanRecord<T>(
@@ -129,6 +135,11 @@ export function mergeSettings(partial: unknown): Settings {
     (k, v) => typeof v === "boolean" && FILTER_KEY_RE.test(k),
   );
   out.hiddenQuests = cleanRecord<true>(out.hiddenQuests, MAX_HIDDEN_QUESTS, (_k, v) => v === true);
+  out.mateColors = cleanRecord<string>(
+    out.mateColors,
+    MAX_MATE_COLORS,
+    (k, v) => k.length > 0 && k.length <= 32 && typeof v === "string" && COLOR_RE.test(v),
+  );
   return out;
 }
 

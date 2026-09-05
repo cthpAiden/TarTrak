@@ -395,6 +395,7 @@
           {hitIds}
           {showLabels}
           lineLengthPx={settings?.lineLengthPx ?? DEFAULT_SETTINGS.lineLengthPx}
+          mateColors={settings?.mateColors ?? DEFAULT_SETTINGS.mateColors}
           canShare={room.status === "open"}
           onPin={placePin}
           onRemovePin={removePin}

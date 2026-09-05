@@ -103,6 +103,18 @@ describe("PositionMarker label", () => {
     expect(tt.getContent()).toBe("&#60;b&#62;x&#60;/b&#62;");
     m.remove();
   });
+
+  it("setLabel swaps the text, escaped, and leaves a label-less marker alone", () => {
+    const map = makeMap();
+    const m = new PositionMarker(map, { color: "#fff", radius: 6, lineLengthPx: 28, label: "Bob" });
+    m.setLabel("Bob [2F] <i>");
+    expect(m.circle.getTooltip()!.getContent()).toBe("Bob [2F] &#60;i&#62;");
+    const plain = new PositionMarker(map, { color: "#fff", radius: 6, lineLengthPx: 28 });
+    plain.setLabel("x");
+    expect(plain.circle.getTooltip()).toBeUndefined();
+    m.remove();
+    plain.remove();
+  });
 });
 
 describe("player pane", () => {

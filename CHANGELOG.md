@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Squad
+- Click a teammate's colour dot in the squad list to pick the colour they are drawn in on your screen. It is yours alone: they keep the colour they chose on their own screen, and their shared markers take it too. The ↺ button next to the name goes back to their colour.
+- Name labels on the map carry the floor a teammate is on, like "Aiden [2F]"; the squad list shows the same tag.
+- Name labels are more translucent so they hide less of the map.
+
+### Map data
+- Extracts named "(Co-Op)", such as Interchange's Scav Camp, are filed under "Co-op Extracts (PMC + Scav)" instead of "PMC & Scav Extracts": they only open when a PMC and a Scav stand in them together, unlike Emercom Checkpoint, which either can use alone.
+
 ## 0.2.1 - 2026-09-06
 
 ### Map data

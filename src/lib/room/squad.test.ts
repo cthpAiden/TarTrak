@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { safeColor, squadRows } from "./squad";
+import { floorTag, mateColor, mateLabel, safeColor, squadRows } from "./squad";
 import type { Teammate } from "../state/app.svelte";
 
 function mate(over: Partial<Teammate>): Teammate {
@@ -92,7 +92,40 @@ describe("squadRows", () => {
 
   it("carries name and colour through", () => {
     const [row] = squadRows([mate({ id: "a", name: "Abe", color: "#abcdef" })], me, 0, names);
-    expect(row).toMatchObject({ id: "a", name: "Abe", color: "#abcdef" });
+    expect(row).toMatchObject({ id: "a", name: "Abe", color: "#abcdef", customColor: false });
+  });
+
+  it("uses my colour for a teammate over the one they sent, by name", () => {
+    const rows = squadRows(
+      [mate({ id: "a", name: "Abe", color: "#abcdef" }), mate({ id: "b", name: "Bea", color: "#abcdef" })],
+      me,
+      0,
+      { mapName: names, colorOverrides: { Abe: "#123456" } },
+    );
+    expect(rows.map((r) => [r.color, r.customColor])).toEqual([["#123456", true], ["#abcdef", false]]);
+  });
+});
+
+describe("mateColor", () => {
+  it("prefers my override, then what they sent, and never an unsafe value", () => {
+    expect(mateColor("Abe", "#abcdef", { Abe: "#123456" })).toBe("#123456");
+    expect(mateColor("Abe", "#abcdef", {})).toBe("#abcdef");
+    expect(mateColor("Abe", "red", {})).toBe("#888888");
+  });
+});
+
+describe("floor tags", () => {
+  it("shortens ordinal floors, keeps other layer names, and has none for ground level", () => {
+    expect(floorTag("2nd Floor")).toBe("2F");
+    expect(floorTag("3rd Floor")).toBe("3F");
+    expect(floorTag("11th Floor")).toBe("11F");
+    expect(floorTag("Underground")).toBe("Underground");
+    expect(floorTag(null)).toBeNull();
+  });
+
+  it("puts the tag after the name in brackets", () => {
+    expect(mateLabel("Aiden", "2F")).toBe("Aiden [2F]");
+    expect(mateLabel("Aiden", null)).toBe("Aiden");
   });
 });
 
