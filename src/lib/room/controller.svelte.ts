@@ -107,6 +107,11 @@ export class RoomController {
     this.client?.send({ type: "cleardraw", map });
   }
 
+  /** My whole to-do list; false when not connected. */
+  shareTodo(tasks: string[]): boolean {
+    return this.client?.send({ type: "todo", tasks }) ?? false;
+  }
+
   onOwnPosition(map: string | null, p: Position): void {
     this.client?.sendPosition(map, p);
   }
@@ -140,6 +145,8 @@ export class RoomController {
   private handle(m: ServerMsg): void {
     if (m.type === "leave") {
       // Keep the last known marker; the spec says markers never disappear on their own.
+      // Whoever left takes their shared to-do with them; a rejoin sends it again.
+      app.setSquadTodo(m.id, []);
       const t = app.teammates[m.id];
       if (t) {
         // Replaced means they are already back under a new id: a reconnect, not a departure.
@@ -169,6 +176,10 @@ export class RoomController {
     }
     if (m.type === "cleardraw") {
       app.clearDrawings(m.map);
+      return;
+    }
+    if (m.type === "todo") {
+      app.setSquadTodo(m.id, m.tasks);
       return;
     }
     this.warnVersion(m.name, m.version);

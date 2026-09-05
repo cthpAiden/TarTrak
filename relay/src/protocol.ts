@@ -6,6 +6,7 @@ export const MAX_MESSAGE_BYTES = 512;
 /** Only a drawing may be this long: a stroke carries many points, every other message is tiny. */
 export const MAX_DRAW_MESSAGE_BYTES = 8192;
 export const MAX_DRAW_POINTS = 300;
+export const MAX_TODO_TASKS = 50;
 export const MAX_STRING = 32;
 
 const CODE_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -67,7 +68,13 @@ export interface ClearDrawMsg {
   map: string;
 }
 
-export type ClientMsg = HelloMsg | PosMsg | PinMsg | UnpinMsg | DrawMsg | UndrawMsg | ClearDrawMsg;
+/** My whole to-do list of task ids, sent again on every change; an empty list withdraws it. */
+export interface TodoMsg {
+  type: "todo";
+  tasks: string[];
+}
+
+export type ClientMsg = HelloMsg | PosMsg | PinMsg | UnpinMsg | DrawMsg | UndrawMsg | ClearDrawMsg | TodoMsg;
 
 /** `id` is relay-assigned, 1..32 chars: the socket that sent the message. */
 export type ServerMsg =
@@ -78,6 +85,7 @@ export type ServerMsg =
   | (DrawMsg & { id: string })
   | (UndrawMsg & { id: string })
   | (ClearDrawMsg & { id: string })
+  | (TodoMsg & { id: string })
   | { type: "leave"; id: string };
 
 export function isValidRoomCode(code: string): boolean {
@@ -119,8 +127,8 @@ function parseJson(raw: string): Record<string, unknown> | null {
     return null;
   }
   if (!isRecord(v)) return null;
-  // Only strokes may be long; everything else keeps the small cap.
-  if (v.type !== "draw" && bytes >= MAX_MESSAGE_BYTES) return null;
+  // Only strokes and to-do lists may be long; everything else keeps the small cap.
+  if (v.type !== "draw" && v.type !== "todo" && bytes >= MAX_MESSAGE_BYTES) return null;
   return v;
 }
 
@@ -210,6 +218,17 @@ function readClearDraw(o: Record<string, unknown>): ClearDrawMsg | null {
   return { type: "cleardraw", map };
 }
 
+function readTodo(o: Record<string, unknown>): TodoMsg | null {
+  if (!Array.isArray(o.tasks) || o.tasks.length > MAX_TODO_TASKS) return null;
+  const tasks: string[] = [];
+  for (const t of o.tasks) {
+    const id = str(t);
+    if (id === null || id.length === 0) return null;
+    tasks.push(id);
+  }
+  return { type: "todo", tasks };
+}
+
 function readBody(o: Record<string, unknown>): ClientMsg | null {
   if (o.type === "hello") return readHello(o);
   if (o.type === "pos") return readPos(o);
@@ -218,6 +237,7 @@ function readBody(o: Record<string, unknown>): ClientMsg | null {
   if (o.type === "draw") return readDraw(o);
   if (o.type === "undraw") return readUndraw(o);
   if (o.type === "cleardraw") return readClearDraw(o);
+  if (o.type === "todo") return readTodo(o);
   return null;
 }
 

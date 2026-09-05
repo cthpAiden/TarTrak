@@ -18,8 +18,6 @@
   import type { GameMode } from "./lib/quests/jsonSource";
   import type { QuestData } from "./lib/quests/types";
   import { extractQuestMarkers } from "./lib/quests/markers";
-  import { visibleQuestMarkers } from "./lib/quests/questLayer";
-  import { lockedTaskIds } from "./lib/quests/grouping";
   import FilterPanel from "./lib/layers/FilterPanel.svelte";
   import { buildCounts } from "./lib/layers/counts";
   import { extractPoints } from "./lib/layers/points";
@@ -61,7 +59,13 @@
 
   const def = $derived(app.currentMap ? (getMapDef(app.currentMap) ?? null) : null);
   const layerFilters = $derived(settings?.layerFilters ?? {});
-  const hiddenQuests = $derived(settings?.hiddenQuests ?? {});
+  const todoQuests = $derived(settings?.todoQuests ?? {});
+  // Mine plus what teammates share: a quest on either list has its markers on the map.
+  const trackedQuests = $derived.by(() => {
+    const ids = new Set(Object.keys(todoQuests));
+    for (const list of Object.values(app.squadTodos)) for (const id of list) ids.add(id);
+    return ids;
+  });
   const allQuestMarkers = $derived(app.questData ? extractQuestMarkers(app.questData) : []);
   // Only the current map's points are built; the other maps' thousands would sit in memory unused.
   const mapPoints = $derived(def && app.questData ? extractPoints(app.questData, def.key) : []);
@@ -84,16 +88,10 @@
   // Looked up on the current map, so a target left over from another map simply draws nothing.
   const routePoint = $derived(routeTarget ? (mapPoints.find((p) => p.id === routeTarget) ?? null) : null);
   const routeDistance = $derived(routePoint && app.ownPos ? distanceM(app.ownPos, routePoint) : null);
-  const lockedQuests = $derived(
-    settings?.questsAvailableOnly && app.questData ? lockedTaskIds(app.questData.tasks, app.doneQuests) : new Set<string>(),
-  );
-  // Kept unfiltered by the layer toggles so the panel's shown/total can differ.
+  // Only to-do quests reach the map; a done one leaves it. Kept unfiltered by the layer toggles so
+  // the panel's shown/total can differ.
   const mapQuestMarkersBeforeFilters = $derived(
-    def
-      ? visibleQuestMarkers(allQuestMarkers, def.key, app.doneQuests, settings?.playerLevel ?? 0).filter(
-          (m) => !hiddenQuests[m.taskId] && !lockedQuests.has(m.taskId),
-        )
-      : [],
+    def ? allQuestMarkers.filter((m) => m.mapKey === def.key && !app.doneQuests[m.taskId] && trackedQuests.has(m.taskId)) : [],
   );
   const questMarkers = $derived(
     def
@@ -347,6 +345,16 @@
     if (room.status === "open") room.clearSharedDrawings(def.key);
   }
 
+  // My to-do list goes to the room on every change while sharing is on, and again after a reconnect;
+  // turning sharing off withdraws it. untrack: sending must not make this depend on the room client.
+  $effect(() => {
+    const status = room.status;
+    const share = settings?.shareTodo ?? false;
+    const ids = Object.keys(todoQuests);
+    if (status !== "open") return;
+    untrack(() => room.shareTodo(share ? ids : []));
+  });
+
   // Every screenshot recentres the map on me while follow is on; a small overlay would otherwise
   // lose the marker after a short walk. untrack: reading settings here must not re-pan on edits.
   $effect(() => {
@@ -502,8 +510,10 @@
               onPlayerLevel={(n) => patchSettings({ playerLevel: n })}
               availableOnly={settings.questsAvailableOnly}
               onAvailableOnly={(on) => patchSettings({ questsAvailableOnly: on })}
-              hiddenQuests={settings.hiddenQuests}
-              onHiddenChange={(h) => patchSettings({ hiddenQuests: h })}
+              todoQuests={settings.todoQuests}
+              onTodoChange={(t) => patchSettings({ todoQuests: t })}
+              shareTodo={settings.shareTodo}
+              onShareTodo={(on) => patchSettings({ shareTodo: on })}
             />
           {:else}
             <SettingsPanel

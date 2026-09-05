@@ -57,6 +57,8 @@ export class AppState {
   teammates = $state<Record<string, Teammate>>({});
   pins = $state<Record<string, Pin>>({});
   drawings = $state<Record<string, Drawing>>({});
+  /** To-do lists teammates share, by relay id; their markers join mine on the map. */
+  squadTodos = $state<Record<string, string[]>>({});
   toasts = $state<{ id: number; text: string }[]>([]);
   // raw: both hold large, wholly-replaced values, so deep proxying would cost far more than it buys.
   questData = $state.raw<QuestData | null>(null);
@@ -97,10 +99,23 @@ export class AppState {
   removeTeammate(id: string): void {
     const { [id]: _removed, ...rest } = this.teammates;
     this.teammates = rest;
+    this.setSquadTodo(id, []);
   }
 
   clearTeammates(): void {
     this.teammates = {};
+    this.squadTodos = {};
+  }
+
+  /** An empty list withdraws the teammate's entry. */
+  setSquadTodo(id: string, tasks: string[]): void {
+    if (tasks.length === 0) {
+      if (!(id in this.squadTodos)) return;
+      const { [id]: _removed, ...rest } = this.squadTodos;
+      this.squadTodos = rest;
+    } else {
+      this.squadTodos = { ...this.squadTodos, [id]: tasks };
+    }
   }
 
   addPin(p: Pin): void {

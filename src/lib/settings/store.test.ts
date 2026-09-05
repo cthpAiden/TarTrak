@@ -64,9 +64,11 @@ describe("mergeSettings", () => {
     expect(mergeSettings({ playerLevel: 42 }).playerLevel).toBe(42);
   });
 
-  it("defaults layerFilters and hiddenQuests to empty objects", () => {
+  it("defaults layerFilters and todoQuests to empty objects and sharing to off", () => {
     expect(mergeSettings(undefined).layerFilters).toEqual({});
-    expect(mergeSettings(undefined).hiddenQuests).toEqual({});
+    expect(mergeSettings(undefined).todoQuests).toEqual({});
+    expect(mergeSettings(undefined).shareTodo).toBe(false);
+    expect(mergeSettings({ shareTodo: true }).shareTodo).toBe(true);
   });
 
   it("keeps teammate colours that are hex colours keyed by a name, and resets anything else", () => {
@@ -98,16 +100,17 @@ describe("mergeSettings", () => {
     expect(kept["g/k500"]).toBeUndefined();
   });
 
-  it("keeps hiddenQuests of true, resets anything else, and truncates to 2000", () => {
-    expect(mergeSettings({ hiddenQuests: { t1: true } }).hiddenQuests).toEqual({ t1: true });
-    expect(mergeSettings({ hiddenQuests: { t1: false } }).hiddenQuests).toEqual({});
-    expect(mergeSettings({ hiddenQuests: [] }).hiddenQuests).toEqual({});
+  it("keeps todoQuests of true with id-sized keys, resets anything else, and truncates to 200", () => {
+    expect(mergeSettings({ todoQuests: { t1: true } }).todoQuests).toEqual({ t1: true });
+    expect(mergeSettings({ todoQuests: { t1: false } }).todoQuests).toEqual({});
+    expect(mergeSettings({ todoQuests: { ["x".repeat(33)]: true } }).todoQuests).toEqual({});
+    expect(mergeSettings({ todoQuests: [] }).todoQuests).toEqual({});
     const many: Record<string, true> = {};
-    for (let i = 0; i < 2001; i++) many[`t${i}`] = true;
-    const kept = mergeSettings({ hiddenQuests: many }).hiddenQuests;
-    expect(Object.keys(kept)).toHaveLength(2000);
+    for (let i = 0; i < 201; i++) many[`t${i}`] = true;
+    const kept = mergeSettings({ todoQuests: many }).todoQuests;
+    expect(Object.keys(kept)).toHaveLength(200);
     expect(kept["t0"]).toBe(true);
-    expect(kept["t2000"]).toBeUndefined();
+    expect(kept["t200"]).toBeUndefined();
   });
 
   it("rejects a last room that is not a room code", () => {

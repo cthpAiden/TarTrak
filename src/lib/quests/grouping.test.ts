@@ -72,6 +72,12 @@ describe("groupByTrader", () => {
     expect(g[0].tasks[0].count).toBe(3);
   });
 
+  it("onMapOnly keeps just the tasks with a marker on the map", () => {
+    const tasks = [task("t1", "Here", "Prapor"), task("t2", "Elsewhere", "Prapor"), task("t3", "Also here", "Skier")];
+    const g = groupByTrader(tasks, opts({ onMapOnly: true, countsOnMap: new Map([["t1", 2], ["t3", 1], ["t2", 0]]) }));
+    expect(g.map((x) => [x.trader, x.tasks.map((y) => y.t.id)])).toEqual([["Prapor", ["t1"]], ["Skier", ["t3"]]]);
+  });
+
   it("matches the trader name in search and omits empty groups", () => {
     const tasks = [task("t1", "Debut", "Prapor"), task("t2", "Shortage", "Therapist")];
     const g = groupByTrader(tasks, opts({ search: "thera" }));

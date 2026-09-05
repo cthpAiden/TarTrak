@@ -16,6 +16,8 @@ const MAX_PINS = 50;
 /** Shared strokes per room, same reasoning. */
 const MAX_DRAWS = 200;
 const DRAW_PREFIX = "draw:";
+/** Latest to-do list per socket, keyed by its id; gone when the socket leaves. */
+const TODO_PREFIX = "todo:";
 /** An empty room keeps its pins this long, so a squad that all reconnect at once does not lose them. */
 const EMPTY_ROOM_PIN_TTL_MS = 30 * 60_000;
 const PIN_PREFIX = "pin:";
@@ -49,7 +51,7 @@ export class RoomDO extends DurableObject {
         // newcomer socket already gone; nothing to replay
       }
     }
-    for (const prefix of [PIN_PREFIX, DRAW_PREFIX]) {
+    for (const prefix of [PIN_PREFIX, DRAW_PREFIX, TODO_PREFIX]) {
       for (const text of (await this.ctx.storage.list<string>({ prefix })).values()) {
         try {
           server.send(text);
@@ -80,6 +82,9 @@ export class RoomDO extends DurableObject {
       const draws = await this.ctx.storage.list<string>({ prefix: DRAW_PREFIX });
       if (draws.size >= MAX_DRAWS && !draws.has(key)) return;
       await this.ctx.storage.put(key, text);
+    } else if (msg.type === "todo") {
+      if (msg.tasks.length === 0) await this.ctx.storage.delete(TODO_PREFIX + att.id);
+      else await this.ctx.storage.put(TODO_PREFIX + att.id, text);
     } else if (msg.type === "undraw") {
       await this.ctx.storage.delete(DRAW_PREFIX + msg.draw);
     } else if (msg.type === "cleardraw") {
@@ -124,6 +129,7 @@ export class RoomDO extends DurableObject {
     const att = ws.deserializeAttachment() as Attachment | null;
     if (!att) return;
     this.broadcast(JSON.stringify({ type: "leave", id: att.id } satisfies ServerMsg), ws);
+    void this.ctx.storage.delete(TODO_PREFIX + att.id);
     if (this.ctx.getWebSockets().every((other) => other === ws)) {
       void this.ctx.storage.setAlarm(Date.now() + EMPTY_ROOM_PIN_TTL_MS);
     }

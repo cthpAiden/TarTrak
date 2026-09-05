@@ -22,7 +22,10 @@ export interface Settings {
   /** Hide quests, in the list and on the map, whose prerequisite quests are not done yet. */
   questsAvailableOnly: boolean;
   layerFilters: Record<string, boolean>;
-  hiddenQuests: Record<string, true>;
+  /** Quests I am tracking: only these have markers on the map. */
+  todoQuests: Record<string, true>;
+  /** Send my to-do list to the squad room. */
+  shareTodo: boolean;
   /** Colours I picked for teammates, by name. Only this screen: they still send their own colour. */
   mateColors: Record<string, string>;
 }
@@ -49,7 +52,8 @@ export const DEFAULT_SETTINGS: Settings = {
   followMe: true,
   questsAvailableOnly: false,
   layerFilters: {},
-  hiddenQuests: {},
+  todoQuests: {},
+  shareTodo: false,
   mateColors: {},
 };
 
@@ -71,7 +75,8 @@ const SHAPE: Record<keyof Settings, Kind> = {
   followMe: "boolean",
   questsAvailableOnly: "boolean",
   layerFilters: "record",
-  hiddenQuests: "record",
+  todoQuests: "record",
+  shareTodo: "boolean",
   mateColors: "record",
 };
 
@@ -89,7 +94,7 @@ function clamp(n: number, lo: number, hi: number): number {
 const ROOM_CODE_RE = /^[A-Z0-9]{6}$|^$/;
 
 const MAX_FILTERS = 500;
-const MAX_HIDDEN_QUESTS = 2000;
+const MAX_TODO_QUESTS = 200;
 const MAX_MATE_COLORS = 200;
 const COLOR_RE = /^#[0-9a-fA-F]{3,8}$/;
 
@@ -134,7 +139,7 @@ export function mergeSettings(partial: unknown): Settings {
     MAX_FILTERS,
     (k, v) => typeof v === "boolean" && FILTER_KEY_RE.test(k),
   );
-  out.hiddenQuests = cleanRecord<true>(out.hiddenQuests, MAX_HIDDEN_QUESTS, (_k, v) => v === true);
+  out.todoQuests = cleanRecord<true>(out.todoQuests, MAX_TODO_QUESTS, (k, v) => v === true && k.length > 0 && k.length <= 32);
   out.mateColors = cleanRecord<string>(
     out.mateColors,
     MAX_MATE_COLORS,

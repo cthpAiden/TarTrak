@@ -189,6 +189,27 @@ describe("room relay", () => {
     expect(await d.quiet(200)).toBe(true);
   });
 
+  it("replays the latest to-do list per socket and forgets it when that socket leaves", async () => {
+    const a = await connect("ROOM09");
+    const b = await connect("ROOM09");
+    a.ws.send(JSON.stringify({ type: "todo", tasks: ["t1", "t2"] }));
+    const seen = JSON.parse(await b.next());
+    expect(seen).toMatchObject({ type: "todo", tasks: ["t1", "t2"] });
+    a.ws.send(JSON.stringify({ type: "todo", tasks: ["t2"] }));
+    await b.next();
+    await new Promise((r) => setTimeout(r, 100));
+
+    const c = await connect("ROOM09");
+    expect(JSON.parse(await c.next())).toMatchObject({ type: "todo", tasks: ["t2"], id: seen.id });
+    expect(await c.quiet(200)).toBe(true);
+
+    a.ws.close(1000, "bye");
+    expect(JSON.parse(await c.next())).toMatchObject({ type: "leave", id: seen.id });
+    await new Promise((r) => setTimeout(r, 100));
+    const d = await connect("ROOM09");
+    expect(await d.quiet(200)).toBe(true);
+  });
+
   it("isolates rooms", async () => {
     const a = await connect("ROOM03");
     const b = await connect("ROOM04");

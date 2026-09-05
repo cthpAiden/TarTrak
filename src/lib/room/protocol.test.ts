@@ -7,6 +7,7 @@ import {
   MAX_MESSAGE_BYTES,
   MAX_DRAW_MESSAGE_BYTES,
   MAX_DRAW_POINTS,
+  MAX_TODO_TASKS,
 } from "./protocol";
 
 const pos = { type: "pos", name: "Bob", color: "#ff0000", map: "customs", x: 1.5, y: 2, z: -3, yaw: 90, ts: 1700000000000 };
@@ -185,5 +186,25 @@ describe("app version on hello and pos", () => {
     const pos = { type: "pos", name: "a", color: "b", map: null, x: 1, y: 2, z: 3, yaw: 4, ts: 5 };
     expect(parseClientMessage(JSON.stringify({ ...pos, version: "0.3.1" }))).toEqual({ ...pos, version: "0.3.1" });
     expect(parseClientMessage(JSON.stringify(pos))).toEqual(pos);
+  });
+});
+
+describe("todo messages", () => {
+  it("accepts up to MAX_TODO_TASKS ids, an empty list, and long lists past the small cap", () => {
+    const tasks = Array.from({ length: MAX_TODO_TASKS }, (_, i) => `5936d90786f7742b1420ba5${String(i).padStart(2, "0")}`);
+    const raw = JSON.stringify({ type: "todo", tasks });
+    expect(new TextEncoder().encode(raw).length).toBeGreaterThan(MAX_MESSAGE_BYTES);
+    expect(parseClientMessage(raw)).toEqual({ type: "todo", tasks });
+    expect(parseClientMessage(JSON.stringify({ type: "todo", tasks: [] }))).toEqual({ type: "todo", tasks: [] });
+    expect(parseServerMessage(JSON.stringify({ type: "todo", tasks: ["a"], id: "r1" }))).toEqual({ type: "todo", tasks: ["a"], id: "r1" });
+  });
+
+  it("rejects too many ids, a non-array, an empty id or a long one", () => {
+    const many = Array.from({ length: MAX_TODO_TASKS + 1 }, (_, i) => `t${i}`);
+    expect(parseClientMessage(JSON.stringify({ type: "todo", tasks: many }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ type: "todo", tasks: "t1" }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ type: "todo", tasks: [""] }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ type: "todo", tasks: ["x".repeat(33)] }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ type: "todo", tasks: [3] }))).toBeNull();
   });
 });

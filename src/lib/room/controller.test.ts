@@ -63,6 +63,7 @@ describe("RoomController", () => {
     app.clearTeammates();
     app.pins = {};
     app.drawings = {};
+    app.squadTodos = {};
     app.ownPos = null;
     app.toasts = [];
   });
@@ -101,6 +102,24 @@ describe("RoomController", () => {
       `Old runs an older TarTrak, you run ${APP_VERSION}: shared markers and drawings need the same version`,
       `Other runs TarTrak 0.0.1, you run ${APP_VERSION}: shared markers and drawings need the same version`,
     ]);
+  });
+
+  it("keeps a teammate's shared to-do until they withdraw it or leave, and sends mine", () => {
+    const { room, client } = makeController();
+    client.onMessage(hello("aaaaaaaa", "Bob"));
+    client.onMessage({ type: "todo", id: "aaaaaaaa", tasks: ["t1", "t2"] });
+    expect(app.squadTodos).toEqual({ aaaaaaaa: ["t1", "t2"] });
+    client.onMessage({ type: "todo", id: "aaaaaaaa", tasks: ["t2"] });
+    expect(app.squadTodos).toEqual({ aaaaaaaa: ["t2"] });
+    client.onMessage({ type: "todo", id: "bbbbbbbb", tasks: ["t9"] });
+    client.onMessage({ type: "todo", id: "bbbbbbbb", tasks: [] });
+    expect(app.squadTodos).toEqual({ aaaaaaaa: ["t2"] });
+    client.onMessage(leave("aaaaaaaa"));
+    expect(app.squadTodos).toEqual({});
+    expect(room.shareTodo(["t1"])).toBe(true);
+    expect(client.sentPins).toEqual([{ type: "todo", tasks: ["t1"] }]);
+    room.leave();
+    expect(room.shareTodo(["t1"])).toBe(false);
   });
 
   it("adds a teammate's stroke, removes it on undraw, wipes a map on cleardraw, and drops shared strokes on leave", () => {

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Quests
+- The Quests tab is a to-do list. "Find quests on <map>" lists the quests with markers on the map you are on (type to search; "all maps" widens it); + adds one to your to-do. Only to-do quests draw markers on the map, and a quest marked done leaves it. "Share with squad" sends your list to the room: teammates see your quests' markers on their map and your list under yours, with + to copy a quest over; leaving the room withdraws it. The per-quest hide toggle is gone, the to-do list replaces it.
+
 ### Squad
 - The app tells you when a teammate runs a different TarTrak version. An older build silently drops message types it does not know, so shared markers and drawings only work when everyone is on the same version.
 
