@@ -79,13 +79,13 @@ export function pointPopupHtml(p: MapPoint): string {
 }
 
 /** 24px image marker; PMC spawn arrows point at their spot, so they hang from the bottom edge like on tarkov.dev. */
-export function pointIcon(p: MapPoint): L.Icon {
+export function pointIcon(p: MapPoint, hit = false): L.Icon {
   const pmcSpawn = p.group === "spawns" && p.category === "pmc";
   return L.icon({
     iconUrl: iconUrl(p),
     iconSize: [24, 24],
     iconAnchor: pmcSpawn ? [12, 24] : [12, 12],
     popupAnchor: pmcSpawn ? [0, -24] : [0, -12],
-    className: `point-icon ${p.group} ${p.category}`,
+    className: `point-icon ${p.group} ${p.category}${hit ? " hit" : ""}`,
   });
 }

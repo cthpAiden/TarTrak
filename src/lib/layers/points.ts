@@ -199,6 +199,22 @@ export function extractPoints(data: QuestData): MapPoint[] {
   return out;
 }
 
+/**
+ * Ids of the points that carry an item whose name contains the query: loose loot spots, plus locks
+ * (their key) and stationary guns. Empty query, empty result. Containers list no items, so never them.
+ */
+export function findItem(points: MapPoint[], query: string): Set<string> {
+  const q = query.trim().toLowerCase();
+  const out = new Set<string>();
+  if (q.length < 2) return out;
+  for (const p of points) {
+    if (p.group !== "lootLoose" && p.group !== "locks" && p.group !== "guns") continue;
+    const haystack = p.group === "lootLoose" ? p.details : [p.name];
+    if (haystack.some((d) => d.toLowerCase().includes(q))) out.add(p.id);
+  }
+  return out;
+}
+
 /** Label for a category key: CATEGORY_LABELS, else the name of the first point with that key, else the slug. */
 export function categoryLabel(key: string, points: MapPoint[]): string {
   const fixed = CATEGORY_LABELS[key];

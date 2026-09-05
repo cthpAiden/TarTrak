@@ -22,6 +22,7 @@
   import { buildCounts } from "./lib/layers/counts";
   import { extractPoints } from "./lib/layers/points";
   import { isOn } from "./lib/layers/filters";
+  import { findItem } from "./lib/layers/points";
   import { loadDone } from "./lib/quests/done";
   import MapView from "./lib/map/MapView.svelte";
   import MapPicker from "./lib/map/MapPicker.svelte";
@@ -40,6 +41,8 @@
   let tab = $state<(typeof TABS)[number]["id"]>("filters");
 
   let pinnedFloor = $state<string | null>(null);
+  /** Item finder text; matching points show regardless of the layer toggles. */
+  let itemQuery = $state("");
   let screenshotsDir = $state<string | null>(null);
   let logsDir = $state<string | null>(null);
   let settings = $state<Settings | null>(null);
@@ -59,10 +62,13 @@
   const activeFloor = $derived(
     pinnedFloor === null ? (def && app.ownPos ? floorForHeight(def, app.ownPos) : null) : pinnedFloor || null,
   );
+  const hitIds = $derived(findItem(mapPoints, itemQuery));
   const points = $derived(
     def
       ? mapPoints.filter(
-          (p) => isOn(layerFilters, p.group, p.category) && visibleOnFloor(def, activeFloor, p.x, p.z, p.y),
+          (p) =>
+            (hitIds.has(p.id) || isOn(layerFilters, p.group, p.category)) &&
+            visibleOnFloor(def, activeFloor, p.x, p.z, p.y),
         )
       : [],
   );
@@ -355,6 +361,7 @@
           onFloorPinned={(n) => (pinnedFloor = n)}
           {questMarkers}
           {points}
+          {hitIds}
           {showLabels}
           lineLengthPx={settings?.lineLengthPx ?? DEFAULT_SETTINGS.lineLengthPx}
           showCone={settings?.showViewCone ?? DEFAULT_SETTINGS.showViewCone}
@@ -381,6 +388,9 @@
               counts={buildCounts(mapPoints, mapQuestMarkersBeforeFilters, layerFilters, def?.labels.length ?? 0)}
               filters={layerFilters}
               onChange={(f) => patchSettings({ layerFilters: f })}
+              {itemQuery}
+              onItemQuery={(q) => (itemQuery = q)}
+              hitCount={hitIds.size}
             />
           {:else if tab === "squad"}
             <RoomPanel {settings} onSettingsChange={patchSettings} onFocus={focusTeammate} />

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  findItem,
   extractPoints,
   filterKey,
   categoryLabel,
@@ -229,5 +230,29 @@ describe("categoryLabel", () => {
     expect(categoryLabel("extracts/pmc", [])).toBe("PMC Extracts");
     expect(categoryLabel("loot/safe", points)).toBe("Safe");
     expect(categoryLabel("loot/weapon_box", points as MapPoint[])).toBe("weapon_box");
+  });
+});
+
+describe("findItem", () => {
+  const pt = (id: string, group: string, name: string, details: string[]) =>
+    ({ id, group, category: "x", name, mapKey: "customs", x: 0, y: 0, z: 0, details }) as MapPoint;
+  const pts = [
+    pt("l1", "lootLoose", "Bolts, Screws", ["Bolts", "Screws"]),
+    pt("l2", "lootLoose", "Salewa", ["Salewa"]),
+    pt("k1", "locks", "Factory emergency exit key", ["Door"]),
+    pt("c1", "loot", "Safe", ["Container"]),
+    pt("g1", "guns", "AGS-30", ["Stationary gun"]),
+  ];
+
+  it("matches loose loot by item, locks by key name and guns by name, case-insensitively", () => {
+    expect([...findItem(pts, "bolt")]).toEqual(["l1"]);
+    expect([...findItem(pts, "EXIT KEY")]).toEqual(["k1"]);
+    expect([...findItem(pts, "ags")]).toEqual(["g1"]);
+  });
+
+  it("needs at least two characters and never matches containers", () => {
+    expect(findItem(pts, "s").size).toBe(0);
+    expect(findItem(pts, "  ").size).toBe(0);
+    expect(findItem(pts, "safe").size).toBe(0);
   });
 });

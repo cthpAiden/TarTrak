@@ -23,6 +23,7 @@
     onFloorPinned,
     questMarkers,
     points,
+    hitIds,
     showLabels,
     lineLengthPx,
     showCone,
@@ -33,6 +34,8 @@
     onFloorPinned: (name: string | null) => void;
     questMarkers: QuestMarker[];
     points: MapPoint[];
+    /** Points the item finder matched; drawn with a glow. */
+    hitIds: ReadonlySet<string>;
     showLabels: boolean;
     lineLengthPx: number;
     showCone: boolean;
@@ -204,11 +207,12 @@
 
   $effect(() => {
     const all = points;
+    const hits = hitIds;
     const g = pointGroup;
     if (!g) return;
     g.clearLayers();
     for (const p of all) {
-      const layer = L.marker(toLatLng(p.x, p.z), { icon: pointIcon(p) });
+      const layer = L.marker(toLatLng(p.x, p.z), { icon: pointIcon(p, hits.has(p.id)) });
       layer.bindTooltip(esc(p.name)).bindPopup(pointPopupHtml(p)).addTo(g);
     }
   });

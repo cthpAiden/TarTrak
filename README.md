@@ -44,6 +44,10 @@ PMC, co-op and transit extracts plus every map task category are on by default; 
 off. Your choices are saved with the rest of your settings. The filter counts are for the whole
 map; the map itself shows only markers on the selected floor.
 
+**Find item.** The Filters tab has a "Find item on map" box: type part of an item name (two letters or
+more) and every loose-loot spot holding it, every lock opened by a key of that name and every stationary gun
+of that name lights up on the current map, whatever the layer toggles say. The box shows how many spots matched.
+
 **Game mode.** Settings > Game mode picks the tarkov.dev data set: PvP (default) or PvE. Each mode keeps its
 own cache; the quest list footer shows which one is loaded.
 

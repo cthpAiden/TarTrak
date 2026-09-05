@@ -12,7 +12,18 @@
     counts,
     filters,
     onChange,
-  }: { counts: GroupCount[]; filters: Filters; onChange: (f: Filters) => void } = $props();
+    itemQuery = "",
+    onItemQuery = () => {},
+    hitCount = 0,
+  }: {
+    counts: GroupCount[];
+    filters: Filters;
+    onChange: (f: Filters) => void;
+    itemQuery?: string;
+    onItemQuery?: (q: string) => void;
+    /** Points on this map that hold the searched item. */
+    hitCount?: number;
+  } = $props();
 
   let search = $state("");
   let collapsed = $state<Record<string, boolean>>({
@@ -44,7 +55,19 @@
 
 <section class="panel filters">
   <h2>Filters</h2>
-  <input class="search" aria-label="Search filters" placeholder="Search" bind:value={search} />
+  <input class="search" aria-label="Search filters" placeholder="Search filters" bind:value={search} />
+  <div class="finder">
+    <input
+      class="search"
+      aria-label="Find item on map"
+      placeholder="Find item on map (e.g. Bolts)"
+      value={itemQuery}
+      oninput={(e) => onItemQuery(e.currentTarget.value)}
+    />
+    {#if itemQuery.trim().length >= 2}
+      <span class="muted hits">{hitCount} {hitCount === 1 ? "spot" : "spots"}</span>
+    {/if}
+  </div>
   {#if empty}<p class="muted note">Nothing to filter yet: no map data loaded.</p>{/if}
   <div class="groups">
     {#each shownGroups as { g, rows } (g.group)}
@@ -101,6 +124,9 @@
   input { background: #2a2f38; color: var(--fg); border: 1px solid #3a4048; padding: 3px 6px; }
   input[type="checkbox"] { padding: 0; }
   .search { width: 100%; box-sizing: border-box; }
+  .finder { position: relative; }
+  .finder .hits { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; pointer-events: none; }
+  .finder .search { padding-right: 60px; }
   .groups { flex: 1; min-height: 0; overflow-y: auto; }
   .note { margin: 0; font-size: 11px; }
   .hdr { display: flex; align-items: center; gap: 6px; font-size: 13px; padding: 3px 0; }
