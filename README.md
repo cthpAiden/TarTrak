@@ -7,7 +7,7 @@ heading, your teammates' positions via a shared room code, and quest markers. MI
 
 TarTrak never touches the game process. It only:
 
-- reads the **filenames** of screenshots the game writes (they contain your coordinates and camera rotation), then deletes the PNG (optional);
+- reads the **filenames** of screenshots the game writes (they contain your coordinates and camera rotation), then deletes that PNG (optional; only screenshots named with coordinates are deleted, menu screenshots stay);
 - reads the game's **text log** to learn which map you loaded.
 
 No memory reading, no injection, no hooks, no keystrokes sent to the game, no accounts, no telemetry.

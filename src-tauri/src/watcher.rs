@@ -14,6 +14,15 @@ fn is_png(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
+/// True for a screenshot the game named with coordinates: `date[time]_x, y, z_rx, ry, rz, rw...png`.
+/// Menu screenshots (`date[time]_7.92 (0).png`) and anything else the player put there are kept.
+pub fn is_position_shot(name: &str) -> bool {
+    let Some(idx) = name.find("]_") else { return false };
+    let rest = &name[idx + 2..];
+    // Three coordinates and four quaternion parts: five commas, with an underscore between the groups.
+    rest.matches(',').count() >= 5 && rest.contains('_')
+}
+
 /// Try to remove `path` up to `attempts` times, sleeping `gap` between tries.
 /// The game may still hold the file handle right after writing it.
 pub fn delete_with_retry(path: &Path, attempts: u32, gap: Duration) -> bool {
@@ -51,7 +60,7 @@ pub fn watch_screenshots(
                 continue;
             };
             on_png(name.to_string());
-            if delete {
+            if delete && is_position_shot(name) {
                 let p: PathBuf = path.clone();
                 std::thread::spawn(move || {
                     delete_with_retry(&p, DELETE_ATTEMPTS, DELETE_GAP);
@@ -142,6 +151,30 @@ mod tests {
         let got = rx.recv_timeout(Duration::from_secs(5)).expect("event");
         assert_eq!(got, "2026-09-04[04-56]_1, 2, 3_0, 0, 0, 1_0.5 (0).png");
         assert!(wait_until(Duration::from_secs(3), || !p.exists()), "file should be deleted");
+    }
+
+    #[test]
+    fn is_position_shot_matches_only_coordinate_names() {
+        assert!(is_position_shot("2026-09-04[04-56]_-230.88, 3.59, -375.83_-0.02798, -0.17807, 0.00669, -0.98360_0.64 (0).png"));
+        assert!(is_position_shot("2026-09-04[04-56]_1, 2, 3_0, 0, 0, 1_0.5.png"));
+        assert!(!is_position_shot("2026-09-04[01-12]_7.92 (0).png"));
+        assert!(!is_position_shot("holiday.png"));
+    }
+
+    #[test]
+    fn keeps_a_menu_screenshot_even_with_delete_on() {
+        let dir = tempfile::tempdir().unwrap();
+        let (tx, rx) = mpsc::channel::<String>();
+        let _w = watch_screenshots(dir.path(), true, move |name| {
+            let _ = tx.send(name);
+        })
+        .unwrap();
+        std::thread::sleep(Duration::from_millis(200));
+        let p = dir.path().join("2026-09-04[01-12]_7.92 (0).png");
+        fs::write(&p, b"png").unwrap();
+        assert_eq!(rx.recv_timeout(Duration::from_secs(5)).expect("event"), "2026-09-04[01-12]_7.92 (0).png");
+        std::thread::sleep(Duration::from_millis(600));
+        assert!(p.exists(), "menu screenshot must survive");
     }
 
     #[test]
