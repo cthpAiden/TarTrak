@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.2 - 2026-09-06
 
 ### Squad
 - Click a teammate's colour dot in the squad list to pick the colour they are drawn in on your screen. It is yours alone: they keep the colour they chose on their own screen, and their shared markers take it too. The ↺ button next to the name goes back to their colour.
