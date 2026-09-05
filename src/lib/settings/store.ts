@@ -17,7 +17,6 @@ export interface Settings {
   lastMap: string | null;
   lastRoom: string;
   lineLengthPx: number;
-  showViewCone: boolean;
   /** Pan the map to my marker on every screenshot. */
   followMe: boolean;
   /** Hide quests, in the list and on the map, whose prerequisite quests are not done yet. */
@@ -45,7 +44,6 @@ export const DEFAULT_SETTINGS: Settings = {
   lastMap: null,
   lastRoom: "",
   lineLengthPx: 28,
-  showViewCone: true,
   followMe: true,
   questsAvailableOnly: false,
   layerFilters: {},
@@ -67,7 +65,6 @@ const SHAPE: Record<keyof Settings, Kind> = {
   lastMap: "string?",
   lastRoom: "string",
   lineLengthPx: "number",
-  showViewCone: "boolean",
   followMe: "boolean",
   questsAvailableOnly: "boolean",
   layerFilters: "record",

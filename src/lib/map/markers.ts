@@ -7,20 +7,9 @@ export interface MarkerStyle {
   radius: number;
   lineLengthPx: number;
   label?: string;
-  /** Draw a translucent field-of-view sector behind the marker. */
-  cone?: boolean;
-  /** Full width of that sector in degrees. */
-  coneDeg?: number;
   /** Pane for every part; defaults to the shared players pane. */
   pane?: string;
 }
-
-const CONE_DEG = 60;
-/** Points sampled along the arc; the sector polygon is the centre plus these. */
-const CONE_STEPS = 9;
-/** Sector radius as a multiple of the heading line length. */
-const CONE_RADIUS = 1.6;
-const CONE_FILL = 0.18;
 
 /**
  * Players draw in their own pane above the marker pane (600) and far above the overlay pane (400)
@@ -46,8 +35,6 @@ function ensurePlayerPanes(map: L.Map): void {
 export class PositionMarker {
   readonly circle: L.CircleMarker;
   readonly line: L.Polyline;
-  /** Null when the style has no cone; the polygon is never created in that case. */
-  readonly cone: L.Polygon | null;
   private x = 0;
   private z = 0;
   private yaw = 0;
@@ -69,7 +56,6 @@ export class PositionMarker {
       opacity: 1,
     });
     this.line = L.polyline([], { pane, color: style.color, weight: 3, opacity: 1, lineCap: "round" });
-    this.cone = style.cone ? L.polygon([], { pane, fillColor: style.color, fillOpacity: CONE_FILL, stroke: false }) : null;
     if (style.label) {
       this.circle.bindTooltip(esc(style.label), {
         permanent: true,
@@ -80,8 +66,6 @@ export class PositionMarker {
         interactive: false,
       });
     }
-    // Added first so the sector sits below the line and the circle.
-    this.cone?.addTo(map);
     this.line.addTo(map);
     this.circle.addTo(map);
     map.on("zoomend", this.onZoom);
@@ -106,7 +90,6 @@ export class PositionMarker {
   setOpacity(o: number): void {
     this.circle.setStyle({ opacity: o, fillOpacity: o });
     this.line.setStyle({ opacity: o });
-    this.cone?.setStyle({ fillOpacity: CONE_FILL * o });
     const tt = this.circle.getTooltip();
     if (tt) tt.setOpacity(o);
   }
@@ -114,26 +97,12 @@ export class PositionMarker {
   setColor(color: string): void {
     this.circle.setStyle({ fillColor: color });
     this.line.setStyle({ color });
-    this.cone?.setStyle({ fillColor: color });
   }
 
   remove(): void {
     this.map.off("zoomend", this.onZoom);
     this.circle.remove();
     this.line.remove();
-    this.cone?.remove();
-  }
-
-  /**
-   * End of a ray of lengthPx pixels from p0 at deg, computed in projected space so the map
-   * rotation and the CRS scale are honoured and the result keeps a fixed on-screen length.
-   */
-  private ray(p0: L.Point, zoom: number, deg: number, lengthPx: number): L.LatLng {
-    const rad = (deg * Math.PI) / 180;
-    const ahead = toLatLng(this.x + Math.sin(rad), this.z + Math.cos(rad));
-    const d = this.map.project(ahead, zoom).subtract(p0);
-    const len = Math.hypot(d.x, d.y) || 1;
-    return this.map.unproject(p0.add(d.multiplyBy(lengthPx / len)), zoom);
   }
 
   private redraw(): void {
@@ -152,13 +121,5 @@ export class PositionMarker {
     const end = p0.add(d.multiplyBy(this.style.lineLengthPx / len));
     this.circle.setLatLng(center);
     this.line.setLatLngs([center, this.map.unproject(end, zoom)]);
-    if (this.cone) {
-      const span = this.style.coneDeg ?? CONE_DEG;
-      const radius = this.style.lineLengthPx * CONE_RADIUS;
-      const arc = Array.from({ length: CONE_STEPS }, (_, i) =>
-        this.ray(p0, zoom, this.yaw - span / 2 + (span * i) / (CONE_STEPS - 1), radius),
-      );
-      this.cone.setLatLngs([center, ...arc]);
-    }
   }
 }

@@ -15,6 +15,16 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: src-tauri }
       - run: npm ci
+      # latest.json takes its version from tauri.conf.json, not the tag. A forgotten bump would publish a
+      # release whose manifest still names the old version, which every installed app ignores.
+      - name: Tag must match the app version
+        shell: bash
+        run: |
+          v=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          if [ "$GITHUB_REF_NAME" != "v$v" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match tauri.conf.json version v$v"
+            exit 1
+          fi
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -23,5 +33,6 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "TarTrak ${{ github.ref_name }}"
-          releaseDraft: true
+          releaseDraft: false
+          prerelease: false
           includeUpdaterJson: true

@@ -24,12 +24,6 @@ describe("mergeSettings", () => {
     expect(mergeSettings([])).toEqual(DEFAULT_SETTINGS);
   });
 
-  it("defaults the view cone on and accepts an explicit off", () => {
-    expect(mergeSettings({}).showViewCone).toBe(true);
-    expect(mergeSettings({ showViewCone: false }).showViewCone).toBe(false);
-    expect(mergeSettings({ showViewCone: "yes" }).showViewCone).toBe(true);
-  });
-
   it("keeps known keys with the right type and drops the rest", () => {
     const s = mergeSettings({ name: "Bob", playerLevel: "12", deleteScreenshots: false, bogus: 1, color: 7 });
     expect(s.name).toBe("Bob");

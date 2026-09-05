@@ -368,7 +368,6 @@
           {hitIds}
           {showLabels}
           lineLengthPx={settings?.lineLengthPx ?? DEFAULT_SETTINGS.lineLengthPx}
-          showCone={settings?.showViewCone ?? DEFAULT_SETTINGS.showViewCone}
         />
       {:else}
         <div class="empty">Pick a map above, or load into a raid.</div>
@@ -410,7 +409,13 @@
               onHiddenChange={(h) => patchSettings({ hiddenQuests: h })}
             />
           {:else}
-            <SettingsPanel {settings} onChange={applySettings} onPickDir={pickDir} onInvalid={(m) => app.toast(m)} />
+            <SettingsPanel
+              {settings}
+              onChange={applySettings}
+              onPickDir={pickDir}
+              onInvalid={(m) => app.toast(m)}
+              onCheckUpdate={() => checkForUpdate((m) => app.toast(m), { manual: true }).catch((e) => app.toast(`Update failed: ${e}`))}
+            />
           {/if}
         </div>
       {/if}

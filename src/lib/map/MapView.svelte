@@ -17,6 +17,7 @@
   import { pointIcon, pointPopupHtml } from "../layers/pointLayer";
   import { labelDivIcon } from "./labels";
   import { watchSize } from "./resize";
+  import Chevron from "../ui/Chevron.svelte";
 
   let {
     def,
@@ -28,7 +29,6 @@
     hitIds,
     showLabels,
     lineLengthPx,
-    showCone,
   }: {
     def: MapDef | null;
     pinnedFloor: string | null;
@@ -40,7 +40,6 @@
     hitIds: ReadonlySet<string>;
     showLabels: boolean;
     lineLengthPx: number;
-    showCone: boolean;
   } = $props();
 
   const OWN_COLOR = "#f0b429";
@@ -146,11 +145,10 @@
     if (s && d) showFloor(s, d.svgLayer, group, d.layers.map((l) => l.svgLayer).filter((v): v is string => !!v));
   });
 
-  // A marker bakes its line length and cone in at construction, so a change drops every marker and
-  // the two effects below rebuild them. untrack: the removal must not track the markers.
+  // A marker bakes its line length in at construction, so a change drops every marker and the two
+  // effects below rebuild them. untrack: the removal must not track the markers.
   $effect(() => {
     void lineLengthPx;
-    void showCone;
     untrack(() => {
       for (const m of mates.values()) m.remove();
       mates = new Map();
@@ -165,14 +163,13 @@
     const t = now;
     const m = map;
     const len = lineLengthPx;
-    const cone = showCone;
     if (!m) return;
     if (!p) {
       own?.remove();
       own = null;
       return;
     }
-    if (!own) own = new PositionMarker(m, { color: OWN_COLOR, radius: 6, lineLengthPx: len, cone, pane: OWN_PANE });
+    if (!own) own = new PositionMarker(m, { color: OWN_COLOR, radius: 6, lineLengthPx: len, pane: OWN_PANE });
     own.update(p.x, p.z, p.yaw);
     own.setOpacity(opacityFor(t - updatedAt));
   });
@@ -183,7 +180,6 @@
     const d = def;
     const m = map;
     const len = lineLengthPx;
-    const cone = showCone;
     if (!m || !d) return;
     // A teammate whose game log was not found reports no map; a squad shares a raid, so they go on mine.
     const wanted: Teammate[] = Object.values(all).filter((t) => !t.noPosition && (t.map === d.key || t.map === null));
@@ -197,7 +193,7 @@
     for (const t of wanted) {
       let marker = mates.get(t.id);
       if (!marker) {
-        marker = new PositionMarker(m, { color: safeColor(t.color), radius: 6, lineLengthPx: len, label: t.name, cone });
+        marker = new PositionMarker(m, { color: safeColor(t.color), radius: 6, lineLengthPx: len, label: t.name });
         mates.set(t.id, marker);
       }
       marker.setColor(safeColor(t.color));
@@ -257,6 +253,19 @@
     }
   });
 
+  let floorsOpen = $state(false);
+  let floorMenu: HTMLDivElement | undefined = $state();
+
+  function pickFloor(name: string | null) {
+    onFloorPinned(name);
+    floorsOpen = false;
+  }
+
+  // Clicking anywhere else closes the menu, like a native dropdown.
+  function onWindowPointerDown(e: PointerEvent) {
+    if (floorsOpen && floorMenu && !floorMenu.contains(e.target as Node)) floorsOpen = false;
+  }
+
   export function centerOnMe() {
     if (map && app.ownPos) map.panTo(L.latLng(app.ownPos.z, app.ownPos.x));
   }
@@ -270,15 +279,31 @@
   }
 </script>
 
+<svelte:window onpointerdown={onWindowPointerDown} onkeydown={(e) => e.key === "Escape" && (floorsOpen = false)} />
+
 <div class="map-root" bind:this={container} role="application" aria-label="map"></div>
 
 {#if def && def.layers.some((l) => l.svgLayer)}
-  <div class="floor-bar">
-    <button class:active={pinnedFloor === null} onclick={() => onFloorPinned(null)} title="Follow my height">Auto</button>
-    <button class:active={pinnedFloor === ""} onclick={() => onFloorPinned("")}>Ground</button>
-    {#each def.layers.filter((l) => l.svgLayer) as layer (layer.name)}
-      <button class:active={pinnedFloor === layer.name} onclick={() => onFloorPinned(layer.name)}>{layer.name}</button>
-    {/each}
+  <div class="floor-menu" bind:this={floorMenu}>
+    <button
+      class="floor-toggle"
+      class:open={floorsOpen}
+      aria-haspopup="listbox"
+      aria-expanded={floorsOpen}
+      title={pinnedFloor === null ? "Floor: auto" : `Floor: ${pinnedFloor || "Ground"}`}
+      onclick={() => (floorsOpen = !floorsOpen)}
+    >
+      Floors <Chevron open={floorsOpen} />
+    </button>
+    {#if floorsOpen}
+      <div class="floor-list" role="listbox" aria-label="Floors">
+        <button role="option" aria-selected={pinnedFloor === null} class:active={pinnedFloor === null} onclick={() => pickFloor(null)} title="Follow my height">Auto</button>
+        <button role="option" aria-selected={pinnedFloor === ""} class:active={pinnedFloor === ""} onclick={() => pickFloor("")}>Ground</button>
+        {#each def.layers.filter((l) => l.svgLayer) as layer (layer.name)}
+          <button role="option" aria-selected={pinnedFloor === layer.name} class:active={pinnedFloor === layer.name} onclick={() => pickFloor(layer.name)}>{layer.name}</button>
+        {/each}
+      </div>
+    {/if}
   </div>
 {/if}
 

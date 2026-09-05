@@ -26,8 +26,7 @@ No memory reading, no injection, no hooks, no keystrokes sent to the game, no ac
 
 Markers never disappear; they dim slowly after 30 s and settle at 35% after 5 minutes.
 
-**Squad.** Every player marker has a heading line and a translucent view cone (turn the cone off in
-Settings). While you are in a room, the Squad tab lists your teammates: distance to you when they are on
+**Squad.** Every player marker has a heading line (length adjustable in Settings). While you are in a room, the Squad tab lists your teammates: distance to you when they are on
 your map, otherwise the map they are on, plus how long ago they last reported. Click a row to center on them.
 A teammate whose game log was not found reports no map and is drawn on yours, marked "map unknown". The app
 pings the relay every 20 s; if the connection drops, a small "Squad: reconnecting" pill appears next to the
@@ -77,8 +76,11 @@ Node 24, Rust stable (MSVC), WebView2 (ships with Windows 10/11).
     npm test
     npm run tauri dev
 
-Pushing a `v*` tag runs `.github/workflows/release.yml`, which builds the installer, signs it and creates a
-**draft** GitHub Release. Publish that draft by hand - the updater only sees a published release.
+Pushing a `v*` tag (matching the version in `src-tauri/tauri.conf.json`, `package.json` and
+`src-tauri/Cargo.toml`) runs `.github/workflows/release.yml`, which builds the installer, signs it and publishes
+a GitHub Release with `latest.json`. Installed apps check that manifest at every start and offer the update
+(Settings > About > Check for updates does it on demand); the installer runs with a progress bar and relaunches
+the app.
 
 The updater private key lives only in the `TAURI_SIGNING_PRIVATE_KEY` repository secret (with
 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` for its passphrase). The updater endpoint in

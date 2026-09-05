@@ -4,6 +4,7 @@
   import { DEFAULT_RELAY_URL, type Settings } from "./store";
   import { GAME_MODES, GAME_MODE_LABELS, type GameMode } from "../quests/jsonSource";
   import { openUrl } from "@tauri-apps/plugin-opener";
+  import { version } from "../../../package.json";
 
   /** The webview opens no new windows on its own; links go to the system browser. */
   function external(e: MouseEvent) {
@@ -12,11 +13,12 @@
     openUrl(href).catch((err) => onInvalid?.(`Could not open ${href}: ${err}`));
   }
 
-  let { settings, onChange, onPickDir, onInvalid }: {
+  let { settings, onChange, onPickDir, onInvalid, onCheckUpdate }: {
     settings: Settings;
     onChange: (patch: Partial<Settings>) => void;
     onPickDir: (kind: "screenshots" | "logs") => void;
     onInvalid?: (msg: string) => void;
+    onCheckUpdate?: () => void;
   } = $props();
 
   /** An unparseable hotkey would be stored and the key would then silently stop working. */
@@ -97,14 +99,6 @@
         placeholder="F6"
       />
 
-      <label for="set-cone">View cone</label>
-      <input
-        id="set-cone"
-        type="checkbox"
-        checked={settings.showViewCone}
-        onchange={(e) => onChange({ showViewCone: e.currentTarget.checked })}
-      />
-
       <label for="set-line">Heading line (px)</label>
       <input
         id="set-line"
@@ -123,6 +117,10 @@
         Map images: <a href="https://github.com/the-hideout/tarkov-dev-svg-maps" onclick={external}>tarkov-dev-svg-maps</a> (CC BY-NC-SA 4.0).
         Map math and quest data: <a href="https://tarkov.dev" onclick={external}>tarkov.dev</a> (MIT). Not affiliated with Battlestate Games.
         Source and issues: <a href="https://github.com/cthpAiden/TarTrak" onclick={external}>github.com/cthpAiden/TarTrak</a>.
+      </p>
+      <p class="small">
+        TarTrak {version} · updates are checked at every start.
+        <button type="button" class="check-update" onclick={onCheckUpdate}>Check for updates</button>
       </p>
     </details>
 </section>

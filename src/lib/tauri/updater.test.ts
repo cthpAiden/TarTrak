@@ -14,7 +14,7 @@ const relaunchMock = vi.mocked(relaunch);
 
 /** Minimal stand-in for the plugin's Update object; only the parts checkForUpdate touches. */
 function fakeUpdate(downloadAndInstall = vi.fn().mockResolvedValue(undefined)) {
-  return { version: "1.2.3", downloadAndInstall } as never;
+  return { version: "1.2.3", currentVersion: "1.0.0", downloadAndInstall } as never;
 }
 
 describe("checkForUpdate", () => {
@@ -32,6 +32,15 @@ describe("checkForUpdate", () => {
     expect(askMock).not.toHaveBeenCalled();
     expect(relaunchMock).not.toHaveBeenCalled();
     expect(messages).toEqual([]);
+  });
+
+  it("reports 'up to date' and a failed check when asked by hand", async () => {
+    checkMock.mockResolvedValue(null);
+    await checkForUpdate(onInfo, { manual: true });
+    checkMock.mockRejectedValue(new Error("offline"));
+    await checkForUpdate(onInfo, { manual: true });
+    expect(askMock).not.toHaveBeenCalled();
+    expect(messages).toEqual(["TarTrak is up to date.", "Update check failed: Error: offline"]);
   });
 
   // A failed check happens on every offline launch, so it is logged rather than toasted.
@@ -60,9 +69,15 @@ describe("checkForUpdate", () => {
     checkMock.mockResolvedValue(fakeUpdate(install));
     askMock.mockResolvedValue(true);
     await checkForUpdate(onInfo);
+    expect(askMock).toHaveBeenCalledWith("TarTrak 1.2.3 is available (you have 1.0.0). Install it now?", {
+      title: "TarTrak update",
+      kind: "info",
+      okLabel: "Update",
+      cancelLabel: "Later",
+    });
     expect(install).toHaveBeenCalledOnce();
     expect(relaunchMock).toHaveBeenCalledOnce();
-    expect(messages).toEqual([]);
+    expect(messages).toEqual(["Downloading TarTrak 1.2.3…"]);
   });
 
   it("reports a failed install and does not relaunch", async () => {
@@ -70,6 +85,6 @@ describe("checkForUpdate", () => {
     askMock.mockResolvedValue(true);
     await checkForUpdate(onInfo);
     expect(relaunchMock).not.toHaveBeenCalled();
-    expect(messages).toEqual(["Update failed: Error: 404 asset"]);
+    expect(messages).toEqual(["Downloading TarTrak 1.2.3…", "Update failed: Error: 404 asset"]);
   });
 });
