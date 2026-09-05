@@ -13,6 +13,9 @@ interface Attachment {
 
 /** Shared markers per room; a spammer cannot grow the storage past this. */
 const MAX_PINS = 50;
+/** Shared strokes per room, same reasoning. */
+const MAX_DRAWS = 200;
+const DRAW_PREFIX = "draw:";
 /** An empty room keeps its pins this long, so a squad that all reconnect at once does not lose them. */
 const EMPTY_ROOM_PIN_TTL_MS = 30 * 60_000;
 const PIN_PREFIX = "pin:";
@@ -46,11 +49,13 @@ export class RoomDO extends DurableObject {
         // newcomer socket already gone; nothing to replay
       }
     }
-    for (const text of (await this.ctx.storage.list<string>({ prefix: PIN_PREFIX })).values()) {
-      try {
-        server.send(text);
-      } catch {
-        // newcomer socket already gone
+    for (const prefix of [PIN_PREFIX, DRAW_PREFIX]) {
+      for (const text of (await this.ctx.storage.list<string>({ prefix })).values()) {
+        try {
+          server.send(text);
+        } catch {
+          // newcomer socket already gone
+        }
       }
     }
     return new Response(null, { status: 101, webSocket: client });
@@ -70,6 +75,25 @@ export class RoomDO extends DurableObject {
       await this.ctx.storage.put(key, text);
     } else if (msg.type === "unpin") {
       await this.ctx.storage.delete(PIN_PREFIX + msg.pin);
+    } else if (msg.type === "draw") {
+      const key = DRAW_PREFIX + msg.draw;
+      const draws = await this.ctx.storage.list<string>({ prefix: DRAW_PREFIX });
+      if (draws.size >= MAX_DRAWS && !draws.has(key)) return;
+      await this.ctx.storage.put(key, text);
+    } else if (msg.type === "undraw") {
+      await this.ctx.storage.delete(DRAW_PREFIX + msg.draw);
+    } else if (msg.type === "cleardraw") {
+      // Stored strokes are ServerMsg JSON, so the map is read back from the text.
+      const draws = await this.ctx.storage.list<string>({ prefix: DRAW_PREFIX });
+      const gone: string[] = [];
+      for (const [key, stored] of draws) {
+        try {
+          if ((JSON.parse(stored) as { map?: string }).map === msg.map) gone.push(key);
+        } catch {
+          gone.push(key);
+        }
+      }
+      if (gone.length > 0) await this.ctx.storage.delete(gone);
     } else if (msg.type === "pos") {
       ws.serializeAttachment({ ...att, last: text } satisfies Attachment);
     } else {

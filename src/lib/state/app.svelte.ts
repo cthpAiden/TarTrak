@@ -33,6 +33,20 @@ export interface Pin {
   from?: string;
 }
 
+/** A freehand stroke on the map, in game coordinates. */
+export interface Drawing {
+  id: string;
+  map: string;
+  color: string;
+  points: [number, number][];
+  /** Sent to the room; a private stroke lives only in this app. */
+  shared: boolean;
+  /** Drawn in this app: only these can be undone here. */
+  mine: boolean;
+  /** Relay id of the teammate who drew a shared stroke; unset for my own. */
+  from?: string;
+}
+
 export type MapSource = "log" | "manual";
 
 export class AppState {
@@ -42,6 +56,7 @@ export class AppState {
   mapSource = $state<MapSource | null>(null);
   teammates = $state<Record<string, Teammate>>({});
   pins = $state<Record<string, Pin>>({});
+  drawings = $state<Record<string, Drawing>>({});
   toasts = $state<{ id: number; text: string }[]>([]);
   // raw: both hold large, wholly-replaced values, so deep proxying would cost far more than it buys.
   questData = $state.raw<QuestData | null>(null);
@@ -100,6 +115,30 @@ export class AppState {
   /** Leaving a room drops its shared pins, mine included; private pins stay. */
   clearSharedPins(): void {
     this.pins = Object.fromEntries(Object.entries(this.pins).filter(([, p]) => !p.shared));
+  }
+
+  addDrawing(d: Drawing): void {
+    this.drawings = { ...this.drawings, [d.id]: d };
+  }
+
+  removeDrawing(id: string): void {
+    const { [id]: _removed, ...rest } = this.drawings;
+    this.drawings = rest;
+  }
+
+  /** Every stroke on one map, whoever drew it: the room's clear-all arrives as this too. */
+  clearDrawings(map: string): void {
+    this.drawings = Object.fromEntries(Object.entries(this.drawings).filter(([, d]) => d.map !== map));
+  }
+
+  clearSharedDrawings(): void {
+    this.drawings = Object.fromEntries(Object.entries(this.drawings).filter(([, d]) => !d.shared));
+  }
+
+  /** My most recent stroke on the map, the one an undo removes; null when there is none. */
+  lastOwnDrawing(map: string): Drawing | null {
+    const mine = Object.values(this.drawings).filter((d) => d.mine && d.map === map);
+    return mine.length > 0 ? mine[mine.length - 1] : null;
   }
 
   toast(text: string): void {

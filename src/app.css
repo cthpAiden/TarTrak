@@ -16,21 +16,21 @@ body {
 body.overlay { background: rgba(20, 23, 28, 0.55); }
 body.overlay .side { display: none; }
 body.overlay .topbar { padding: 2px 6px; font-size: 12px; background: rgba(30, 35, 43, 0.75); }
+.map-tools { position: absolute; top: 8px; left: 8px; z-index: 1000; display: flex; gap: 6px; align-items: flex-start; }
 .mode-btn {
-  position: absolute; top: 8px; left: 8px; z-index: 1000;
   width: 26px; height: 26px; padding: 0; display: grid; place-items: center;
   background: var(--panel); color: var(--fg); border: 1px solid #3a4048; border-radius: 3px; cursor: pointer;
 }
 .mode-btn:hover { border-color: var(--accent); color: var(--accent); }
 body.overlay .mode-btn { background: rgba(30, 35, 43, 0.75); }
-.follow-btn { left: 40px; color: var(--muted); }
-.follow-btn[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+.follow-btn, .draw-btn { color: var(--muted); }
+.follow-btn[aria-pressed="true"], .draw-btn[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
 /* Setup banners are for the desktop layout; in overlay they would sit over the game. */
 body.overlay .banner { display: none; }
 body.overlay .toast { font-size: 11px; padding: 4px 8px; }
 
 .conn-pill {
-  position: absolute; top: 8px; left: 72px; z-index: 1000;
+  position: absolute; top: 40px; left: 8px; z-index: 1000;
   display: flex; align-items: center; gap: 6px;
   height: 26px; padding: 0 10px; box-sizing: border-box; font-size: 12px;
   color: var(--fg); background: rgba(30, 35, 43, 0.75); border: 1px solid #3a4048; border-radius: 3px;

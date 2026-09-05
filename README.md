@@ -31,6 +31,11 @@ me** (only this app shows it) or **Shared marker** (everyone in your squad room 
 Click a marker for its details and a Remove button; anyone in the room can remove a shared marker. Shared
 markers live as long as the room does, and go away when you leave it.
 
+**Route and drawings.** The exit button next to Follow me lists the map's extracts; pick one and a dashed line
+runs from your marker to it with the distance in metres, updated on every screenshot. The pencil button turns a
+left drag into a stroke: in a room the squad sees every stroke live and later joiners get them replayed; right-click
+offers undo (also Ctrl+Z) and clear-all, which wipes the map for the whole room.
+
 **Squad.** Every player marker has a heading line (length adjustable in Settings). While you are in a room, the Squad tab lists your teammates: distance to you when they are on
 your map, otherwise the map they are on, plus how long ago they last reported. Click a row to center on them.
 Names carry the floor a teammate is on, like "Aiden [2F]". Click the colour dot in a row to pick the colour that

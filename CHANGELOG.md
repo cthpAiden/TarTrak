@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Map
+- Route to an extract: the exit button next to Follow me lists the map's extracts (PMC first, then co-op, Scav, transits); pick one and a dashed line runs from your marker to it with the distance in metres, redrawn on every screenshot. The button shows the distance too. "Clear route" turns it off.
+- Draw on the map: the pencil button turns a left drag into a stroke. In a room every stroke goes to the squad as you finish it, in your colour, and is replayed to whoever joins later; outside a room strokes stay on your screen. Right-click offers "Undo my last drawing" (also Ctrl+Z) and "Clear all drawings", which wipes the map for the whole room.
+- The map cursor is an arrow instead of a hand, so the spot under it is visible when placing a marker; a crosshair while drawing.
+
 ### Quests
 - Quest item spawn points are on the map: every place a quest item can be found (tarkov.dev's "possibleLocations"), with the item's name in the popup. They were missing before, so a map like Lighthouse showed only objective zones and none of the hundred-plus item spots. Filter: Quests → Quest items. Data schema 7 (caches refresh on first start).
 

@@ -5,6 +5,8 @@ import {
   parseClientMessage,
   parseServerMessage,
   MAX_MESSAGE_BYTES,
+  MAX_DRAW_MESSAGE_BYTES,
+  MAX_DRAW_POINTS,
 } from "./protocol";
 
 const pos = { type: "pos", name: "Bob", color: "#ff0000", map: "customs", x: 1.5, y: 2, z: -3, yaw: 90, ts: 1700000000000 };
@@ -129,5 +131,42 @@ describe("parseServerMessage", () => {
       type: "leave",
       id: "x".repeat(8),
     });
+  });
+});
+
+describe("drawing messages", () => {
+  const points = Array.from({ length: MAX_DRAW_POINTS }, (_, i) => [i * 1.5, -(i + 1) * 2.5]);
+  const draw = { type: "draw", draw: "abcd1234", map: "customs", color: "#0f0", points };
+
+  it("accepts a full-length stroke even though it is far over the small message cap", () => {
+    const raw = JSON.stringify(draw);
+    expect(new TextEncoder().encode(raw).length).toBeGreaterThan(MAX_MESSAGE_BYTES);
+    expect(new TextEncoder().encode(raw).length).toBeLessThan(MAX_DRAW_MESSAGE_BYTES);
+    expect(parseClientMessage(raw)).toEqual(draw);
+    expect(parseServerMessage(JSON.stringify({ ...draw, id: "r1" }))).toEqual({ ...draw, id: "r1" });
+  });
+
+  it("keeps the small cap for every other message type", () => {
+    const big = JSON.stringify({ type: "hello", name: "a", color: "b", pad: "p".repeat(MAX_MESSAGE_BYTES) });
+    expect(parseClientMessage(big)).toBeNull();
+    const huge = JSON.stringify({ ...draw, pad: "p".repeat(MAX_DRAW_MESSAGE_BYTES) });
+    expect(parseClientMessage(huge)).toBeNull();
+  });
+
+  it("rejects strokes with too few or too many points, or a bad point", () => {
+    expect(parseClientMessage(JSON.stringify({ ...draw, points: [[1, 2]] }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ ...draw, points: [...points, [1, 1]] }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ ...draw, points: [[1, 2], [3]] }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ ...draw, points: [[1, 2], ["3", 4]] }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ ...draw, map: "" }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ ...draw, draw: "" }))).toBeNull();
+  });
+
+  it("parses undraw and cleardraw, requiring their ids", () => {
+    expect(parseClientMessage(JSON.stringify({ type: "undraw", draw: "abcd1234" }))).toEqual({ type: "undraw", draw: "abcd1234" });
+    expect(parseClientMessage(JSON.stringify({ type: "undraw", draw: "" }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ type: "cleardraw", map: "customs" }))).toEqual({ type: "cleardraw", map: "customs" });
+    expect(parseClientMessage(JSON.stringify({ type: "cleardraw" }))).toBeNull();
+    expect(parseServerMessage(JSON.stringify({ type: "cleardraw", map: "customs", id: "r1" }))).toEqual({ type: "cleardraw", map: "customs", id: "r1" });
   });
 });

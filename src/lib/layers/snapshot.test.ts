@@ -83,6 +83,23 @@ describe("data snapshot", () => {
     for (const m of qm.filter((m) => m.itemName)) expect(m.itemName, m.taskName).not.toMatch(/ Name$/);
   });
 
+  it("lists Reserve's extracts with their switches and item, and its quest markers", () => {
+    const rb = maps.find((m) => m.normalizedName === "reserve")!;
+    const names = rb.extracts.map((e) => e.name).sort();
+    for (const n of ["Armored Train", "D-2", "Bunker Hermetic Door", "Cliff Descent", "Scav Lands (Co-Op)", "Sewer Manhole", "Exit to Woods"]) {
+      expect(names, n).toContain(n);
+    }
+    expect(rb.extracts.find((e) => e.name === "D-2")!.switches?.length).toBeGreaterThan(0);
+    expect(rb.extracts.find((e) => e.name === "Bunker Hermetic Door")!.switches?.length).toBeGreaterThan(0);
+    expect(rb.extracts.find((e) => e.name === "Exit to Woods")!.requiredItem?.name).toMatch(/Minefield map/);
+    const usable = points.filter((p) => p.mapKey === "reserve" && p.group === "extracts" && isOn({}, p.group, p.category)).map((p) => p.name);
+    for (const n of ["Armored Train", "D-2", "Bunker Hermetic Door", "Cliff Descent", "Sewer Manhole"]) expect(usable).toContain(n);
+    expect(points.find((p) => p.mapKey === "reserve" && p.name === "Scav Lands (Co-Op)")!.category).toBe("coop");
+    const qm = extractQuestMarkers({ schemaVersion: 0, fetchedAt: 0, tasks, maps }).filter((m) => m.mapKey === "reserve");
+    expect(qm.filter((m) => m.itemName).length).toBeGreaterThan(10);
+    expect(qm.filter((m) => !m.itemName).length).toBeGreaterThan(10);
+  });
+
   it("names every switch and hazard in plain English, not a translation key", () => {
     for (const m of maps) {
       for (const sw of m.switches ?? []) expect(sw.name, m.normalizedName).not.toMatch(/^switch_/);

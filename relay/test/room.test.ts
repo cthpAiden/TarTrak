@@ -164,6 +164,31 @@ describe("room relay", () => {
     expect(await d.quiet(200)).toBe(true);
   });
 
+  it("stores shared strokes, replays them, forgets them on undraw and wipes a map on cleardraw", async () => {
+    const a = await connect("ROOM08");
+    const b = await connect("ROOM08");
+    const draw = { type: "draw", draw: "abcd1234", map: "customs", color: "#f00", points: [[1, 2], [3.5, -4]] };
+    const other = { ...draw, draw: "abcd5678", map: "woods" };
+    a.ws.send(JSON.stringify(draw));
+    a.ws.send(JSON.stringify(other));
+    expect(JSON.parse(await b.next())).toMatchObject(draw);
+    expect(JSON.parse(await b.next())).toMatchObject(other);
+    await new Promise((r) => setTimeout(r, 100));
+
+    const c = await connect("ROOM08");
+    expect(JSON.parse(await c.next())).toMatchObject(draw);
+    expect(JSON.parse(await c.next())).toMatchObject(other);
+
+    b.ws.send(JSON.stringify({ type: "undraw", draw: "abcd5678" }));
+    expect(JSON.parse(await a.next())).toMatchObject({ type: "undraw", draw: "abcd5678" });
+    expect(JSON.parse(await c.next())).toMatchObject({ type: "undraw", draw: "abcd5678" });
+    b.ws.send(JSON.stringify({ type: "cleardraw", map: "customs" }));
+    expect(JSON.parse(await a.next())).toMatchObject({ type: "cleardraw", map: "customs" });
+    await new Promise((r) => setTimeout(r, 100));
+    const d = await connect("ROOM08");
+    expect(await d.quiet(200)).toBe(true);
+  });
+
   it("isolates rooms", async () => {
     const a = await connect("ROOM03");
     const b = await connect("ROOM04");

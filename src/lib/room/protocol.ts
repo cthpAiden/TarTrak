@@ -3,6 +3,9 @@
 
 export const ROOM_CODE_RE = /^[A-Z0-9]{6}$/;
 export const MAX_MESSAGE_BYTES = 512;
+/** Only a drawing may be this long: a stroke carries many points, every other message is tiny. */
+export const MAX_DRAW_MESSAGE_BYTES = 8192;
+export const MAX_DRAW_POINTS = 300;
 export const MAX_STRING = 32;
 
 const CODE_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -41,7 +44,27 @@ export interface UnpinMsg {
   pin: string;
 }
 
-export type ClientMsg = HelloMsg | PosMsg | PinMsg | UnpinMsg;
+/** A freehand stroke shared with the room, as game-coordinate [x, z] pairs. `draw` is the client-chosen id. */
+export interface DrawMsg {
+  type: "draw";
+  draw: string;
+  map: string;
+  color: string;
+  points: [number, number][];
+}
+
+export interface UndrawMsg {
+  type: "undraw";
+  draw: string;
+}
+
+/** Wipes every shared stroke on one map, for everyone in the room. */
+export interface ClearDrawMsg {
+  type: "cleardraw";
+  map: string;
+}
+
+export type ClientMsg = HelloMsg | PosMsg | PinMsg | UnpinMsg | DrawMsg | UndrawMsg | ClearDrawMsg;
 
 /** `id` is relay-assigned, 1..32 chars: the socket that sent the message. */
 export type ServerMsg =
@@ -49,6 +72,9 @@ export type ServerMsg =
   | (PosMsg & { id: string })
   | (PinMsg & { id: string })
   | (UnpinMsg & { id: string })
+  | (DrawMsg & { id: string })
+  | (UndrawMsg & { id: string })
+  | (ClearDrawMsg & { id: string })
   | { type: "leave"; id: string };
 
 export function isValidRoomCode(code: string): boolean {
@@ -81,13 +107,18 @@ function byteLength(s: string): number {
 }
 
 function parseJson(raw: string): Record<string, unknown> | null {
-  if (byteLength(raw) >= MAX_MESSAGE_BYTES) return null;
+  const bytes = byteLength(raw);
+  if (bytes >= MAX_DRAW_MESSAGE_BYTES) return null;
+  let v: unknown;
   try {
-    const v: unknown = JSON.parse(raw);
-    return isRecord(v) ? v : null;
+    v = JSON.parse(raw);
   } catch {
     return null;
   }
+  if (!isRecord(v)) return null;
+  // Only strokes may be long; everything else keeps the small cap.
+  if (v.type !== "draw" && bytes >= MAX_MESSAGE_BYTES) return null;
+  return v;
 }
 
 function readHello(o: Record<string, unknown>): HelloMsg | null {
@@ -130,11 +161,50 @@ function readUnpin(o: Record<string, unknown>): UnpinMsg | null {
   return { type: "unpin", pin };
 }
 
+/** At least two finite [x, z] pairs and no more than MAX_DRAW_POINTS. */
+function readPoints(v: unknown): [number, number][] | null {
+  if (!Array.isArray(v) || v.length < 2 || v.length > MAX_DRAW_POINTS) return null;
+  const out: [number, number][] = [];
+  for (const p of v) {
+    if (!Array.isArray(p) || p.length !== 2) return null;
+    const x = num(p[0]);
+    const z = num(p[1]);
+    if (x === null || z === null) return null;
+    out.push([x, z]);
+  }
+  return out;
+}
+
+function readDraw(o: Record<string, unknown>): DrawMsg | null {
+  const draw = str(o.draw);
+  const map = str(o.map);
+  const color = str(o.color);
+  const points = readPoints(o.points);
+  if (draw === null || draw.length === 0 || map === null || map.length === 0) return null;
+  if (color === null || points === null) return null;
+  return { type: "draw", draw, map, color, points };
+}
+
+function readUndraw(o: Record<string, unknown>): UndrawMsg | null {
+  const draw = str(o.draw);
+  if (draw === null || draw.length === 0) return null;
+  return { type: "undraw", draw };
+}
+
+function readClearDraw(o: Record<string, unknown>): ClearDrawMsg | null {
+  const map = str(o.map);
+  if (map === null || map.length === 0) return null;
+  return { type: "cleardraw", map };
+}
+
 function readBody(o: Record<string, unknown>): ClientMsg | null {
   if (o.type === "hello") return readHello(o);
   if (o.type === "pos") return readPos(o);
   if (o.type === "pin") return readPin(o);
   if (o.type === "unpin") return readUnpin(o);
+  if (o.type === "draw") return readDraw(o);
+  if (o.type === "undraw") return readUndraw(o);
+  if (o.type === "cleardraw") return readClearDraw(o);
   return null;
 }
 

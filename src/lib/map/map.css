@@ -49,7 +49,14 @@ body.overlay .floor-toggle, body.overlay .floor-list { background: rgba(30, 35, 
 .pin-menu button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.07); }
 .pin-menu button:disabled { color: var(--muted); cursor: default; }
 body.overlay .pin-menu { background: rgba(30, 35, 43, 0.85); border-color: #3a4048; }
+.pin-menu hr { border: 0; border-top: 1px solid #3a4048; margin: 4px 0; }
 .pin-icon svg { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6)); }
+.route-tip { font-weight: 600; }
+/* An arrow, not a hand: the hand's palm covered the very spot a right-click was meant to mark. */
+.leaflet-container.leaflet-grab { cursor: default; }
+.leaflet-dragging .leaflet-container.leaflet-grab { cursor: move; }
+/* Leaflet drops its grab class while dragging is disabled, so draw mode styles the root itself. */
+.map-root.drawing, .map-root.drawing .leaflet-interactive { cursor: crosshair; }
 .pin-popup button { margin-top: 6px; background: var(--panel); color: var(--fg); border: 1px solid #333; border-radius: 3px; padding: 3px 8px; cursor: pointer; font: inherit; }
 .map-msg { position: absolute; left: 12px; bottom: 12px; z-index: 1000; color: var(--muted); font-size: 12px; }
 

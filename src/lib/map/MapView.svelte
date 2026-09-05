@@ -18,6 +18,8 @@
   import { labelDivIcon } from "./labels";
   import { watchSize } from "./resize";
   import { pinIcon, pinPopup } from "./pins";
+  import { distanceM } from "./route";
+  import { MAX_DRAW_POINTS } from "../room/protocol";
   import Chevron from "../ui/Chevron.svelte";
 
   let {
@@ -34,6 +36,12 @@
     canShare,
     onPin,
     onRemovePin,
+    route,
+    drawMode,
+    drawColor,
+    onDraw,
+    onUndoDraw,
+    onClearDraw,
   }: {
     def: MapDef | null;
     pinnedFloor: string | null;
@@ -51,9 +59,21 @@
     canShare: boolean;
     onPin: (p: { x: number; z: number; label: string; shared: boolean }) => void;
     onRemovePin: (id: string) => void;
+    /** Extract to draw a straight line to from my marker, with the distance on it. */
+    route: { x: number; z: number; name: string } | null;
+    /** While on, a left drag draws a stroke instead of panning. */
+    drawMode: boolean;
+    drawColor: string;
+    /** A finished stroke as game-coordinate [x, z] pairs, at least two. */
+    onDraw: (points: [number, number][]) => void;
+    onUndoDraw: () => void;
+    onClearDraw: () => void;
   } = $props();
 
   const OWN_COLOR = "#f0b429";
+  const ROUTE_COLOR = "#f0b429";
+  /** A drag adds a point every few pixels; finer only bloats the stroke without changing its look. */
+  const DRAW_MIN_PX = 3;
   /** tarkov.dev draws quest zones in this green. */
   const QUEST_ZONE_COLOR = "#4caf50";
 
@@ -68,13 +88,16 @@
   let pointGroup = $state<L.LayerGroup | null>(null);
   let labelGroup = $state<L.LayerGroup | null>(null);
   let pinGroup = $state<L.LayerGroup | null>(null);
+  let drawGroup = $state<L.LayerGroup | null>(null);
+  let routeLine: L.Polyline | null = null;
+  let routeTip: L.Tooltip | null = null;
   /** Right-click menu: where it opens (container pixels) and the game point under the cursor. */
   let pinMenu = $state<{ px: number; py: number; x: number; z: number } | null>(null);
   let pinMenuEl: HTMLDivElement | undefined = $state();
   let pinInput: HTMLInputElement | undefined = $state();
   let pinLabel = $state("");
   const PIN_MENU_W = 200;
-  const PIN_MENU_H = 112;
+  const PIN_MENU_H = 196;
   /** Bumped by every destroy(); a build whose generation is stale drops its result. */
   let gen = 0;
   let stopSizeWatch: (() => void) | null = null;
@@ -94,6 +117,9 @@
     pointGroup = null;
     labelGroup = null;
     pinGroup = null;
+    drawGroup = null;
+    routeLine = null;
+    routeTip = null;
     pinMenu = null;
     svg = null;
     stopSizeWatch?.();
@@ -128,6 +154,48 @@
     // Hand-placed pins: above the point and quest markers (600), under the players (620).
     m.createPane("pins").style.zIndex = "615";
     pinGroup = L.layerGroup().addTo(m);
+    // Strokes and the route line: above the point markers (600), under pins and players.
+    m.createPane("drawings").style.zIndex = "610";
+    drawGroup = L.layerGroup().addTo(m);
+
+    // Freehand drawing: a left drag in draw mode is a stroke, shown live and handed over on release.
+    let stroke: L.Polyline | null = null;
+    let strokePts: [number, number][] = [];
+    let lastPx: L.Point | null = null;
+    const round1 = (v: number) => Math.round(v * 10) / 10;
+    const finishStroke = () => {
+      if (!stroke) return;
+      stroke.remove();
+      stroke = null;
+      const done = strokePts;
+      strokePts = [];
+      lastPx = null;
+      if (done.length >= 2) onDraw(done);
+    };
+    m.on("mousedown", (e: L.LeafletMouseEvent) => {
+      if (!drawMode || e.originalEvent.button !== 0) return;
+      finishStroke();
+      strokePts = [[round1(e.latlng.lng), round1(e.latlng.lat)]];
+      lastPx = e.containerPoint;
+      stroke = L.polyline([e.latlng], {
+        pane: "drawings",
+        color: safeColor(drawColor),
+        weight: 3,
+        opacity: 0.9,
+        lineCap: "round",
+        lineJoin: "round",
+        interactive: false,
+      }).addTo(m);
+    });
+    m.on("mousemove", (e: L.LeafletMouseEvent) => {
+      if (!stroke || !lastPx || strokePts.length >= MAX_DRAW_POINTS) return;
+      if (e.containerPoint.distanceTo(lastPx) < DRAW_MIN_PX) return;
+      lastPx = e.containerPoint;
+      strokePts.push([round1(e.latlng.lng), round1(e.latlng.lat)]);
+      stroke.addLatLng(e.latlng);
+    });
+    m.on("mouseup", finishStroke);
+    m.on("mouseout", finishStroke);
     m.on("contextmenu", (e: L.LeafletMouseEvent) => {
       pinLabel = "";
       // Kept inside the map area, so a right-click near the right or bottom edge still shows the whole menu.
@@ -174,6 +242,60 @@
     const d = def;
     const group = floorGroup;
     if (s && d) showFloor(s, d.svgLayer, group, d.layers.map((l) => l.svgLayer).filter((v): v is string => !!v));
+  });
+
+  // Draw mode takes the drag away from panning; the cursor says so.
+  $effect(() => {
+    const m = map;
+    const on = drawMode;
+    if (!m) return;
+    if (on) m.dragging?.disable();
+    else m.dragging?.enable();
+    container.classList.toggle("drawing", on);
+  });
+
+  $effect(() => {
+    const all = app.drawings;
+    const mates = app.teammates;
+    const colors = mateColors;
+    const d = def;
+    const g = drawGroup;
+    if (!g || !d) return;
+    g.clearLayers();
+    for (const st of Object.values(all)) {
+      if (st.map !== d.key) continue;
+      // A teammate's stroke takes the colour I picked for them, like their marker.
+      const by = st.from ? mates[st.from]?.name : undefined;
+      const color = by ? mateColor(by, st.color, colors) : safeColor(st.color);
+      L.polyline(
+        st.points.map(([x, z]) => toLatLng(x, z)),
+        { pane: "drawings", color, weight: 3, opacity: 0.9, lineCap: "round", lineJoin: "round", interactive: false },
+      ).addTo(g);
+    }
+  });
+
+  // Route to an extract: a dashed line from my marker with the distance on it, redrawn per screenshot.
+  $effect(() => {
+    const r = route;
+    const p = app.ownPos;
+    const m = map;
+    const d = def;
+    try {
+      routeLine?.remove();
+      routeTip?.remove();
+    } catch {
+      // the map they were on is already gone
+    }
+    routeLine = null;
+    routeTip = null;
+    if (!m || !d || !r || !p) return;
+    const a = toLatLng(p.x, p.z);
+    const b = toLatLng(r.x, r.z);
+    routeLine = L.polyline([a, b], { pane: "drawings", color: ROUTE_COLOR, weight: 2, dashArray: "6 6", opacity: 0.9, interactive: false }).addTo(m);
+    routeTip = L.tooltip({ permanent: true, direction: "top", className: "tt-label route-tip", pane: "pins", interactive: false, offset: [0, -4] })
+      .setLatLng(L.latLng((a.lat + b.lat) / 2, (a.lng + b.lng) / 2))
+      .setContent(`${distanceM(p, r)} m to ${esc(r.name)}`)
+      .addTo(m);
   });
 
   // A marker bakes its line length in at construction, so a change drops every marker and the two
@@ -316,10 +438,18 @@
   }
 
   function onWindowKeyDown(e: KeyboardEvent) {
+    // Ctrl+Z undoes my last stroke, unless I am typing somewhere.
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !(e.target instanceof HTMLInputElement)) {
+      onUndoDraw();
+      return;
+    }
     if (e.key !== "Escape") return;
     floorsOpen = false;
     pinMenu = null;
   }
+
+  const canUndoDraw = $derived(def !== null && app.lastOwnDrawing(def.key) !== null);
+  const hasDrawings = $derived(def !== null && Object.values(app.drawings).some((d) => d.map === def.key));
 
   function placePin(shared: boolean) {
     if (!pinMenu) return;
@@ -417,6 +547,31 @@
       onclick={() => placePin(true)}
     >
       Shared marker
+    </button>
+    <hr />
+    <button
+      type="button"
+      role="menuitem"
+      disabled={!canUndoDraw}
+      title="Removes the last stroke you drew on this map (Ctrl+Z)"
+      onclick={() => {
+        onUndoDraw();
+        pinMenu = null;
+      }}
+    >
+      Undo my last drawing
+    </button>
+    <button
+      type="button"
+      role="menuitem"
+      disabled={!hasDrawings}
+      title={canShare ? "Wipes every drawing on this map, for the whole room" : "Wipes every drawing on this map"}
+      onclick={() => {
+        onClearDraw();
+        pinMenu = null;
+      }}
+    >
+      Clear all drawings
     </button>
   </div>
 {/if}

@@ -60,6 +60,7 @@ describe("RoomController", () => {
   beforeEach(() => {
     app.clearTeammates();
     app.pins = {};
+    app.drawings = {};
     app.ownPos = null;
     app.toasts = [];
   });
@@ -83,6 +84,45 @@ describe("RoomController", () => {
     expect(Object.keys(app.pins).sort()).toEqual(["abcd5678", "mine0001"]);
     room.leave();
     expect(Object.keys(app.pins)).toEqual(["mine0001"]);
+  });
+
+  it("adds a teammate's stroke, removes it on undraw, wipes a map on cleardraw, and drops shared strokes on leave", () => {
+    const { room, client } = makeController();
+    app.addDrawing({ id: "mine0001", map: "customs", color: "#fff", points: [[0, 0], [1, 1]], shared: false, mine: true });
+    client.onMessage({ type: "draw", id: "aaaaaaaa", draw: "abcd1234", map: "customs", color: "#f00", points: [[1, 2], [3, 4]] });
+    client.onMessage({ type: "draw", id: "aaaaaaaa", draw: "abcd5678", map: "woods", color: "#f00", points: [[1, 2], [3, 4]] });
+    expect(app.drawings["abcd1234"]).toEqual({
+      id: "abcd1234",
+      map: "customs",
+      color: "#f00",
+      points: [[1, 2], [3, 4]],
+      shared: true,
+      mine: false,
+      from: "aaaaaaaa",
+    });
+    client.onMessage({ type: "undraw", id: "aaaaaaaa", draw: "abcd5678" });
+    expect(Object.keys(app.drawings).sort()).toEqual(["abcd1234", "mine0001"]);
+    client.onMessage({ type: "cleardraw", id: "bbbbbbbb", map: "customs" });
+    expect(Object.keys(app.drawings)).toEqual([]);
+    client.onMessage({ type: "draw", id: "aaaaaaaa", draw: "abcd9999", map: "customs", color: "#f00", points: [[1, 2], [3, 4]] });
+    app.addDrawing({ id: "mine0002", map: "customs", color: "#fff", points: [[0, 0], [1, 1]], shared: false, mine: true });
+    room.leave();
+    expect(Object.keys(app.drawings)).toEqual(["mine0002"]);
+  });
+
+  it("shares, unshares and clears strokes through the client, reporting when the socket is down", () => {
+    const { room, client } = makeController();
+    const d = { id: "abcd1234", map: "customs", color: "#0f0", points: [[1, 2], [3, 4]] as [number, number][], shared: true, mine: true };
+    expect(room.shareDrawing(d)).toBe(true);
+    room.unshareDrawing("abcd1234");
+    room.clearSharedDrawings("customs");
+    expect(client.sentPins).toEqual([
+      { type: "draw", draw: "abcd1234", map: "customs", color: "#0f0", points: [[1, 2], [3, 4]] },
+      { type: "undraw", draw: "abcd1234" },
+      { type: "cleardraw", map: "customs" },
+    ]);
+    client.open = false;
+    expect(room.shareDrawing(d)).toBe(false);
   });
 
   it("shares and unshares my pins through the client, reporting when the socket is down", () => {

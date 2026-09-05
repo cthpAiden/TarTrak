@@ -1,5 +1,18 @@
 import type { Position } from "../parse/screenshot";
-import { parseServerMessage, type HelloMsg, type PinMsg, type PosMsg, type ServerMsg, type UnpinMsg } from "./protocol";
+import {
+  parseServerMessage,
+  type ClearDrawMsg,
+  type DrawMsg,
+  type HelloMsg,
+  type PinMsg,
+  type PosMsg,
+  type ServerMsg,
+  type UndrawMsg,
+  type UnpinMsg,
+} from "./protocol";
+
+/** Everything a client sends besides its own identity and position. */
+export type ActionMsg = PinMsg | UnpinMsg | DrawMsg | UndrawMsg | ClearDrawMsg;
 
 export type RoomStatus = "connecting" | "open" | "closed";
 
@@ -102,7 +115,7 @@ export class RoomClient {
   }
 
   /** Sent at once, unthrottled; false while the socket is down so the caller can say so. */
-  send(msg: PinMsg | UnpinMsg): boolean {
+  send(msg: ActionMsg): boolean {
     if (!this.ws || this.ws.readyState !== WS_OPEN) return false;
     this.ws.send(JSON.stringify(msg));
     return true;

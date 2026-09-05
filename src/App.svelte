@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, untrack } from "svelte";
   import { open } from "@tauri-apps/plugin-dialog";
-  import { app, type Pin } from "./lib/state/app.svelte";
+  import { app, type Drawing, type Pin } from "./lib/state/app.svelte";
   import { newPinId, PRIVATE_PIN_COLOR } from "./lib/map/pins";
   import { startEventBridge } from "./lib/tauri/events";
   import { setOverlay, applyOpacity, nextOpacity, installAltDrag, registerHotkeys } from "./lib/tauri/window";
@@ -27,6 +27,8 @@
   import { findItem } from "./lib/layers/points";
   import { loadDone } from "./lib/quests/done";
   import MapView from "./lib/map/MapView.svelte";
+  import RoutePicker from "./lib/map/RoutePicker.svelte";
+  import { distanceM, routeGroups } from "./lib/map/route";
   import MapPicker from "./lib/map/MapPicker.svelte";
   import Toasts from "./lib/ui/Toasts.svelte";
   import Banner from "./lib/ui/Banner.svelte";
@@ -43,6 +45,9 @@
   let tab = $state<(typeof TABS)[number]["id"]>("filters");
 
   let pinnedFloor = $state<string | null>(null);
+  /** Point id of the extract the route line leads to. */
+  let routeTarget = $state<string | null>(null);
+  let drawMode = $state(false);
   /** Item finder text; matching points show regardless of the layer toggles. */
   let itemQuery = $state("");
   let screenshotsDir = $state<string | null>(null);
@@ -75,6 +80,10 @@
       : [],
   );
   const showLabels = $derived(isOn(layerFilters, "labels", "landmark"));
+  const extractGroups = $derived(routeGroups(mapPoints));
+  // Looked up on the current map, so a target left over from another map simply draws nothing.
+  const routePoint = $derived(routeTarget ? (mapPoints.find((p) => p.id === routeTarget) ?? null) : null);
+  const routeDistance = $derived(routePoint && app.ownPos ? distanceM(app.ownPos, routePoint) : null);
   const lockedQuests = $derived(
     settings?.questsAvailableOnly && app.questData ? lockedTaskIds(app.questData.tasks, app.doneQuests) : new Set<string>(),
   );
@@ -308,6 +317,36 @@
     if (pin.shared) room.unsharePin(id);
   }
 
+  /** A finished stroke: shared with the room when one is connected, otherwise kept to this app. */
+  function addDrawing(points: [number, number][]) {
+    if (!def) return;
+    const d: Drawing = {
+      id: newPinId(),
+      map: def.key,
+      color: settings?.color ?? DEFAULT_SETTINGS.color,
+      points,
+      shared: room.status === "open",
+      mine: true,
+    };
+    if (d.shared && !room.shareDrawing(d)) d.shared = false;
+    app.addDrawing(d);
+  }
+
+  function undoDrawing() {
+    if (!def) return;
+    const d = app.lastOwnDrawing(def.key);
+    if (!d) return;
+    app.removeDrawing(d.id);
+    if (d.shared) room.unshareDrawing(d.id);
+  }
+
+  /** Every drawing on this map; in a room that is everyone's, on every screen. */
+  function clearDrawings() {
+    if (!def) return;
+    app.clearDrawings(def.key);
+    if (room.status === "open") room.clearSharedDrawings(def.key);
+  }
+
   // Every screenshot recentres the map on me while follow is on; a small overlay would otherwise
   // lose the marker after a short walk. untrack: reading settings here must not re-pan on edits.
   $effect(() => {
@@ -353,7 +392,8 @@
 
   <div class="body">
     <section class="map">
-      <!-- Overlay is the minimal view: map only. This button is the one control that survives it. -->
+      <!-- Overlay is the minimal view: map only. These buttons are the controls that survive it. -->
+      <div class="map-tools">
       <button class="mode-btn" onclick={toggleOverlay} title={overlay ? "Full window" : "Overlay (map only)"} aria-label={overlay ? "Full window" : "Overlay (map only)"}>
         <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
           {#if overlay}
@@ -377,6 +417,26 @@
           <path d="M8 1v3M8 12v3M1 8h3M12 8h3" />
         </svg>
       </button>
+      <RoutePicker
+        groups={extractGroups}
+        selectedId={routePoint?.id ?? null}
+        selectedName={routePoint?.name ?? null}
+        distanceM={routeDistance}
+        onSelect={(id) => (routeTarget = id)}
+      />
+      <button
+        class="mode-btn draw-btn"
+        aria-pressed={drawMode}
+        onclick={() => (drawMode = !drawMode)}
+        title="Draw on the map: drag to draw, right-click for undo and clear. In a room the squad sees it live."
+        aria-label="Draw on the map"
+      >
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M3 13l1-4 7.5-7.5 3 3L7 12z" />
+          <path d="M10.5 3.5l2 2" />
+        </svg>
+      </button>
+      </div>
       {#if room.reconnecting}
         <div class="conn-pill" role="status">
           <span class="dot connecting"></span>
@@ -399,6 +459,12 @@
           canShare={room.status === "open"}
           onPin={placePin}
           onRemovePin={removePin}
+          route={routePoint ? { x: routePoint.x, z: routePoint.z, name: routePoint.name } : null}
+          {drawMode}
+          drawColor={settings?.color ?? DEFAULT_SETTINGS.color}
+          onDraw={addDrawing}
+          onUndoDraw={undoDrawing}
+          onClearDraw={clearDrawings}
         />
       {:else}
         <div class="empty">Pick a map above, or load into a raid.</div>

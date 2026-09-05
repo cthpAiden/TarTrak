@@ -1,14 +1,14 @@
 import type { Position } from "../parse/screenshot";
-import { app, type Pin, type Teammate } from "../state/app.svelte";
-import { RoomClient, type RoomClientOptions, type RoomStatus } from "./client";
-import type { PinMsg, ServerMsg, UnpinMsg } from "./protocol";
+import { app, type Drawing, type Pin, type Teammate } from "../state/app.svelte";
+import { RoomClient, type ActionMsg, type RoomClientOptions, type RoomStatus } from "./client";
+import type { ServerMsg } from "./protocol";
 
 /** The part of RoomClient the controller drives; injectable so the message handling is testable. */
 export interface RoomClientLike {
   connect(): void;
   close(): void;
   sendPosition(map: string | null, p: Position): void;
-  send(msg: PinMsg | UnpinMsg): boolean;
+  send(msg: ActionMsg): boolean;
 }
 
 export class RoomController {
@@ -76,6 +76,7 @@ export class RoomController {
     this.status = "closed";
     app.clearTeammates();
     app.clearSharedPins();
+    app.clearSharedDrawings();
   }
 
   /** False when not connected: the caller keeps the pin private and tells the user. */
@@ -85,6 +86,20 @@ export class RoomController {
 
   unsharePin(id: string): void {
     this.client?.send({ type: "unpin", pin: id });
+  }
+
+  /** False when not connected: the stroke stays private. */
+  shareDrawing(d: Drawing): boolean {
+    return this.client?.send({ type: "draw", draw: d.id, map: d.map, color: d.color, points: d.points }) ?? false;
+  }
+
+  unshareDrawing(id: string): void {
+    this.client?.send({ type: "undraw", draw: id });
+  }
+
+  /** Wipes the shared strokes on one map for the whole room. */
+  clearSharedDrawings(map: string): void {
+    this.client?.send({ type: "cleardraw", map });
   }
 
   onOwnPosition(map: string | null, p: Position): void {
@@ -126,6 +141,18 @@ export class RoomController {
     }
     if (m.type === "unpin") {
       app.removePin(m.pin);
+      return;
+    }
+    if (m.type === "draw") {
+      app.addDrawing({ id: m.draw, map: m.map, color: m.color, points: m.points, shared: true, mine: false, from: m.id });
+      return;
+    }
+    if (m.type === "undraw") {
+      app.removeDrawing(m.draw);
+      return;
+    }
+    if (m.type === "cleardraw") {
+      app.clearDrawings(m.map);
       return;
     }
     // Judged before the ghost is dropped: a same-name marker of any kind means this is a reconnect.
