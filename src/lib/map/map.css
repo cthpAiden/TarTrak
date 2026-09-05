@@ -12,6 +12,8 @@
   font-size: 11px;
 }
 .tt-label::before { display: none; }
+/* Name labels must never intercept clicks meant for the markers under them. */
+.tt-label { pointer-events: none; }
 .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: #1e222a; color: var(--fg); }
 .leaflet-popup-content { margin: 8px 10px; font-size: 12px; }
 .leaflet-popup-content small { color: var(--muted); }

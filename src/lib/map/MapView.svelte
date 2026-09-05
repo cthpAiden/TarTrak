@@ -6,7 +6,7 @@
   import { visibleOnFloor } from "./mapsData";
   import { makeCrs, boundsOf, toLatLng } from "./crs";
   import { buildSvgElement, showFloor, type LoadedSvg } from "./svgLoader";
-  import { PositionMarker } from "./markers";
+  import { OWN_PANE, PositionMarker } from "./markers";
   import { fetchTextCached } from "../tauri/http";
   import { opacityFor } from "../room/fade";
   import { safeColor } from "../room/squad";
@@ -166,7 +166,7 @@
       own = null;
       return;
     }
-    if (!own) own = new PositionMarker(m, { color: OWN_COLOR, radius: 6, lineLengthPx: len, cone });
+    if (!own) own = new PositionMarker(m, { color: OWN_COLOR, radius: 6, lineLengthPx: len, cone, pane: OWN_PANE });
     own.update(p.x, p.z, p.yaw);
     own.setOpacity(opacityFor(t - updatedAt));
   });

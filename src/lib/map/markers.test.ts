@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import L from "leaflet";
-import { PLAYER_PANE, PositionMarker } from "./markers";
+import { OWN_PANE, PLAYER_PANE, PositionMarker } from "./markers";
 import { makeCrs, boundsOf, toLatLng } from "./crs";
 import { getMapDef } from "./mapsData";
 
@@ -187,5 +187,23 @@ describe("player pane", () => {
     expect(m.cone!.options.pane).toBe(PLAYER_PANE);
     // Adding a second marker to the same map must reuse the pane, not throw on a duplicate.
     new PositionMarker(map, { color: "#fff", radius: 6, lineLengthPx: 28 });
+  });
+
+  it("keeps a teammate's name label in the players pane, below the own pane", () => {
+    const map = makeMap();
+    const mate = new PositionMarker(map, { color: "#0f0", radius: 6, lineLengthPx: 28, label: "Bob" });
+    const me = new PositionMarker(map, { color: "#fff", radius: 6, lineLengthPx: 28, cone: true, pane: OWN_PANE });
+    mate.update(0, 0, 0);
+    me.update(0, 0, 0);
+    const players = Number(map.getPane(PLAYER_PANE)!.style.zIndex);
+    const ownZ = Number(map.getPane(OWN_PANE)!.style.zIndex);
+    expect(ownZ).toBeGreaterThan(players);
+    expect(mate.circle.getTooltip()!.options.pane).toBe(PLAYER_PANE);
+    // The tooltip pane (650) would otherwise sit above every player.
+    expect(ownZ).toBeLessThan(650);
+    expect(mate.circle.getTooltip()!.getElement()?.parentElement).toBe(map.getPane(PLAYER_PANE));
+    expect(me.circle.options.pane).toBe(OWN_PANE);
+    expect(me.line.options.pane).toBe(OWN_PANE);
+    expect(me.cone!.options.pane).toBe(OWN_PANE);
   });
 });

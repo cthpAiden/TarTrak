@@ -11,6 +11,8 @@ export interface MarkerStyle {
   cone?: boolean;
   /** Full width of that sector in degrees. */
   coneDeg?: number;
+  /** Pane for every part; defaults to the shared players pane. */
+  pane?: string;
 }
 
 const CONE_DEG = 60;
@@ -27,9 +29,17 @@ const CONE_FILL = 0.18;
  */
 export const PLAYER_PANE = "players";
 const PLAYER_PANE_Z = "620";
+/**
+ * My own marker sits in a pane above the teammates and their name labels, so a squadmate standing
+ * next to me can never cover my indicator. The labels themselves are kept in the players pane rather
+ * than Leaflet's tooltip pane (650), which would put them above everything.
+ */
+export const OWN_PANE = "players-own";
+const OWN_PANE_Z = "630";
 
-function ensurePlayerPane(map: L.Map): void {
+function ensurePlayerPanes(map: L.Map): void {
   if (!map.getPane(PLAYER_PANE)) map.createPane(PLAYER_PANE).style.zIndex = PLAYER_PANE_Z;
+  if (!map.getPane(OWN_PANE)) map.createPane(OWN_PANE).style.zIndex = OWN_PANE_Z;
 }
 
 /** A player: filled circle plus a heading line with a fixed on-screen length. */
@@ -47,9 +57,10 @@ export class PositionMarker {
     private readonly map: L.Map,
     private readonly style: MarkerStyle,
   ) {
-    ensurePlayerPane(map);
+    ensurePlayerPanes(map);
+    const pane = style.pane ?? PLAYER_PANE;
     this.circle = L.circleMarker([0, 0], {
-      pane: PLAYER_PANE,
+      pane,
       radius: style.radius,
       color: "#000",
       weight: 1.5,
@@ -57,16 +68,16 @@ export class PositionMarker {
       fillOpacity: 1,
       opacity: 1,
     });
-    this.line = L.polyline([], { pane: PLAYER_PANE, color: style.color, weight: 3, opacity: 1, lineCap: "round" });
-    this.cone = style.cone
-      ? L.polygon([], { pane: PLAYER_PANE, fillColor: style.color, fillOpacity: CONE_FILL, stroke: false })
-      : null;
+    this.line = L.polyline([], { pane, color: style.color, weight: 3, opacity: 1, lineCap: "round" });
+    this.cone = style.cone ? L.polygon([], { pane, fillColor: style.color, fillOpacity: CONE_FILL, stroke: false }) : null;
     if (style.label) {
       this.circle.bindTooltip(esc(style.label), {
         permanent: true,
         direction: "top",
         offset: [0, -8],
         className: "tt-label",
+        pane,
+        interactive: false,
       });
     }
     // Added first so the sector sits below the line and the circle.
