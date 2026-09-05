@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Map
+- The heading line is a thin dotted line of sight, 50 m long in game units (Settings: 5 to 50 m), so it scales with the map and shows what a teammate calls out on V without hiding the map.
+- The extract list shows each extract's distance from you, like "Dorms V-Ex (312 m)".
+
+### Squad
+- A teammate whose connection drops is announced as "Bob disconnected", a deliberate leave as "Bob left the room"; your own outage reads "Lost connection to the room" and "Back in the room".
+- No more duplicate player markers after a disconnect: a reconnect under a new relay id replaces the old marker even when the old socket's leave never arrives, my own stale socket is never listed as a teammate, and the relay announces a dead socket the moment a send to it fails.
+
 ### Quests
 - The Quests tab is a to-do list. "Find quests on <map>" lists the quests with markers on the map you are on (type to search; "all maps" widens it); + adds one to your to-do. Only to-do quests draw markers on the map, and a quest marked done leaves it. "Share with squad" sends your list to the room: teammates see your quests' markers on their map and your list under yours, with + to copy a quest over; leaving the room withdraws it. The per-quest hide toggle is gone, the to-do list replaces it.
 

@@ -1,11 +1,12 @@
 <script lang="ts">
-  import type { RouteGroup } from "./route";
+  import { distanceM as metresBetween, type RouteGroup } from "./route";
 
   let {
     groups,
     selectedId,
     selectedName,
     distanceM,
+    from,
     onSelect,
   }: {
     groups: RouteGroup[];
@@ -13,6 +14,8 @@
     selectedName: string | null;
     /** Metres from my marker to the chosen extract; null without a position. */
     distanceM: number | null;
+    /** My position; every extract in the list shows its distance from here. */
+    from: { x: number; z: number } | null;
     onSelect: (id: string | null) => void;
   } = $props();
 
@@ -60,7 +63,9 @@
       {#each groups as g (g.category)}
         <div class="route-cat">{g.label}</div>
         {#each g.items as p (p.id)}
-          <button type="button" role="menuitemradio" aria-checked={p.id === selectedId} onclick={() => pick(p.id)}>{p.name}</button>
+          <button type="button" role="menuitemradio" aria-checked={p.id === selectedId} onclick={() => pick(p.id)}>
+            {p.name}{#if from}<span class="m">({metresBetween(from, p)} m)</span>{/if}
+          </button>
         {/each}
       {/each}
       {#if groups.length === 0}
@@ -84,6 +89,7 @@
   .route-menu button { background: none; color: var(--fg); border: 0; border-radius: 3px; padding: 5px 8px; text-align: left; cursor: pointer; font: inherit; font-size: 12px; white-space: nowrap; }
   .route-menu button:hover { background: rgba(255, 255, 255, 0.07); }
   .route-menu button[aria-checked="true"] { color: var(--accent); }
+  .route-menu .m { color: var(--muted); margin-left: 6px; font-variant-numeric: tabular-nums; }
   .route-menu .clear { color: var(--muted); border-bottom: 1px solid #3a4048; border-radius: 0; margin-bottom: 2px; }
   :global(body.overlay) .route-menu { background: rgba(30, 35, 43, 0.9); }
 </style>

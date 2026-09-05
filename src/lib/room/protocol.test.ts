@@ -112,6 +112,8 @@ describe("parseServerMessage", () => {
   it("accepts pos/hello with id and leave", () => {
     expect(parseServerMessage(JSON.stringify({ ...pos, id: "abc" }))).toEqual({ ...pos, id: "abc" });
     expect(parseServerMessage(JSON.stringify({ type: "leave", id: "abc" }))).toEqual({ type: "leave", id: "abc" });
+    expect(parseServerMessage(JSON.stringify({ type: "leave", id: "abc", dropped: true }))).toEqual({ type: "leave", id: "abc", dropped: true });
+    expect(parseServerMessage(JSON.stringify({ type: "leave", id: "abc", dropped: "yes" }))).toEqual({ type: "leave", id: "abc" });
     expect(parseServerMessage(JSON.stringify({ type: "hello", id: "q", name: "N", color: "#000" }))).toEqual({
       type: "hello",
       id: "q",

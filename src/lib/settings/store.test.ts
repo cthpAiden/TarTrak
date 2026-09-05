@@ -53,9 +53,9 @@ describe("mergeSettings", () => {
   });
 
   it("clamps the heading line length to [8, 120]", () => {
-    expect(mergeSettings({ lineLengthPx: 0 }).lineLengthPx).toBe(8);
-    expect(mergeSettings({ lineLengthPx: 5000 }).lineLengthPx).toBe(120);
-    expect(mergeSettings({ lineLengthPx: 40 }).lineLengthPx).toBe(40);
+    expect(mergeSettings({ lineLengthM: 0 }).lineLengthM).toBe(5);
+    expect(mergeSettings({ lineLengthM: 5000 }).lineLengthM).toBe(50);
+    expect(mergeSettings({ lineLengthM: 40 }).lineLengthM).toBe(40);
   });
 
   it("clamps the player level to [0, 79]", () => {

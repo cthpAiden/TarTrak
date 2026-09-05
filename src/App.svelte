@@ -430,6 +430,7 @@
         selectedId={routePoint?.id ?? null}
         selectedName={routePoint?.name ?? null}
         distanceM={routeDistance}
+        from={app.ownPos ? { x: app.ownPos.x, z: app.ownPos.z } : null}
         onSelect={(id) => (routeTarget = id)}
       />
       <button
@@ -462,7 +463,7 @@
           {points}
           {hitIds}
           {showLabels}
-          lineLengthPx={settings?.lineLengthPx ?? DEFAULT_SETTINGS.lineLengthPx}
+          lineLengthM={settings?.lineLengthM ?? DEFAULT_SETTINGS.lineLengthM}
           mateColors={settings?.mateColors ?? DEFAULT_SETTINGS.mateColors}
           canShare={room.status === "open"}
           onPin={placePin}

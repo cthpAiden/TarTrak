@@ -16,7 +16,8 @@ export interface Settings {
   hotkeyOpacity: string;
   lastMap: string | null;
   lastRoom: string;
-  lineLengthPx: number;
+  /** Heading line length in metres, at most 50. */
+  lineLengthM: number;
   /** Pan the map to my marker on every screenshot. */
   followMe: boolean;
   /** Hide quests, in the list and on the map, whose prerequisite quests are not done yet. */
@@ -48,7 +49,7 @@ export const DEFAULT_SETTINGS: Settings = {
   hotkeyOpacity: "F6",
   lastMap: null,
   lastRoom: "",
-  lineLengthPx: 28,
+  lineLengthM: 50,
   followMe: true,
   questsAvailableOnly: false,
   layerFilters: {},
@@ -71,7 +72,7 @@ const SHAPE: Record<keyof Settings, Kind> = {
   hotkeyOpacity: "string",
   lastMap: "string?",
   lastRoom: "string",
-  lineLengthPx: "number",
+  lineLengthM: "number",
   followMe: "boolean",
   questsAvailableOnly: "boolean",
   layerFilters: "record",
@@ -130,7 +131,7 @@ export function mergeSettings(partial: unknown): Settings {
   if (out.relayUrl.trim() === "" || out.relayUrl === STALE_RELAY_URL) out.relayUrl = DEFAULT_RELAY_URL;
   out.name = out.name.slice(0, 32);
   out.color = out.color.slice(0, 32);
-  out.lineLengthPx = clamp(out.lineLengthPx, 8, 120);
+  out.lineLengthM = clamp(out.lineLengthM, 5, 50);
   out.playerLevel = clamp(out.playerLevel, 0, 79);
   if (!GAME_MODES.includes(out.gameMode)) out.gameMode = DEFAULT_SETTINGS.gameMode;
   if (!ROOM_CODE_RE.test(out.lastRoom)) out.lastRoom = "";

@@ -5,7 +5,8 @@ import { esc } from "../quests/questLayer";
 export interface MarkerStyle {
   color: string;
   radius: number;
-  lineLengthPx: number;
+  /** Heading line length in metres (game units), so it scales with the map like a real distance. */
+  lineLengthM: number;
   label?: string;
   /** Pane for every part; defaults to the shared players pane. */
   pane?: string;
@@ -57,7 +58,8 @@ export class PositionMarker {
       fillOpacity: 1,
       opacity: 1,
     });
-    this.line = L.polyline([], { pane, color: style.color, weight: 3, opacity: 1, lineCap: "round" });
+    // Dotted and thin: a line of sight that hides as little of the map as it can.
+    this.line = L.polyline([], { pane, color: style.color, weight: 2, opacity: 0.85, dashArray: "1 6", lineCap: "round" });
     if (style.label) {
       this.circle.bindTooltip(esc(style.label), {
         permanent: true,
@@ -116,19 +118,12 @@ export class PositionMarker {
 
   private redraw(): void {
     const center = this.center();
-    // Heading in game space: forward = (sin yaw, cos yaw) on (x, z). Project both ends to
-    // pixels so the map's rotation is honored, then fix the on-screen length. project() is used
-    // rather than latLngToLayerPoint() because the latter rounds to whole pixels, which collapses
-    // the one-unit lookahead at low zoom.
-    const zoom = this.map.getZoom();
+    // Heading in game space: forward = (sin yaw, cos yaw) on (x, z), so the end is a real point
+    // lineLengthM metres ahead and the CRS handles the map's rotation and scale.
     const rad = (this.yaw * Math.PI) / 180;
-    const ahead = toLatLng(this.x + Math.sin(rad), this.z + Math.cos(rad));
-    const p0 = this.map.project(center, zoom);
-    const p1 = this.map.project(ahead, zoom);
-    const d = p1.subtract(p0);
-    const len = Math.hypot(d.x, d.y) || 1;
-    const end = p0.add(d.multiplyBy(this.style.lineLengthPx / len));
+    const len = this.style.lineLengthM;
+    const end = toLatLng(this.x + Math.sin(rad) * len, this.z + Math.cos(rad) * len);
     this.circle.setLatLng(center);
-    this.line.setLatLngs([center, this.map.unproject(end, zoom)]);
+    this.line.setLatLngs([center, end]);
   }
 }

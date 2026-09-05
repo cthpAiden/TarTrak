@@ -16,6 +16,8 @@ export class RoomController {
   code = $state<string | null>(null);
   status = $state<RoomStatus>("closed");
   private client: RoomClientLike | null = null;
+  /** The name I joined with; a message carrying it is my own stale socket, never a teammate. */
+  private name = "";
   private errorToasted = false;
   private wasOpen = false;
   private outageToasted = false;
@@ -34,6 +36,7 @@ export class RoomController {
   join(code: string, name: string, color: string, relayUrl: string): void {
     this.leave();
     this.code = code.toUpperCase();
+    this.name = name;
     this.errorToasted = false;
     this.wasOpen = false;
     this.outageToasted = false;
@@ -49,14 +52,14 @@ export class RoomController {
         this.status = s;
         if (s === "open") {
           this.errorToasted = false;
-          if (!this.wasOpen && this.outageToasted) app.toast("Squad reconnected");
+          if (!this.wasOpen && this.outageToasted) app.toast("Back in the room");
           this.wasOpen = true;
           this.outageToasted = false;
         } else if (s === "closed" && this.wasOpen && !this.outageToasted && this.code !== null) {
           // Only once per outage: the client retries forever behind this.
           this.outageToasted = true;
           this.wasOpen = false;
-          app.toast("Squad connection lost, reconnecting…");
+          app.toast("Lost connection to the room, reconnecting…");
         }
       },
       // The client retries forever, so one toast per outage instead of one every backoff round.
@@ -127,10 +130,14 @@ export class RoomController {
     app.toast(`${name} runs ${runs}, you run ${APP_VERSION}: shared markers and drawings need the same version`);
   }
 
-  /** The relay hands out a fresh id per socket, so a reconnect would otherwise leave a frozen twin. */
+  /**
+   * The relay hands out a fresh id per socket, so a reconnect would otherwise leave a frozen twin.
+   * Names are identity here: any other id with this name is that person's dead socket, whether or
+   * not its leave has arrived (after hibernation it may never come).
+   */
   private dropGhost(id: string, name: string): void {
     for (const [oldId, t] of Object.entries(app.teammates)) {
-      if (oldId !== id && t.left && t.name === name) app.removeTeammate(oldId);
+      if (oldId !== id && t.name === name) app.removeTeammate(oldId);
     }
   }
 
@@ -153,7 +160,7 @@ export class RoomController {
         if (this.isReplaced(m.id, t)) app.removeTeammate(m.id);
         else {
           app.upsertTeammate({ ...t, left: true });
-          app.toast(`${t.name} left the room`);
+          app.toast(m.dropped ? `${t.name} disconnected` : `${t.name} left the room`);
         }
       }
       return;
@@ -182,6 +189,8 @@ export class RoomController {
       app.setSquadTodo(m.id, m.tasks);
       return;
     }
+    // My old socket, replayed to my new one: not a teammate.
+    if (m.name === this.name) return;
     this.warnVersion(m.name, m.version);
     // Judged before the ghost is dropped: a same-name marker of any kind means this is a reconnect.
     const rejoin = Object.values(app.teammates).some((t) => t.id !== m.id && t.name === m.name);

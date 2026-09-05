@@ -191,6 +191,30 @@ describe("RoomController", () => {
     expect(app.teammates["bbbbbbbb"].left).toBeFalsy();
   });
 
+  it("drops the old marker on a same-name reconnect even when its leave never arrives", () => {
+    const { client } = makeController();
+    client.onMessage(pos("aaaaaaaa", "Bob"));
+    client.onMessage(pos("bbbbbbbb", "Bob"));
+    expect(Object.keys(app.teammates)).toEqual(["bbbbbbbb"]);
+    client.onMessage(hello("cccccccc", "Bob"));
+    expect(Object.keys(app.teammates)).toEqual(["cccccccc"]);
+  });
+
+  it("never lists my own stale socket as a teammate", () => {
+    const { client } = makeController();
+    client.onMessage(hello("aaaaaaaa", "Me"));
+    client.onMessage(pos("bbbbbbbb", "Me"));
+    client.onMessage(pos("cccccccc", "Bob"));
+    expect(Object.keys(app.teammates)).toEqual(["cccccccc"]);
+  });
+
+  it("says who disconnected, as opposed to who left", () => {
+    const { client } = makeController();
+    client.onMessage(pos("aaaaaaaa", "Bob"));
+    client.onMessage({ type: "leave", id: "aaaaaaaa", dropped: true });
+    expect(app.toasts.map((t) => t.text)).toEqual(["Bob disconnected"]);
+  });
+
   it("drops the old marker when the new id's pos arrives before the leave", () => {
     const { client } = makeController();
     client.onMessage(pos("aaaaaaaa", "Bob"));
@@ -217,14 +241,14 @@ describe("RoomController", () => {
     }
   });
 
-  it("keeps a live teammate with the same name as a departed one", () => {
+  it("replaces a same-name teammate on a new id and leaves other names alone, departed or not", () => {
     const { client } = makeController();
     client.onMessage(pos("aaaaaaaa", "Bob"));
     client.onMessage(pos("cccccccc", "Ann"));
     client.onMessage(leave("cccccccc"));
     client.onMessage(pos("bbbbbbbb", "Bob"));
-    // Only the departed Ann is a candidate ghost, and her name does not match.
-    expect(Object.keys(app.teammates).sort()).toEqual(["aaaaaaaa", "bbbbbbbb", "cccccccc"]);
+    // Names are identity: the second Bob is the first one back on a new socket. Ann is untouched.
+    expect(Object.keys(app.teammates).sort()).toEqual(["bbbbbbbb", "cccccccc"]);
   });
 
   it("drops the ghost on a hello as well as on a pos", () => {
@@ -310,11 +334,11 @@ describe("RoomController", () => {
     client.opts.onStatus("closed");
     client.opts.onStatus("connecting");
     client.opts.onStatus("closed");
-    expect(app.toasts.map((t) => t.text)).toEqual(["Squad connection lost, reconnecting…"]);
+    expect(app.toasts.map((t) => t.text)).toEqual(["Lost connection to the room, reconnecting…"]);
     expect(controller.reconnecting).toBe(true);
 
     client.opts.onStatus("open");
-    expect(app.toasts.map((t) => t.text)).toEqual(["Squad connection lost, reconnecting…", "Squad reconnected"]);
+    expect(app.toasts.map((t) => t.text)).toEqual(["Lost connection to the room, reconnecting…", "Back in the room"]);
     expect(controller.reconnecting).toBe(false);
 
     // A second open with no outage in between says nothing.

@@ -113,7 +113,8 @@ export class RoomDO extends DurableObject {
   }
 
   async webSocketClose(ws: WebSocket, code: number, reason: string, _wasClean: boolean): Promise<void> {
-    this.announceLeave(ws);
+    // The app closes with 1000 when the user leaves; anything else is a dropped connection.
+    this.announceLeave(ws, code !== 1000);
     try {
       ws.close(code, reason);
     } catch {
@@ -122,13 +123,14 @@ export class RoomDO extends DurableObject {
   }
 
   async webSocketError(ws: WebSocket, _error: unknown): Promise<void> {
-    this.announceLeave(ws);
+    this.announceLeave(ws, true);
   }
 
-  private announceLeave(ws: WebSocket): void {
+  private announceLeave(ws: WebSocket, dropped: boolean): void {
     const att = ws.deserializeAttachment() as Attachment | null;
     if (!att) return;
-    this.broadcast(JSON.stringify({ type: "leave", id: att.id } satisfies ServerMsg), ws);
+    const leave: ServerMsg = dropped ? { type: "leave", id: att.id, dropped: true } : { type: "leave", id: att.id };
+    this.broadcast(JSON.stringify(leave), ws);
     void this.ctx.storage.delete(TODO_PREFIX + att.id);
     if (this.ctx.getWebSockets().every((other) => other === ws)) {
       void this.ctx.storage.setAlarm(Date.now() + EMPTY_ROOM_PIN_TTL_MS);
@@ -148,7 +150,9 @@ export class RoomDO extends DurableObject {
       try {
         ws.send(text);
       } catch {
-        // socket already gone; its close handler announces the leave
+        // A socket that cannot be written to is dead. Its close event may never come after
+        // hibernation, and until the leave goes out the others keep a stale marker of it.
+        this.announceLeave(ws, true);
       }
     }
   }

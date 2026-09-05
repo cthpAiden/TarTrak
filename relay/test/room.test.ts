@@ -210,6 +210,20 @@ describe("room relay", () => {
     expect(await d.quiet(200)).toBe(true);
   });
 
+  it("flags a leave as dropped unless the socket closed with 1000", async () => {
+    const a = await connect("ROOM10");
+    const b = await connect("ROOM10");
+    const c = await connect("ROOM10");
+    a.ws.close(4000, "gone");
+    expect(JSON.parse(await b.next())).toMatchObject({ type: "leave", dropped: true });
+    // c heard about a as well; the next thing it hears is b leaving on purpose.
+    expect(JSON.parse(await c.next())).toMatchObject({ type: "leave", dropped: true });
+    b.ws.close(1000, "leave");
+    const seen = JSON.parse(await c.next());
+    expect(seen.type).toBe("leave");
+    expect(seen.dropped).toBeUndefined();
+  });
+
   it("isolates rooms", async () => {
     const a = await connect("ROOM03");
     const b = await connect("ROOM04");

@@ -19,7 +19,7 @@ export type RoomStatus = "connecting" | "open" | "closed";
 
 export interface WebSocketLike {
   send(data: string): void;
-  close(): void;
+  close(code?: number, reason?: string): void;
   onopen: ((ev: unknown) => void) | null;
   onmessage: ((ev: { data: unknown }) => void) | null;
   onclose: ((ev: unknown) => void) | null;
@@ -96,7 +96,7 @@ export class RoomClient {
     this.pending = null;
     const ws = this.ws;
     this.ws = null;
-    ws?.close();
+    ws?.close(1000, "leave");
     this.setStatus("closed");
   }
 
@@ -171,7 +171,7 @@ export class RoomClient {
         }
         this.ws = null;
         this.stopHeartbeat();
-        ws.close();
+        ws.close(1000, "leave");
         this.setStatus("closed");
         this.scheduleReconnect();
       }, PONG_TIMEOUT_MS);

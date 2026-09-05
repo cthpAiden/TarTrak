@@ -86,7 +86,8 @@ export type ServerMsg =
   | (UndrawMsg & { id: string })
   | (ClearDrawMsg & { id: string })
   | (TodoMsg & { id: string })
-  | { type: "leave"; id: string };
+  /** `dropped`: the socket died rather than closed on purpose, so the person may be right back. */
+  | { type: "leave"; id: string; dropped?: true };
 
 export function isValidRoomCode(code: string): boolean {
   return ROOM_CODE_RE.test(code);
@@ -251,7 +252,7 @@ export function parseServerMessage(raw: string): ServerMsg | null {
   if (!o) return null;
   const id = str(o.id);
   if (id === null || id.length === 0) return null;
-  if (o.type === "leave") return { type: "leave", id };
+  if (o.type === "leave") return o.dropped === true ? { type: "leave", id, dropped: true } : { type: "leave", id };
   const body = readBody(o);
   return body ? { ...body, id } : null;
 }

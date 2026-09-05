@@ -43,7 +43,7 @@
   }
   let overlayKey = $state(untrack(() => settings.hotkeyOverlay));
   let opacityKey = $state(untrack(() => settings.hotkeyOpacity));
-  let lineLen = $state(untrack(() => settings.lineLengthPx));
+  let lineLen = $state(untrack(() => settings.lineLengthM));
 </script>
 
 <section class="panel">
@@ -99,14 +99,14 @@
         placeholder="F6"
       />
 
-      <label for="set-line">Heading line (px)</label>
+      <label for="set-line">Heading line (m, max 50)</label>
       <input
         id="set-line"
         type="number"
-        min="8"
-        max="120"
+        min="5"
+        max="50"
         bind:value={lineLen}
-        onchange={() => onChange({ lineLengthPx: Number(lineLen) || 28 })}
+        onchange={() => onChange({ lineLengthM: Number(lineLen) || 50 })}
       />
     </div>
     <p class="muted small">Overlay mode needs the game in borderless windowed mode. Alt+drag moves the overlay.</p>

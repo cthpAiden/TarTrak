@@ -31,7 +31,7 @@
     points,
     hitIds,
     showLabels,
-    lineLengthPx,
+    lineLengthM,
     mateColors,
     canShare,
     onPin,
@@ -52,7 +52,7 @@
     /** Points the item finder matched; drawn with a glow. */
     hitIds: ReadonlySet<string>;
     showLabels: boolean;
-    lineLengthPx: number;
+    lineLengthM: number;
     /** Colours I picked for teammates, by name; only on this screen. */
     mateColors: Record<string, string>;
     /** In a room with the socket up: the right-click menu offers a shared marker. */
@@ -301,7 +301,7 @@
   // A marker bakes its line length in at construction, so a change drops every marker and the two
   // effects below rebuild them. untrack: the removal must not track the markers.
   $effect(() => {
-    void lineLengthPx;
+    void lineLengthM;
     untrack(() => {
       for (const m of mates.values()) m.remove();
       mates = new Map();
@@ -315,14 +315,14 @@
     const updatedAt = app.ownUpdatedAt;
     const t = now;
     const m = map;
-    const len = lineLengthPx;
+    const len = lineLengthM;
     if (!m) return;
     if (!p) {
       own?.remove();
       own = null;
       return;
     }
-    if (!own) own = new PositionMarker(m, { color: OWN_COLOR, radius: 6, lineLengthPx: len, pane: OWN_PANE });
+    if (!own) own = new PositionMarker(m, { color: OWN_COLOR, radius: 6, lineLengthM: len, pane: OWN_PANE });
     own.update(p.x, p.z, p.yaw);
     own.setOpacity(opacityFor(t - updatedAt));
   });
@@ -332,7 +332,7 @@
     const tick = now;
     const d = def;
     const m = map;
-    const len = lineLengthPx;
+    const len = lineLengthM;
     const colors = mateColors;
     if (!m || !d) return;
     // A teammate whose game log was not found reports no map; a squad shares a raid, so they go on mine.
@@ -350,7 +350,7 @@
       const label = mateLabel(t.name, floorTag(floorForHeight(d, t)));
       let marker = mates.get(t.id);
       if (!marker) {
-        marker = new PositionMarker(m, { color, radius: 6, lineLengthPx: len, label });
+        marker = new PositionMarker(m, { color, radius: 6, lineLengthM: len, label });
         mates.set(t.id, marker);
       }
       marker.setColor(color);
