@@ -1,8 +1,12 @@
 # Changelog
 
-## Unreleased (since v0.1.0)
+## 0.2.0 - 2026-09-05
 
 ### Map
+- Right-click places a marker: private (only this app) or shared with the squad room, with an optional label; click a marker to remove it. Shared markers are kept by the relay and replayed to teammates who join later.
+- Floors are picked from a "Floors" dropdown in the top-right corner instead of a permanent button column.
+- The view cone is gone; the heading line stays.
+- Overlay mode no longer clips heading lines at the old map edge (Leaflet is told when the map area changes size).
 - Marker icons are the tarkov.dev interactive-map PNGs (MIT), including the two quest icons; quest markers show a hover tooltip.
 - Quest objectives with a zone draw its footprint as a translucent green outline, visible on every floor the zone spans.
 - Players draw in their own pane above every map layer, so a floor redraw can never hide you or your squad.
@@ -33,3 +37,8 @@
 
 ### Relay
 - `ping` is answered with `pong` by the runtime (no Durable Object wake-up); a socket's hello is replayed to newcomers until its first position.
+- Shared markers (`pin` / `unpin`) are stored per room (50 at most) and replayed to newcomers; an empty room forgets them after 30 minutes.
+
+### Updater and release
+- The update prompt names both versions with Update / Later buttons, the download is announced, and the Windows installer runs in passive mode. Settings > About has a "Check for updates" button.
+- Tagged releases are published directly with `latest.json`; the workflow refuses a tag that does not match the app version.
