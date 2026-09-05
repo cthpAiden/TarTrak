@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.3 - 2026-09-06
 
 ### Map
 - The heading line is 125 m long by default (Settings: 5 to 125 m), with thicker, longer dashes.
