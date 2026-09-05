@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.2 - 2026-09-06
 
 ### Map
 - The heading line fades out towards its far end, so it no longer hides what is 50 m ahead.
