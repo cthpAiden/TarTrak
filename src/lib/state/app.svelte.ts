@@ -55,6 +55,11 @@ export class AppState {
     this.mapSource = source;
   }
 
+  clearOwnPosition(): void {
+    this.ownPos = null;
+    this.ownUpdatedAt = 0;
+  }
+
   upsertTeammate(t: Teammate): void {
     this.teammates = { ...this.teammates, [t.id]: t };
   }

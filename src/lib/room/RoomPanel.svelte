@@ -5,7 +5,7 @@
   import { squadRows, type SquadRow } from "./squad";
   import { app } from "../state/app.svelte";
   import { getMapDef } from "../map/mapsData";
-  import type { Settings } from "../settings/store";
+  import { DEFAULT_SETTINGS, type Settings } from "../settings/store";
 
   let {
     settings,
@@ -19,8 +19,13 @@
 
   // untrack: these are the editable copies, seeded once from the stored settings.
   let code = $state(untrack(() => settings.lastRoom));
-  let name = $state(untrack(() => settings.name));
+  // The stock name gets a random suffix so two fresh installs do not both show up as "PMC".
+  let name = $state(untrack(() => (settings.name === DEFAULT_SETTINGS.name ? suggestName() : settings.name)));
   let color = $state(untrack(() => settings.color));
+
+  function suggestName(): string {
+    return `${DEFAULT_SETTINGS.name}-${Math.floor(Math.random() * 900 + 100)}`;
+  }
 
   const codeOk = $derived(isValidRoomCode(code.toUpperCase()));
 

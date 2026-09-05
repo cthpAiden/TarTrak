@@ -130,6 +130,25 @@ describe("RoomController", () => {
     expect(app.teammates.aaaaaaaa.noPosition).toBeUndefined();
   });
 
+  it("stays quiet when a teammate's socket flaps: no join or leave toast for a reconnect", () => {
+    const { client } = makeController();
+    client.onMessage(hello("aaaaaaaa", "Bob"));
+    client.onMessage(pos("aaaaaaaa", "Bob"));
+    expect(app.toasts.map((t) => t.text)).toEqual(["Bob joined the room"]);
+    // New socket first, then the lagging leave for the old one.
+    client.onMessage(hello("bbbbbbbb", "Bob"));
+    client.onMessage(pos("bbbbbbbb", "Bob"));
+    client.onMessage(leave("aaaaaaaa"));
+    expect(app.toasts).toHaveLength(1);
+    expect(Object.keys(app.teammates)).toEqual(["bbbbbbbb"]);
+    // Leave first, then the new socket: the marker is kept as a ghost, one leave toast, no join toast.
+    client.onMessage(leave("bbbbbbbb"));
+    expect(app.toasts.map((t) => t.text)).toEqual(["Bob joined the room", "Bob left the room"]);
+    client.onMessage(hello("cccccccc", "Bob"));
+    expect(app.toasts).toHaveLength(2);
+    expect(Object.keys(app.teammates)).toEqual(["cccccccc"]);
+  });
+
   it("sends the known own position as soon as it joins", () => {
     app.setOwnPosition({ x: 5, y: 6, z: 7, yaw: 12 });
     app.setMap("customs", "manual");

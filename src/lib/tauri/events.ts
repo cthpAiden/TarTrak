@@ -10,13 +10,19 @@ export function handleScreenshot(name: string, state: AppState = app): void {
   state.setOwnPosition(pos);
 }
 
+/** The tail replays the whole log at startup, so an unknown map is reported once, not per line. */
+const warnedMaps = new Set<string>();
+
 export function handleLogLine(line: string, state: AppState = app): void {
   const ev = parseLogLine(line);
   if (!ev || ev.kind === "gameStarted") return;
   const key = resolveMapKey(ev.name);
   if (key) {
+    // A raid on a new map makes the last screenshot's position meaningless there.
+    if (state.currentMap !== null && state.currentMap !== key) state.clearOwnPosition();
     state.setMap(key, "log");
-  } else if (ev.kind === "location") {
+  } else if (ev.kind === "location" && !warnedMaps.has(ev.name)) {
+    warnedMaps.add(ev.name);
     state.toast(`Unknown map in log: ${ev.name}. Pick it manually.`);
   }
 }

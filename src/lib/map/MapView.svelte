@@ -152,7 +152,12 @@
     const m = map;
     const len = lineLengthPx;
     const cone = showCone;
-    if (!m || !p) return;
+    if (!m) return;
+    if (!p) {
+      own?.remove();
+      own = null;
+      return;
+    }
     if (!own) own = new PositionMarker(m, { color: OWN_COLOR, radius: 6, lineLengthPx: len, cone });
     own.update(p.x, p.z, p.yaw);
     own.setOpacity(opacityFor(t - updatedAt));

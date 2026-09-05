@@ -100,16 +100,21 @@ export class RoomController {
       // Keep the last known marker; the spec says markers never disappear on their own.
       const t = app.teammates[m.id];
       if (t) {
+        // Replaced means they are already back under a new id: a reconnect, not a departure.
         if (this.isReplaced(m.id, t)) app.removeTeammate(m.id);
-        else app.upsertTeammate({ ...t, left: true });
-        app.toast(`${t.name} left the room`);
+        else {
+          app.upsertTeammate({ ...t, left: true });
+          app.toast(`${t.name} left the room`);
+        }
       }
       return;
     }
+    // Judged before the ghost is dropped: a same-name marker of any kind means this is a reconnect.
+    const rejoin = Object.values(app.teammates).some((t) => t.id !== m.id && t.name === m.name);
     this.dropGhost(m.id, m.name);
     if (m.type === "hello") {
       if (app.teammates[m.id]) return;
-      app.toast(`${m.name} joined the room`);
+      if (!rejoin) app.toast(`${m.name} joined the room`);
       // Listed at once, so a joiner who has not taken a screenshot yet still shows up as present.
       app.upsertTeammate({
         id: m.id,

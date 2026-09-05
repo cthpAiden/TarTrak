@@ -46,6 +46,25 @@ describe("handleLogLine", () => {
     expect(s.toasts.map((t) => t.text)).toEqual(["Unknown map in log: SomeNewMap. Pick it manually."]);
   });
 
+  it("drops the old position when the log moves to another map, keeps it on the same map", () => {
+    const s = new AppState();
+    s.setMap("woods", "log");
+    s.setOwnPosition({ x: 1, y: 2, z: 3, yaw: 4 }, 1000);
+    handleLogLine(loc("Woods"), s);
+    expect(s.ownPos).not.toBeNull();
+    handleLogLine(loc("Lighthouse"), s);
+    expect(s.ownPos).toBeNull();
+    expect(s.ownUpdatedAt).toBe(0);
+    expect(s.currentMap).toBe("lighthouse");
+  });
+
+  it("warns about a given unknown map only once across the replayed log", () => {
+    const s = new AppState();
+    handleLogLine(loc("Atlantis"), s);
+    handleLogLine(loc("Atlantis"), s);
+    expect(s.toasts).toHaveLength(1);
+  });
+
   it("uses the scene preset as an early hint", () => {
     const s = new AppState();
     handleLogLine(
