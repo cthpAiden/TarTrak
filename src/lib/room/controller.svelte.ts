@@ -15,15 +15,24 @@ export class RoomController {
   status = $state<RoomStatus>("closed");
   private client: RoomClientLike | null = null;
   private errorToasted = false;
+  private wasOpen = false;
+  private outageToasted = false;
 
   constructor(
     private readonly makeClient: (opts: RoomClientOptions) => RoomClientLike = (opts) => new RoomClient(opts),
   ) {}
 
+  /** True while we are in a room but the socket is not up: the map shows a pill for it. */
+  get reconnecting(): boolean {
+    return this.code !== null && this.status !== "open";
+  }
+
   join(code: string, name: string, color: string, relayUrl: string): void {
     this.leave();
     this.code = code.toUpperCase();
     this.errorToasted = false;
+    this.wasOpen = false;
+    this.outageToasted = false;
     this.client = this.makeClient({
       relayUrl,
       code: this.code,
@@ -32,7 +41,17 @@ export class RoomController {
       onMessage: (m) => this.handle(m),
       onStatus: (s) => {
         this.status = s;
-        if (s === "open") this.errorToasted = false;
+        if (s === "open") {
+          this.errorToasted = false;
+          if (!this.wasOpen && this.outageToasted) app.toast("Squad reconnected");
+          this.wasOpen = true;
+          this.outageToasted = false;
+        } else if (s === "closed" && this.wasOpen && !this.outageToasted && this.code !== null) {
+          // Only once per outage: the client retries forever behind this.
+          this.outageToasted = true;
+          this.wasOpen = false;
+          app.toast("Squad connection lost, reconnecting…");
+        }
       },
       // The client retries forever, so one toast per outage instead of one every backoff round.
       onError: (e) => {
@@ -47,6 +66,9 @@ export class RoomController {
   }
 
   leave(): void {
+    // Reset first: close() reports "closed" synchronously, which must not read as an outage.
+    this.wasOpen = false;
+    this.outageToasted = false;
     this.client?.close();
     this.client = null;
     this.code = null;

@@ -304,6 +304,12 @@
           {/if}
         </svg>
       </button>
+      {#if room.reconnecting}
+        <div class="conn-pill" role="status">
+          <span class="dot connecting"></span>
+          {room.status === "connecting" ? "Squad: connecting…" : "Squad: reconnecting…"}
+        </div>
+      {/if}
       {#if def}
         <MapView
           bind:this={mapView}

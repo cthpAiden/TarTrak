@@ -24,6 +24,9 @@
 
   const codeOk = $derived(isValidRoomCode(code.toUpperCase()));
 
+  // While we are still in a room, a dropped socket is a retry in progress, not a resting state.
+  const statusText = $derived(room.code && room.status === "closed" ? "reconnecting" : room.status);
+
   /** Ticks once a second so the ages in the squad list stay current. */
   let now = $state(Date.now());
   let copied = $state(false);
@@ -98,8 +101,8 @@
       <button onclick={join} disabled={!codeOk}>Join</button>
       <button onclick={create}>Create</button>
     {/if}
-    <span class="dot {room.status}" title={room.status}></span>
-    <span class="muted">{room.status}</span>
+    <span class="dot {room.status}" title={statusText}></span>
+    <span class="muted">{statusText}</span>
   </div>
 
   {#if room.code}

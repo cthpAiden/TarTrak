@@ -56,7 +56,19 @@
             aria-label="Toggle {g.label} section"
             onclick={() => (collapsed[g.group] = !collapsed[g.group])}
           >
-            {search !== "" || !collapsed[g.group] ? "▾" : "▸"}
+            <svg
+              viewBox="0 0 16 16"
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M6 4l4 4-4 4" />
+            </svg>
           </button>
           <input
             type="checkbox"
@@ -65,7 +77,8 @@
             indeterminate={g.state === "some"}
             onchange={() => onChange(setGroup(filters, g.group, g.state !== "all"))}
           />
-          <span class="label">{g.label}</span>
+          <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+          <span class="label clickable" onclick={() => (collapsed[g.group] = !collapsed[g.group])}>{g.label}</span>
           <span class="cnt">{g.shown}/{g.total}</span>
         </div>
         {#if search !== "" || !collapsed[g.group]}
@@ -103,8 +116,15 @@
   .groups { flex: 1; min-height: 0; overflow-y: auto; }
   .note { margin: 0; font-size: 11px; }
   .hdr { display: flex; align-items: center; gap: 6px; font-size: 13px; padding: 3px 0; }
-  .tri { background: none; border: none; color: var(--muted); cursor: pointer; padding: 0; width: 12px; font-size: 11px; }
+  .tri {
+    background: none; border: none; color: var(--muted); cursor: pointer; padding: 0;
+    width: 22px; height: 22px; display: grid; place-items: center; border-radius: 4px;
+  }
+  .tri:hover { background: rgba(255, 255, 255, 0.06); color: var(--fg); }
+  .tri svg { transition: transform 150ms ease; }
+  .tri[aria-expanded="true"] svg { transform: rotate(90deg); }
   .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .label.clickable { cursor: pointer; }
   .cnt { color: var(--muted); font-size: 11px; }
   ul { list-style: none; margin: 0 0 2px; padding: 0 0 0 18px; }
   li { display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 2px 0; }

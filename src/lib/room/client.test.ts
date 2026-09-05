@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { RoomClient, roomUrl, type WebSocketLike } from "./client";
+import { PING_INTERVAL_MS, PONG_TIMEOUT_MS, RoomClient, roomUrl, type WebSocketLike } from "./client";
 import type { ServerMsg } from "./protocol";
 
 class FakeWs implements WebSocketLike {
@@ -28,6 +28,9 @@ class FakeWs implements WebSocketLike {
   }
   receive(msg: unknown) {
     this.onmessage?.({ data: JSON.stringify(msg) });
+  }
+  receiveRaw(data: string) {
+    this.onmessage?.({ data });
   }
   drop() {
     this.readyState = 3;
@@ -163,6 +166,47 @@ describe("RoomClient", () => {
     vi.advanceTimersByTime(60_000);
     expect(FakeWs.instances).toHaveLength(before + 1);
     expect(FakeWs.instances.at(-1)!.closed).toBe(true);
+  });
+
+  it("pings on an interval once open and a pong keeps the socket alive", () => {
+    const { client, statuses } = make();
+    client.connect();
+    const ws = FakeWs.instances[0];
+    ws.open();
+    ws.sent.length = 0;
+    vi.advanceTimersByTime(PING_INTERVAL_MS);
+    expect(ws.sent).toEqual(["ping"]);
+    ws.receiveRaw("pong");
+    vi.advanceTimersByTime(PONG_TIMEOUT_MS);
+    expect(ws.closed).toBe(false);
+    expect(statuses).toEqual(["connecting", "open"]);
+    expect(FakeWs.instances).toHaveLength(1);
+  });
+
+  it("closes and reconnects a socket that never answers a ping", () => {
+    const { client, statuses } = make();
+    client.connect();
+    const ws = FakeWs.instances[0];
+    ws.open();
+    vi.advanceTimersByTime(PING_INTERVAL_MS);
+    vi.advanceTimersByTime(PONG_TIMEOUT_MS - 1);
+    expect(ws.closed).toBe(false);
+    vi.advanceTimersByTime(1);
+    expect(ws.closed).toBe(true);
+    expect(statuses).toEqual(["connecting", "open", "closed"]);
+    vi.advanceTimersByTime(1000);
+    expect(FakeWs.instances).toHaveLength(2);
+  });
+
+  it("stops pinging after close()", () => {
+    const { client } = make();
+    client.connect();
+    const ws = FakeWs.instances[0];
+    ws.open();
+    ws.sent.length = 0;
+    client.close();
+    vi.advanceTimersByTime(PING_INTERVAL_MS * 3);
+    expect(ws.sent).toEqual([]);
   });
 
   it("survives a socket factory that throws and keeps retrying", () => {

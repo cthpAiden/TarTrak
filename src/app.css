@@ -23,6 +23,16 @@ body.overlay .topbar { padding: 2px 6px; font-size: 12px; background: rgba(30, 3
 }
 .mode-btn:hover { border-color: var(--accent); color: var(--accent); }
 body.overlay .mode-btn { background: rgba(30, 35, 43, 0.75); }
+body.overlay .toast { font-size: 11px; padding: 4px 8px; }
+
+.conn-pill {
+  position: absolute; top: 8px; left: 42px; z-index: 1000;
+  display: flex; align-items: center; gap: 6px;
+  height: 26px; padding: 0 10px; box-sizing: border-box; font-size: 12px;
+  color: var(--fg); background: rgba(30, 35, 43, 0.75); border: 1px solid #3a4048; border-radius: 3px;
+  pointer-events: none;
+}
+.conn-pill .dot { width: 8px; height: 8px; border-radius: 50%; background: #cc3; }
 
 .layout { display: flex; flex-direction: column; height: 100%; }
 .topbar { display: flex; gap: 8px; align-items: center; padding: 6px 10px; background: var(--panel); flex-wrap: nowrap; overflow: hidden; }

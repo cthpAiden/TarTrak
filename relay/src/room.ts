@@ -1,5 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import { parseClientMessage, type ServerMsg } from "./protocol";
+import type { Env } from "./index";
 
 /** Per-socket state kept by the runtime across hibernation (limit 2 KiB). */
 interface Attachment {
@@ -9,6 +10,12 @@ interface Attachment {
 }
 
 export class RoomDO extends DurableObject {
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    // Answered by the runtime, so a client keepalive never wakes a hibernating DO.
+    this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
+  }
+
   async fetch(_request: Request): Promise<Response> {
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair) as [WebSocket, WebSocket];

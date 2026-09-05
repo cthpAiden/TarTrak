@@ -27,6 +27,9 @@ export interface RoomClientOptions {
 }
 
 export const SEND_INTERVAL_MS = 500;
+/** Keepalive: a silent socket is indistinguishable from a dead one, so we probe it. */
+export const PING_INTERVAL_MS = 20_000;
+export const PONG_TIMEOUT_MS = 10_000;
 const BACKOFF_MIN_MS = 1_000;
 const BACKOFF_MAX_MS = 30_000;
 const WS_OPEN = 1;
@@ -46,6 +49,8 @@ export class RoomClient {
   private backoff = BACKOFF_MIN_MS;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private throttleTimer: ReturnType<typeof setTimeout> | null = null;
+  private pingTimer: ReturnType<typeof setInterval> | null = null;
+  private pongTimer: ReturnType<typeof setTimeout> | null = null;
   private pending: PosMsg | null = null;
   private lastPos: PosMsg | null = null;
   private lastSentAt = -Infinity;
@@ -69,6 +74,7 @@ export class RoomClient {
     if (this.throttleTimer) clearTimeout(this.throttleTimer);
     this.reconnectTimer = null;
     this.throttleTimer = null;
+    this.stopHeartbeat();
     this.pending = null;
     const ws = this.ws;
     this.ws = null;
@@ -114,6 +120,32 @@ export class RoomClient {
     }
   }
 
+  private stopHeartbeat(): void {
+    if (this.pingTimer) clearInterval(this.pingTimer);
+    if (this.pongTimer) clearTimeout(this.pongTimer);
+    this.pingTimer = null;
+    this.pongTimer = null;
+  }
+
+  /** A half-open socket never fires onclose, so an unanswered ping is what tells us to reconnect. */
+  private startHeartbeat(ws: WebSocketLike): void {
+    this.stopHeartbeat();
+    this.pingTimer = setInterval(() => {
+      if (this.ws !== ws) return;
+      ws.send("ping");
+      if (this.pongTimer) return;
+      this.pongTimer = setTimeout(() => {
+        this.pongTimer = null;
+        if (this.ws !== ws) return;
+        this.ws = null;
+        this.stopHeartbeat();
+        ws.close();
+        this.setStatus("closed");
+        this.scheduleReconnect();
+      }, PONG_TIMEOUT_MS);
+    }, PING_INTERVAL_MS);
+  }
+
   private setStatus(s: RoomStatus): void {
     if (this.currentStatus === s) return;
     this.currentStatus = s;
@@ -149,6 +181,7 @@ export class RoomClient {
       if (this.ws !== ws) return;
       this.backoff = BACKOFF_MIN_MS;
       this.setStatus("open");
+      this.startHeartbeat(ws);
       const hello: HelloMsg = { type: "hello", name: this.opts.name, color: this.opts.color };
       ws.send(JSON.stringify(hello));
       // The reconnect got a fresh relay id, so the room only knows the new us once we say where
@@ -158,6 +191,11 @@ export class RoomClient {
     };
     ws.onmessage = (ev) => {
       if (this.ws !== ws || typeof ev.data !== "string") return;
+      if (ev.data === "pong") {
+        if (this.pongTimer) clearTimeout(this.pongTimer);
+        this.pongTimer = null;
+        return;
+      }
       const msg = parseServerMessage(ev.data);
       if (msg) this.opts.onMessage(msg);
     };
@@ -167,6 +205,7 @@ export class RoomClient {
     ws.onclose = () => {
       if (this.ws !== ws) return;
       this.ws = null;
+      this.stopHeartbeat();
       this.setStatus("closed");
       this.scheduleReconnect();
     };

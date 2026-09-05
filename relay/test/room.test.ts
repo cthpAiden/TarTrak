@@ -119,6 +119,14 @@ describe("room relay", () => {
     expect(await a.quiet(200)).toBe(true);
   });
 
+  it("auto-responds to ping without disturbing the other sockets", async () => {
+    const a = await connect("ROOM05");
+    const b = await connect("ROOM05");
+    a.ws.send("ping");
+    expect(await a.next()).toBe("pong");
+    expect(await b.quiet(300)).toBe(true);
+  });
+
   it("isolates rooms", async () => {
     const a = await connect("ROOM03");
     const b = await connect("ROOM04");

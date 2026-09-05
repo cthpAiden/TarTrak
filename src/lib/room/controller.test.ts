@@ -144,4 +144,36 @@ describe("RoomController", () => {
     FakeClient.last!.opts.onError?.("bad url");
     expect(app.toasts).toHaveLength(1);
   });
+
+  it("toasts an outage once and the recovery once", () => {
+    const { room: controller, client } = makeController();
+    client.opts.onStatus("connecting");
+    client.opts.onStatus("closed");
+    // The first connect never got through, so there is no outage to report yet.
+    expect(app.toasts).toHaveLength(0);
+
+    client.opts.onStatus("open");
+    client.opts.onStatus("closed");
+    client.opts.onStatus("connecting");
+    client.opts.onStatus("closed");
+    expect(app.toasts.map((t) => t.text)).toEqual(["Squad connection lost, reconnecting…"]);
+    expect(controller.reconnecting).toBe(true);
+
+    client.opts.onStatus("open");
+    expect(app.toasts.map((t) => t.text)).toEqual(["Squad connection lost, reconnecting…", "Squad reconnected"]);
+    expect(controller.reconnecting).toBe(false);
+
+    // A second open with no outage in between says nothing.
+    client.opts.onStatus("open");
+    expect(app.toasts).toHaveLength(2);
+  });
+
+  it("says nothing when the user leaves the room", () => {
+    const { room: controller, client } = makeController();
+    client.opts.onStatus("open");
+    controller.leave();
+    client.opts.onStatus("closed");
+    expect(app.toasts).toHaveLength(0);
+    expect(controller.reconnecting).toBe(false);
+  });
 });
