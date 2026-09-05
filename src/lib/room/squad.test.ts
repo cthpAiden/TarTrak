@@ -69,6 +69,17 @@ describe("squadRows", () => {
     expect(row).toMatchObject({ sameMap: true, distanceM: null, mapName: "Customs" });
   });
 
+  it("asks for the floor only of teammates drawn on my map", () => {
+    const floorOf = (t: Teammate) => (t.y > 5 ? "2nd Floor" : null);
+    const rows = squadRows(
+      [mate({ id: "a", y: 10 }), mate({ id: "b", y: 1 }), mate({ id: "c", map: "woods", y: 10 })],
+      me,
+      0,
+      { mapName: names, floorOf },
+    );
+    expect(rows.map((r) => [r.id, r.floor])).toEqual([["a", "2nd Floor"], ["b", null], ["c", null]]);
+  });
+
   it("lists a hello-only teammate as present without a position", () => {
     const [row] = squadRows([mate({ id: "a", map: null, noPosition: true })], me, 0, names);
     expect(row).toMatchObject({ noPosition: true, sameMap: false, mapUnknown: false, distanceM: null });

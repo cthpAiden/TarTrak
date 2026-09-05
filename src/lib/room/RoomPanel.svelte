@@ -4,7 +4,7 @@
   import { generateRoomCode, isValidRoomCode } from "./protocol";
   import { safeColor, squadRows, type SquadRow } from "./squad";
   import { app } from "../state/app.svelte";
-  import { getMapDef } from "../map/mapsData";
+  import { getMapDef, floorForHeight } from "../map/mapsData";
   import { DEFAULT_SETTINGS, type Settings } from "../settings/store";
 
   let {
@@ -56,19 +56,26 @@
     }
   }
 
+  const def = $derived(app.currentMap ? (getMapDef(app.currentMap) ?? null) : null);
+  const myFloor = $derived(def && app.ownPos ? floorForHeight(def, app.ownPos) : null);
   const rows = $derived(
     squadRows(
       Object.values(app.teammates),
       { map: app.currentMap, pos: app.ownPos ? { x: app.ownPos.x, z: app.ownPos.z } : null },
       now,
-      (k) => getMapDef(k)?.name ?? null,
+      {
+        mapName: (k) => getMapDef(k)?.name ?? null,
+        floorOf: (t) => (def ? floorForHeight(def, t) : null),
+      },
     ),
   );
 
   function where(r: SquadRow): string {
     if (r.noPosition) return "no position yet";
-    if (r.sameMap) return r.distanceM !== null ? `${r.distanceM} m` : r.mapUnknown ? "map unknown" : "same map";
-    return r.mapName ?? "elsewhere";
+    if (!r.sameMap) return r.mapName ?? "elsewhere";
+    const base = r.distanceM !== null ? `${r.distanceM} m` : r.mapUnknown ? "map unknown" : "same map";
+    // On a multi-floor map, a teammate above or below me is not where the distance suggests.
+    return r.floor !== myFloor ? `${base} · ${r.floor ?? "Ground"}` : base;
   }
   function rowTitle(r: SquadRow): string {
     if (r.noPosition) return `${r.name} has not taken a screenshot yet`;

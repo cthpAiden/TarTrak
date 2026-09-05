@@ -12,6 +12,8 @@ export interface SquadRow {
   mapUnknown: boolean;
   /** They joined but have not taken a screenshot yet. */
   noPosition: boolean;
+  /** Floor layer name their height puts them on; null for ground level or when unknown. */
+  floor: string | null;
   ageSec: number;
   /** Whole metres to me, or null when one of us has no position or we are not on the same map. */
   distanceM: number | null;
@@ -27,8 +29,15 @@ export interface Me {
   pos: { x: number; z: number } | null;
 }
 
+export interface SquadLookups {
+  mapName: (key: string) => string | null;
+  /** Floor for a position on my map; only asked for teammates drawn on it. */
+  floorOf?: (t: Teammate) => string | null;
+}
+
 /** Rows for the squad list: same map first, then by name. */
-export function squadRows(teammates: Teammate[], me: Me, now: number, mapName: (key: string) => string | null): SquadRow[] {
+export function squadRows(teammates: Teammate[], me: Me, now: number, lookups: SquadLookups | ((key: string) => string | null)): SquadRow[] {
+  const { mapName, floorOf } = typeof lookups === "function" ? { mapName: lookups, floorOf: undefined } : lookups;
   return teammates
     .map((t) => {
       const noPosition = t.noPosition === true;
@@ -42,6 +51,7 @@ export function squadRows(teammates: Teammate[], me: Me, now: number, mapName: (
         sameMap,
         mapUnknown,
         noPosition,
+        floor: sameMap && floorOf ? floorOf(t) : null,
         ageSec: Math.max(0, Math.round((now - t.receivedAt) / 1000)),
         distanceM: sameMap && me.pos ? Math.round(Math.hypot(t.x - me.pos.x, t.z - me.pos.z)) : null,
       };
