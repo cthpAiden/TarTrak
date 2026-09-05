@@ -15,7 +15,12 @@ const warnedMaps = new Set<string>();
 
 export function handleLogLine(line: string, state: AppState = app): void {
   const ev = parseLogLine(line);
-  if (!ev || ev.kind === "gameStarted") return;
+  if (!ev) return;
+  if (ev.kind === "gameStarted") {
+    // A new raid, possibly on the same map as the last one: the old marker would sit at last raid's spot.
+    state.clearOwnPosition();
+    return;
+  }
   const key = resolveMapKey(ev.name);
   if (key) {
     // A raid on a new map makes the last screenshot's position meaningless there.

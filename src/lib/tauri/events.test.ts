@@ -65,6 +65,15 @@ describe("handleLogLine", () => {
     expect(s.toasts).toHaveLength(1);
   });
 
+  it("clears the old position when a raid starts, so a repeat of the same map starts clean", () => {
+    const s = new AppState();
+    s.setMap("factory", "log");
+    s.setOwnPosition({ x: 1, y: 2, z: 3, yaw: 4 }, 1000);
+    handleLogLine("2026-09-04 04:56:12.284|1.1.0.1.46911|Info|application|GameStarted:215.23(215.23) real:236.94(236.94) diff:21.71", s);
+    expect(s.ownPos).toBeNull();
+    expect(s.currentMap).toBe("factory");
+  });
+
   it("uses the scene preset as an early hint", () => {
     const s = new AppState();
     handleLogLine(
