@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from "svelte";
   import { normalizeHotkey } from "../tauri/window";
-  import type { Settings } from "./store";
+  import { DEFAULT_RELAY_URL, type Settings } from "./store";
   import { GAME_MODES, GAME_MODE_LABELS, type GameMode } from "../quests/jsonSource";
 
   let { settings, onChange, onPickDir, onInvalid }: {
@@ -24,6 +24,13 @@
 
   // untrack: these are the editable copies, seeded once from the stored settings.
   let relay = $state(untrack(() => settings.relayUrl));
+
+  /** A blank field means "back to the project relay", not a relay at an empty address. */
+  function commitRelay() {
+    const next = relay.trim() || DEFAULT_RELAY_URL;
+    relay = next;
+    if (next !== settings.relayUrl) onChange({ relayUrl: next });
+  }
   let overlayKey = $state(untrack(() => settings.hotkeyOverlay));
   let opacityKey = $state(untrack(() => settings.hotkeyOpacity));
   let lineLen = $state(untrack(() => settings.lineLengthPx));
@@ -64,7 +71,7 @@
       </select>
 
       <label for="set-relay">Relay URL</label>
-      <input id="set-relay" bind:value={relay} onblur={() => onChange({ relayUrl: relay.trim() })} />
+      <input id="set-relay" bind:value={relay} onblur={commitRelay} placeholder={DEFAULT_RELAY_URL} />
 
       <label for="set-hk-overlay">Overlay hotkey</label>
       <input

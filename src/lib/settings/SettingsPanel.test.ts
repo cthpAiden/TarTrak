@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { flushSync, mount, unmount } from "svelte";
 import SettingsPanel from "./SettingsPanel.svelte";
-import { DEFAULT_SETTINGS, type Settings } from "./store";
+import { DEFAULT_RELAY_URL, DEFAULT_SETTINGS, type Settings } from "./store";
 
 function open(settings: Partial<Settings> = {}) {
   const changes: Partial<Settings>[] = [];
@@ -47,5 +47,26 @@ describe("SettingsPanel hotkeys", () => {
     expect(changes).toEqual([]);
     expect(invalid).toEqual(["Invalid hotkey: ctrl+"]);
     void unmount(panel);
+  });
+});
+
+describe("SettingsPanel relay URL", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("falls back to the project relay when the field is blanked", () => {
+    const { target, panel, changes } = open({ relayUrl: "wss://mine.example" });
+    blurWith(target, "set-relay", "   ");
+    expect(changes).toEqual([{ relayUrl: DEFAULT_RELAY_URL }]);
+    expect(target.querySelector<HTMLInputElement>("#set-relay")!.value).toBe(DEFAULT_RELAY_URL);
+    unmount(panel);
+  });
+
+  it("does not report an unchanged URL", () => {
+    const { target, panel, changes } = open({ relayUrl: "wss://mine.example" });
+    blurWith(target, "set-relay", " wss://mine.example ");
+    expect(changes).toEqual([]);
+    unmount(panel);
   });
 });
