@@ -75,6 +75,7 @@ const raw: RawBundle = {
           kappaRequired: true,
           lightkeeperRequired: false,
           wikiLink: "https://escapefromtarkov.fandom.com/wiki/Debut",
+          neededKeys: [{ map: "m1", keys: ["k1", "k1"] }, { map: "m2", keys: ["k-unknown"] }],
           taskRequirements: [
             { task: "t0", status: ["complete"] },
             { task: "t9", status: ["started"] },
@@ -176,6 +177,12 @@ describe("toQuestData", () => {
     expect(z2.outline).toBeUndefined();
     expect(t1.wikiLink).toBe("https://escapefromtarkov.fandom.com/wiki/Debut");
     expect(t2.wikiLink).toBeUndefined();
+  });
+
+  it("names the needed keys once each, falling back to the id", () => {
+    const [t1, t2] = d.tasks;
+    expect(t1.neededKeys).toEqual(["Factory emergency exit key", "k-unknown"]);
+    expect(t2.neededKeys).toEqual([]);
   });
 
   it("derives objective maps from zones, then the task map", () => {

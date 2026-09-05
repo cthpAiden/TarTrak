@@ -32,6 +32,8 @@ export interface QuestTask {
   kappaRequired?: boolean;
   lightkeeperRequired?: boolean;
   wikiLink?: string;
+  /** Display names of the keys the task needs, deduplicated. */
+  neededKeys?: string[];
 }
 export interface MapExtract {
   id: string;

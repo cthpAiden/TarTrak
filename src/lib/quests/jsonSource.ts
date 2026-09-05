@@ -112,7 +112,14 @@ function toObjective(o: Dict, tasksEn: Record<string, unknown>, taskMap: string 
   return { id: str(o.id), type: str(o.type), description: tr(tasksEn, str(o.description)), maps, zones };
 }
 
-function toTask(t: Dict, tasksEn: Record<string, unknown>, traders: Dict, tradersEn: Record<string, unknown>): QuestTask {
+function toTask(
+  t: Dict,
+  tasksEn: Record<string, unknown>,
+  traders: Dict,
+  tradersEn: Record<string, unknown>,
+  itemsEn: Record<string, unknown>,
+  mapsEn: Record<string, unknown>,
+): QuestTask {
   const traderId = str(t.trader);
   const traderKey = str(dict(traders[traderId]).name, traderId);
   const taskMap = typeof t.map === "string" ? t.map : null;
@@ -131,6 +138,7 @@ function toTask(t: Dict, tasksEn: Record<string, unknown>, traders: Dict, trader
     lightkeeperRequired: t.lightkeeperRequired === true,
     // Only http(s) links may ever be handed to the system browser.
     wikiLink: /^https?:\/\//.test(str(t.wikiLink)) ? str(t.wikiLink) : undefined,
+    neededKeys: [...new Set(list(t.neededKeys).flatMap((k) => strings(k.keys)).map((id) => itemName(itemsEn, mapsEn, id)))],
   };
 }
 
@@ -238,7 +246,7 @@ export function toQuestData(raw: RawBundle, now: number): QuestData {
   const itemsEn = en(raw.itemsEn);
   return {
     schemaVersion: QUEST_SCHEMA_VERSION,
-    tasks: Object.values(rawTasks).map((t) => toTask(dict(t), tasksEn, traders, tradersEn)),
+    tasks: Object.values(rawTasks).map((t) => toTask(dict(t), tasksEn, traders, tradersEn, itemsEn, mapsEn)),
     maps: Object.values(rawMaps).map((m) => toMap(dict(m), mapsEn, itemsEn, containers, mobs)),
     fetchedAt: now,
   };

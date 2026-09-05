@@ -136,7 +136,9 @@
                     title={hiddenQuests[t.id] ? "Show on map" : "Hide on map"}
                     onclick={() => flipHidden(t.id)}>{hiddenQuests[t.id] ? "◌" : "◉"}</button
                   >
-                  <span class="meta">lvl {t.minPlayerLevel}{#if count} · {count} here{/if}</span>
+                  <span class="meta">
+                    lvl {t.minPlayerLevel}{#if count} · {count} here{/if}{#if t.neededKeys?.length} · keys: {t.neededKeys.join(", ")}{/if}
+                  </span>
                 </li>
               {/each}
             </ul>
