@@ -1,5 +1,6 @@
 import { load } from "@tauri-apps/plugin-store";
 import { FILTER_KEY_RE } from "../layers/filters";
+import { GAME_MODES, type GameMode } from "../quests/jsonSource";
 
 export interface Settings {
   screenshotsDir: string | null;
@@ -9,6 +10,8 @@ export interface Settings {
   name: string;
   color: string;
   playerLevel: number;
+  /** Which tarkov.dev data set to load: PvP ("regular") or PvE. */
+  gameMode: GameMode;
   hotkeyOverlay: string;
   hotkeyOpacity: string;
   lastMap: string | null;
@@ -34,6 +37,7 @@ export const DEFAULT_SETTINGS: Settings = {
   name: "PMC",
   color: "#3aa0ff",
   playerLevel: 0,
+  gameMode: "regular",
   hotkeyOverlay: "F5",
   hotkeyOpacity: "F6",
   lastMap: null,
@@ -54,6 +58,7 @@ const SHAPE: Record<keyof Settings, Kind> = {
   name: "string",
   color: "string",
   playerLevel: "number",
+  gameMode: "string",
   hotkeyOverlay: "string",
   hotkeyOpacity: "string",
   lastMap: "string?",
@@ -115,6 +120,7 @@ export function mergeSettings(partial: unknown): Settings {
   out.color = out.color.slice(0, 32);
   out.lineLengthPx = clamp(out.lineLengthPx, 8, 120);
   out.playerLevel = clamp(out.playerLevel, 0, 79);
+  if (!GAME_MODES.includes(out.gameMode)) out.gameMode = DEFAULT_SETTINGS.gameMode;
   if (!ROOM_CODE_RE.test(out.lastRoom)) out.lastRoom = "";
   out.layerFilters = cleanRecord<boolean>(
     out.layerFilters,

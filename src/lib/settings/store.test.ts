@@ -6,6 +6,12 @@ vi.mock("@tauri-apps/plugin-store", () => ({
 }));
 
 describe("mergeSettings", () => {
+  it("keeps a known game mode and resets an unknown one", () => {
+    expect(mergeSettings({ gameMode: "pve" }).gameMode).toBe("pve");
+    expect(mergeSettings({ gameMode: "arena" }).gameMode).toBe("regular");
+    expect(mergeSettings({ gameMode: 3 }).gameMode).toBe("regular");
+  });
+
   it("replaces the pre-deploy placeholder relay URL and an empty one with the default", () => {
     expect(mergeSettings({ relayUrl: "wss://tartrak-relay.example.workers.dev" }).relayUrl).toBe(DEFAULT_RELAY_URL);
     expect(mergeSettings({ relayUrl: "  " }).relayUrl).toBe(DEFAULT_RELAY_URL);

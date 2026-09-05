@@ -2,8 +2,13 @@ import { BaseDirectory, exists, mkdir, readTextFile, writeTextFile } from "@taur
 import { fetchQuestData } from "./query";
 import { bundledSnapshot } from "./snapshot";
 import { QUEST_SCHEMA_VERSION, type QuestData } from "./types";
+import type { GameMode } from "./jsonSource";
 
 export const CACHE_PATH = "quests/data.json";
+/** One cache per game mode; PvP keeps the historical path so an existing cache stays valid. */
+export function cachePath(mode: GameMode): string {
+  return mode === "regular" ? CACHE_PATH : `quests/data-${mode}.json`;
+}
 export const MAX_AGE_MS = 86_400_000;
 
 export type QuestSource = "network" | "cache" | "snapshot" | "none";
@@ -54,18 +59,19 @@ export async function loadQuestData(deps: QuestLoaderDeps, onUpdate: (d: QuestDa
 
 const APP = { baseDir: BaseDirectory.AppData };
 
-export function defaultDeps(): QuestLoaderDeps {
+export function defaultDeps(mode: GameMode = "regular"): QuestLoaderDeps {
+  const path = cachePath(mode);
   return {
     async readCache() {
-      if (!(await exists(CACHE_PATH, APP))) return null;
-      const parsed: unknown = JSON.parse(await readTextFile(CACHE_PATH, APP));
+      if (!(await exists(path, APP))) return null;
+      const parsed: unknown = JSON.parse(await readTextFile(path, APP));
       return isQuestData(parsed) ? parsed : null;
     },
     async writeCache(d) {
       if (!(await exists("quests", APP))) await mkdir("quests", { ...APP, recursive: true });
-      await writeTextFile(CACHE_PATH, JSON.stringify(d), APP);
+      await writeTextFile(path, JSON.stringify(d), APP);
     },
-    fetchRemote: () => fetchQuestData(),
+    fetchRemote: () => fetchQuestData(undefined, mode),
     snapshot: bundledSnapshot,
     now: Date.now,
   };

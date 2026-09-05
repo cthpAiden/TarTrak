@@ -13,7 +13,9 @@
   import RoomPanel from "./lib/room/RoomPanel.svelte";
   import SettingsPanel from "./lib/settings/SettingsPanel.svelte";
   import QuestPanel from "./lib/quests/QuestPanel.svelte";
-  import { loadQuestData, defaultDeps } from "./lib/quests/cache";
+  import { loadQuestData, defaultDeps, type QuestSource } from "./lib/quests/cache";
+  import type { GameMode } from "./lib/quests/jsonSource";
+  import type { QuestData } from "./lib/quests/types";
   import { extractQuestMarkers } from "./lib/quests/markers";
   import { visibleQuestMarkers } from "./lib/quests/questLayer";
   import FilterPanel from "./lib/layers/FilterPanel.svelte";
@@ -166,6 +168,7 @@
     if (after.hotkeyOverlay !== before.hotkeyOverlay || after.hotkeyOpacity !== before.hotkeyOpacity) {
       await armHotkeys(after);
     }
+    if (after.gameMode !== before.gameMode) loadQuests(after.gameMode);
   }
 
   async function pickDir(kind: "screenshots" | "logs") {
@@ -178,11 +181,34 @@
     }
   }
 
+  // Startup runs async, so it can still be mid-flight when the component goes away.
+  let disposed = false;
+
+  /** Loads the data set for one game mode; a switch drops the retry loop of the previous one. */
+  function loadQuests(mode: GameMode) {
+    stopQuestRetry?.();
+    stopQuestRetry = null;
+    const deps = defaultDeps(mode);
+    // A late answer for a mode the user has already left must not overwrite the current data.
+    const apply = (d: QuestData, src: QuestSource) => {
+      if (settings?.gameMode === mode) app.setQuestData(d, src);
+    };
+    loadQuestData(deps, apply)
+      .catch((e) => app.toast(`Quest data error: ${e}`))
+      .then(() => {
+        // With no cache and no snapshot, a tarkov.dev outage at startup would otherwise leave the
+        // map and every filter empty until the next launch. Keep asking while it stays empty.
+        if (app.questData || disposed || settings?.gameMode !== mode) return;
+        stopQuestRetry = retryUntil(async () => {
+          await loadQuestData(deps, apply);
+          return app.questData !== null;
+        }, QUEST_RETRY_MS);
+      });
+  }
+
   onMount(() => {
     let stop: (() => void) | undefined;
     let stopRetry: (() => void) | undefined;
-    // Startup runs async, so it can still be mid-flight when the component goes away.
-    let disposed = false;
     const stopDrag = installAltDrag();
     // Each phase is isolated: a failure in one must not stop the others from starting.
     (async () => {
@@ -200,18 +226,7 @@
         app.toast(`Could not load quest progress: ${e}`);
       }
       // Fire and forget: quest data arrives whenever it arrives, the UI never waits for it.
-      const deps = defaultDeps();
-      loadQuestData(deps, (d, src) => app.setQuestData(d, src))
-        .catch((e) => app.toast(`Quest data error: ${e}`))
-        .then(() => {
-          // With no cache and no snapshot, a tarkov.dev outage at startup would otherwise leave the
-          // map and every filter empty until the next launch. Keep asking while it stays empty.
-          if (app.questData || disposed) return;
-          stopQuestRetry = retryUntil(async () => {
-            await loadQuestData(deps, (d, src) => app.setQuestData(d, src));
-            return app.questData !== null;
-          }, QUEST_RETRY_MS);
-        });
+      loadQuests(s.gameMode);
 
       let dirs: DetectedDirs = { screenshots: null, logs: null };
       try {
@@ -372,6 +387,7 @@
           {:else if tab === "quests"}
             <QuestPanel
               markers={allQuestMarkers}
+              gameMode={settings.gameMode}
               playerLevel={settings.playerLevel}
               onPlayerLevel={(n) => patchSettings({ playerLevel: n })}
               hiddenQuests={settings.hiddenQuests}

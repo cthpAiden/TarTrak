@@ -35,6 +35,16 @@ describe("fetchQuestData", () => {
     expect(d.tasks[0].trader.name).toBe("Prapor");
   });
 
+  it("fetches the PvE data set when asked", async () => {
+    const seen: string[] = [];
+    await fetchQuestData((url) => {
+      seen.push(url);
+      return get(url);
+    }, "pve");
+    expect(seen).toHaveLength(7);
+    expect(seen.every((u) => u.startsWith("https://json.tarkov.dev/pve/"))).toBe(true);
+  });
+
   it("propagates a fetch failure", async () => {
     await expect(fetchQuestData(async () => { throw new Error("GET boom -> 500"); })).rejects.toThrow(/boom/);
   });

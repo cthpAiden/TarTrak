@@ -4,15 +4,18 @@
   import { groupByTrader } from "./grouping";
   import type { QuestMarker } from "./markers";
   import Chevron from "../ui/Chevron.svelte";
+  import { GAME_MODE_LABELS, type GameMode } from "./jsonSource";
 
   let {
     markers,
+    gameMode,
     playerLevel,
     onPlayerLevel,
     hiddenQuests,
     onHiddenChange,
   }: {
     markers: QuestMarker[];
+    gameMode: GameMode;
     playerLevel: number;
     onPlayerLevel: (n: number) => void;
     hiddenQuests: Record<string, true>;
@@ -110,7 +113,7 @@
         </div>
       {/each}
     </div>
-    <p class="muted footer">data: {app.questSource} · {dataDate}</p>
+    <p class="muted footer">{GAME_MODE_LABELS[gameMode]} data: {app.questSource} · {dataDate}</p>
   {/if}
 </section>
 

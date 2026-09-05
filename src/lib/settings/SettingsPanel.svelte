@@ -2,6 +2,7 @@
   import { untrack } from "svelte";
   import { normalizeHotkey } from "../tauri/window";
   import type { Settings } from "./store";
+  import { GAME_MODES, GAME_MODE_LABELS, type GameMode } from "../quests/jsonSource";
 
   let { settings, onChange, onPickDir, onInvalid }: {
     settings: Settings;
@@ -50,6 +51,17 @@
         checked={settings.deleteScreenshots}
         onchange={(e) => onChange({ deleteScreenshots: e.currentTarget.checked })}
       />
+
+      <label for="set-mode">Game mode</label>
+      <select
+        id="set-mode"
+        value={settings.gameMode}
+        onchange={(e) => onChange({ gameMode: e.currentTarget.value as GameMode })}
+      >
+        {#each GAME_MODES as m (m)}
+          <option value={m}>{GAME_MODE_LABELS[m]}</option>
+        {/each}
+      </select>
 
       <label for="set-relay">Relay URL</label>
       <input id="set-relay" bind:value={relay} onblur={() => onChange({ relayUrl: relay.trim() })} />
@@ -105,7 +117,7 @@
   .grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 6px 8px; align-items: center; margin-top: 4px; }
   .dir { display: flex; gap: 4px; min-width: 0; }
   .dir code { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
-  input { background: #2a2f38; color: var(--fg); border: 1px solid #3a4048; padding: 3px 6px; min-width: 0; }
+  input, select { background: #2a2f38; color: var(--fg); border: 1px solid #3a4048; padding: 3px 6px; min-width: 0; }
   input[type="checkbox"] { justify-self: start; }
   .small { font-size: 11px; }
   a { color: var(--accent); }

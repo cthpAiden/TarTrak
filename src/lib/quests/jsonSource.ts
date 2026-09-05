@@ -21,7 +21,16 @@ import type {
   Vec3,
 } from "./types.ts";
 
-export const JSON_TARKOV_DEV = "https://json.tarkov.dev/regular";
+/** tarkov.dev publishes one data set per game mode; "regular" is PvP. */
+export type GameMode = "regular" | "pve";
+export const GAME_MODES: readonly GameMode[] = ["regular", "pve"];
+export const GAME_MODE_LABELS: Record<GameMode, string> = { regular: "PvP", pve: "PvE" };
+export const JSON_TARKOV_DEV_BASE = "https://json.tarkov.dev";
+/** The PvP data set, kept for the snapshot script and as the default. */
+export const JSON_TARKOV_DEV = `${JSON_TARKOV_DEV_BASE}/regular`;
+export function jsonUrl(mode: GameMode, file: string): string {
+  return `${JSON_TARKOV_DEV_BASE}/${mode}/${file}`;
+}
 export const JSON_FILES = ["maps", "maps_en", "tasks", "tasks_en", "traders", "traders_en", "items_en"] as const;
 
 export interface RawBundle {
