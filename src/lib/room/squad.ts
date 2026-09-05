@@ -17,6 +17,11 @@ export interface SquadRow {
   distanceM: number | null;
 }
 
+/** The relay accepts any string as a colour, so never let one reach a style unchecked. */
+export function safeColor(c: string): string {
+  return /^#[0-9a-fA-F]{3,8}$/.test(c) ? c : "#888888";
+}
+
 export interface Me {
   map: string | null;
   pos: { x: number; z: number } | null;

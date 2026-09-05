@@ -94,6 +94,17 @@ describe("PositionMarker", () => {
   });
 });
 
+describe("PositionMarker label", () => {
+  it("escapes HTML in the name so a teammate cannot inject markup", () => {
+    const map = makeMap();
+    const m = new PositionMarker(map, { color: "#fff", radius: 6, lineLengthPx: 28, label: "<b>x</b>" });
+    m.update(0, 0, 0);
+    const tt = m.circle.getTooltip()!;
+    expect(tt.getContent()).toBe("&#60;b&#62;x&#60;/b&#62;");
+    m.remove();
+  });
+});
+
 describe("PositionMarker view cone", () => {
   let map: L.Map;
   beforeEach(() => {

@@ -2,7 +2,7 @@
   import { onMount, untrack } from "svelte";
   import { room } from "./controller.svelte";
   import { generateRoomCode, isValidRoomCode } from "./protocol";
-  import { squadRows, type SquadRow } from "./squad";
+  import { safeColor, squadRows, type SquadRow } from "./squad";
   import { app } from "../state/app.svelte";
   import { getMapDef } from "../map/mapsData";
   import { DEFAULT_SETTINGS, type Settings } from "../settings/store";
@@ -76,11 +76,6 @@
     return r.sameMap ? `Centre the map on ${r.name}` : "";
   }
 
-  /** The relay accepts any string as a colour, so never let one reach a style attribute unchecked. */
-  function swatch(c: string): string {
-    return /^#[0-9a-fA-F]{3,8}$/.test(c) ? c : "#888888";
-  }
-
   /** The code is persisted only on join, so a half-typed one is never stored. */
   function persistIdentity() {
     onSettingsChange({ name, color });
@@ -130,7 +125,7 @@
         {#each rows as r (r.id)}
           <li>
             <button class="mate" disabled={!r.sameMap} title={rowTitle(r)} onclick={() => onFocus(r.id)}>
-              <span class="swatch" style="background: {swatch(r.color)}"></span>
+              <span class="swatch" style="background: {safeColor(r.color)}"></span>
               <span class="mate-name">{r.name}</span>
               <span class="muted">{where(r)}</span>
               <span class="muted age">{r.noPosition ? "" : `${r.ageSec}s`}</span>

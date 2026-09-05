@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { squadRows } from "./squad";
+import { safeColor, squadRows } from "./squad";
 import type { Teammate } from "../state/app.svelte";
 
 function mate(over: Partial<Teammate>): Teammate {
@@ -82,5 +82,14 @@ describe("squadRows", () => {
   it("carries name and colour through", () => {
     const [row] = squadRows([mate({ id: "a", name: "Abe", color: "#abcdef" })], me, 0, names);
     expect(row).toMatchObject({ id: "a", name: "Abe", color: "#abcdef" });
+  });
+});
+
+describe("safeColor", () => {
+  it("passes hex colours and replaces anything else", () => {
+    expect(safeColor("#abc")).toBe("#abc");
+    expect(safeColor("#3aa0ff")).toBe("#3aa0ff");
+    expect(safeColor("red")).toBe("#888888");
+    expect(safeColor("#fff; background: url(x)")).toBe("#888888");
   });
 });

@@ -1,5 +1,6 @@
 import L from "leaflet";
 import { toLatLng } from "./crs";
+import { esc } from "../quests/questLayer";
 
 export interface MarkerStyle {
   color: string;
@@ -61,7 +62,7 @@ export class PositionMarker {
       ? L.polygon([], { pane: PLAYER_PANE, fillColor: style.color, fillOpacity: CONE_FILL, stroke: false })
       : null;
     if (style.label) {
-      this.circle.bindTooltip(style.label, {
+      this.circle.bindTooltip(esc(style.label), {
         permanent: true,
         direction: "top",
         offset: [0, -8],

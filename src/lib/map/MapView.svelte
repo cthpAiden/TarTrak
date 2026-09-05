@@ -9,6 +9,7 @@
   import { PositionMarker } from "./markers";
   import { fetchTextCached } from "../tauri/http";
   import { opacityFor } from "../room/fade";
+  import { safeColor } from "../room/squad";
   import { app, type Teammate } from "../state/app.svelte";
   import { questIcon, questPopupHtml, esc } from "../quests/questLayer";
   import type { QuestMarker } from "../quests/markers";
@@ -186,10 +187,10 @@
     for (const t of wanted) {
       let marker = mates.get(t.id);
       if (!marker) {
-        marker = new PositionMarker(m, { color: t.color, radius: 6, lineLengthPx: len, label: t.name, cone });
+        marker = new PositionMarker(m, { color: safeColor(t.color), radius: 6, lineLengthPx: len, label: t.name, cone });
         mates.set(t.id, marker);
       }
-      marker.setColor(t.color);
+      marker.setColor(safeColor(t.color));
       marker.update(t.x, t.z, t.yaw);
       marker.setOpacity(opacityFor(tick - t.receivedAt));
     }
