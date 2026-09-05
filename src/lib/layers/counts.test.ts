@@ -32,6 +32,8 @@ function marker(category: QuestMarker["category"], i = 0): QuestMarker {
     x: 0,
     y: 0,
     z: 0,
+    top: 0,
+    bottom: 0,
   };
 }
 

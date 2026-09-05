@@ -15,6 +15,8 @@ const mk = (id: string, over: Partial<QuestMarker> = {}): QuestMarker => ({
   x: 0,
   y: 0,
   z: 0,
+  top: 0,
+  bottom: 0,
   ...over,
 });
 

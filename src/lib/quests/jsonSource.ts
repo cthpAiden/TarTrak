@@ -96,11 +96,17 @@ function strings(value: unknown): string[] {
 }
 
 function toObjective(o: Dict, tasksEn: Record<string, unknown>, taskMap: string | null): TaskObjective {
-  const zones: TaskZone[] = list(o.zones).map((z) => ({
-    id: str(z.id),
-    map: { id: str(z.map) },
-    position: pos(z.position) ?? { x: 0, y: 0, z: 0 },
-  }));
+  const zones: TaskZone[] = list(o.zones).map((z) => {
+    const outline = list(z.outline)
+      .map((c) => pos(c))
+      .filter((c): c is Vec3 => c !== null)
+      .map((c): [number, number] => [c.x, c.z]);
+    const zone: TaskZone = { id: str(z.id), map: { id: str(z.map) }, position: pos(z.position) ?? { x: 0, y: 0, z: 0 } };
+    if (outline.length >= 3) zone.outline = outline;
+    if (typeof z.top === "number") zone.top = z.top;
+    if (typeof z.bottom === "number") zone.bottom = z.bottom;
+    return zone;
+  });
   const zoneMaps = [...new Set(zones.map((z) => z.map.id))].map((id) => ({ id }));
   const maps = zoneMaps.length > 0 ? zoneMaps : taskMap ? [{ id: taskMap }] : [];
   return { id: str(o.id), type: str(o.type), description: tr(tasksEn, str(o.description)), maps, zones };
@@ -123,6 +129,8 @@ function toTask(t: Dict, tasksEn: Record<string, unknown>, traders: Dict, trader
     requires,
     kappaRequired: t.kappaRequired === true,
     lightkeeperRequired: t.lightkeeperRequired === true,
+    // Only http(s) links may ever be handed to the system browser.
+    wikiLink: /^https?:\/\//.test(str(t.wikiLink)) ? str(t.wikiLink) : undefined,
   };
 }
 

@@ -74,6 +74,7 @@ const raw: RawBundle = {
           map: "m1",
           kappaRequired: true,
           lightkeeperRequired: false,
+          wikiLink: "https://escapefromtarkov.fandom.com/wiki/Debut",
           taskRequirements: [
             { task: "t0", status: ["complete"] },
             { task: "t9", status: ["started"] },
@@ -85,7 +86,14 @@ const raw: RawBundle = {
               type: "visit",
               description: "o1 desc",
               zones: [
-                { id: "z1", map: "m1", position: { x: 1, y: 2, z: 3 } },
+                {
+                  id: "z1",
+                  map: "m1",
+                  position: { x: 1, y: 2, z: 3 },
+                  outline: [{ x: 0, y: 2, z: 0 }, { x: 2, y: 2, z: 0 }, { x: 2, y: 2, z: 6 }],
+                  top: 5,
+                  bottom: -1,
+                },
                 { id: "z2", map: "m2", position: { x: 4, y: 5, z: 6 } },
                 { id: "z3", map: "m1", position: { x: 7, y: 8, z: 9 } },
               ],
@@ -161,11 +169,20 @@ describe("toQuestData", () => {
     expect(t2.kappaRequired).toBe(false);
   });
 
+  it("carries zone outlines as [x, z] pairs with their span, and only http(s) wiki links", () => {
+    const [t1, t2] = d.tasks;
+    const [z1, z2] = t1.objectives[0].zones!;
+    expect(z1).toMatchObject({ outline: [[0, 0], [2, 0], [2, 6]], top: 5, bottom: -1 });
+    expect(z2.outline).toBeUndefined();
+    expect(t1.wikiLink).toBe("https://escapefromtarkov.fandom.com/wiki/Debut");
+    expect(t2.wikiLink).toBeUndefined();
+  });
+
   it("derives objective maps from zones, then the task map", () => {
     const [t1, t2] = d.tasks;
     expect(t1.objectives[0].maps).toEqual([{ id: "m1" }, { id: "m2" }]);
     expect(t1.objectives[0].zones).toEqual([
-      { id: "z1", map: { id: "m1" }, position: { x: 1, y: 2, z: 3 } },
+      { id: "z1", map: { id: "m1" }, position: { x: 1, y: 2, z: 3 }, outline: [[0, 0], [2, 0], [2, 6]], top: 5, bottom: -1 },
       { id: "z2", map: { id: "m2" }, position: { x: 4, y: 5, z: 6 } },
       { id: "z3", map: { id: "m1" }, position: { x: 7, y: 8, z: 9 } },
     ]);

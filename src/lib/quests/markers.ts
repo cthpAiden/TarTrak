@@ -14,6 +14,11 @@ export interface QuestMarker {
   x: number;
   y: number;
   z: number;
+  /** Footprint corners as [x, z]; drawn as a translucent polygon when present. */
+  outline?: [number, number][];
+  /** Vertical span of the zone; defaults to y when tarkov.dev gives none. */
+  top: number;
+  bottom: number;
 }
 
 function mapKeysById(data: QuestData): Map<string, string> {
@@ -41,6 +46,9 @@ export function extractQuestMarkers(data: QuestData): QuestMarker[] {
           x: zone.position.x,
           y: zone.position.y,
           z: zone.position.z,
+          outline: zone.outline,
+          top: zone.top ?? zone.position.y,
+          bottom: zone.bottom ?? zone.position.y,
         });
       }
     }

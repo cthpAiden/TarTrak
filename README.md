@@ -34,7 +34,9 @@ pings the relay every 20 s; if the connection drops, a small "Squad: reconnectin
 corner button and the app reconnects by itself, with one notice on loss and one on recovery.
 
 **Details.** Click any marker for a popup with its name, type, elevation, and, for loose loot, the full item
-list; boss spawns show each boss with its spawn chance.
+list; boss spawns show each boss with its spawn chance. Quest objectives with a zone draw its footprint
+as a translucent green outline, shown on every floor the zone spans. The "?" button next to a quest opens its
+wiki page in your browser.
 
 **Filters.** The sidebar has four tabs: Filters, Squad, Quests and Settings. The Filters tab groups
 everything the map can draw: Extracts, Map

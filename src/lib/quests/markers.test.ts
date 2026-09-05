@@ -32,7 +32,14 @@ const data: QuestData = {
           description: "Locate the bunker",
           maps: [{ id: "m-customs" }],
           zones: [
-            { id: "z1", map: { id: "m-customs" }, position: { x: 10, y: 0, z: 20 } },
+            {
+              id: "z1",
+              map: { id: "m-customs" },
+              position: { x: 10, y: 0, z: 20 },
+              outline: [[5, 15], [15, 15], [15, 25], [5, 25]],
+              top: 3,
+              bottom: -3,
+            },
             { id: "z2", map: { id: "m-woods" }, position: { x: 30, y: 0, z: 40 } },
           ],
         },
@@ -66,8 +73,13 @@ describe("extractQuestMarkers", () => {
       x: 10,
       y: 0,
       z: 20,
+      outline: [[5, 15], [15, 15], [15, 25], [5, 25]],
+      top: 3,
+      bottom: -3,
     });
     expect(ms[1].mapKey).toBe("woods");
+    // No span from the data: the marker's own height stands in for both ends.
+    expect(ms[1]).toMatchObject({ outline: undefined, top: 0, bottom: 0 });
   });
 
   it("skips objectives without zones and zones on unknown maps", () => {

@@ -5,6 +5,7 @@
   import type { QuestMarker } from "./markers";
   import Chevron from "../ui/Chevron.svelte";
   import { GAME_MODE_LABELS, type GameMode } from "./jsonSource";
+  import { openUrl } from "@tauri-apps/plugin-opener";
 
   let {
     markers,
@@ -60,6 +61,10 @@
       return;
     }
     saveDone(app.doneQuests).catch((e) => app.toast(`Could not save quest progress: ${e}`));
+  }
+
+  function openWiki(url: string) {
+    openUrl(url).catch((e) => app.toast(`Could not open the wiki: ${e}`));
   }
 
   function flipHidden(id: string) {
@@ -122,6 +127,9 @@
                     {#if t.kappaRequired}<span class="badge" title="Needed for Kappa">κ</span>{/if}
                     {#if t.lightkeeperRequired}<span class="badge" title="Needed for Lightkeeper">LK</span>{/if}
                   </span>
+                  {#if t.wikiLink}
+                    <button class="wiki" title="Open on the wiki" aria-label="Open {t.name} on the wiki" onclick={() => openWiki(t.wikiLink!)}>?</button>
+                  {/if}
                   <button
                     class="eye"
                     aria-pressed={!!hiddenQuests[t.id]}
@@ -162,10 +170,12 @@
   .hdr:hover .tri { background: rgba(255, 255, 255, 0.06); color: var(--fg); }
   .hdr .cnt { margin-left: auto; color: var(--muted); font-size: 11px; }
   ul { list-style: none; margin: 0; padding: 0 0 0 18px; }
-  li { display: grid; grid-template-columns: auto 1fr auto; column-gap: 6px; padding: 4px 0; border-bottom: 1px solid #262b33; font-size: 13px; }
+  li { display: grid; grid-template-columns: auto 1fr auto auto; column-gap: 6px; padding: 4px 0; border-bottom: 1px solid #262b33; font-size: 13px; }
   li .meta { grid-row: 2; grid-column: 2; color: var(--muted); font-size: 11px; }
   li.done .name { text-decoration: line-through; color: var(--muted); }
   li.hidden .name { opacity: .5; }
-  .eye { background: none; border: none; color: var(--muted); cursor: pointer; padding: 0 2px; font-size: 12px; }
+  .eye, .wiki { background: none; border: none; color: var(--muted); cursor: pointer; padding: 0 2px; font-size: 12px; }
+  .wiki { font-weight: 600; }
+  .wiki:hover, .eye:hover { color: var(--fg); }
   .footer { margin: 0; font-size: 11px; }
 </style>

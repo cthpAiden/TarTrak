@@ -43,6 +43,8 @@
   } = $props();
 
   const OWN_COLOR = "#f0b429";
+  /** tarkov.dev draws quest zones in this green. */
+  const QUEST_ZONE_COLOR = "#4caf50";
 
   let container: HTMLDivElement;
   // map and svg are $state so the marker and floor effects re-run once build() assigns them.
@@ -93,6 +95,8 @@
     questGroup = L.layerGroup().addTo(m);
     // Own pane above the overlay pane (400) so the SVG map, added later, cannot cover the labels.
     m.createPane("labels").style.zIndex = "460";
+    // Quest zone footprints: above the map SVG (400), under the labels and every marker.
+    m.createPane("zones").style.zIndex = "450";
     pointGroup = L.layerGroup().addTo(m);
     labelGroup = L.layerGroup().addTo(m);
     if (!d.svgPath) {
@@ -202,6 +206,17 @@
     if (!g) return;
     g.clearLayers();
     for (const m of markers) {
+      if (m.outline) {
+        L.polygon(m.outline.map(([x, z]) => toLatLng(x, z)), {
+          pane: "zones",
+          color: QUEST_ZONE_COLOR,
+          weight: 1,
+          opacity: 0.7,
+          fillColor: QUEST_ZONE_COLOR,
+          fillOpacity: 0.15,
+          interactive: false,
+        }).addTo(g);
+      }
       L.marker(toLatLng(m.x, m.z), { icon: questIcon(m) }).bindTooltip(esc(m.taskName)).bindPopup(questPopupHtml(m)).addTo(g);
     }
   });

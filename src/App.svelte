@@ -88,7 +88,7 @@
   const questMarkers = $derived(
     def
       ? mapQuestMarkersBeforeFilters.filter(
-          (m) => isOn(layerFilters, "quests", m.category) && visibleOnFloor(def, activeFloor, m.x, m.z, m.y),
+          (m) => isOn(layerFilters, "quests", m.category) && visibleOnFloor(def, activeFloor, m.x, m.z, m.y, m.top, m.bottom),
         )
       : [],
   );

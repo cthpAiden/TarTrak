@@ -9,6 +9,10 @@ export interface TaskZone {
   id: string;
   map: { id: string };
   position: Vec3;
+  /** Corners of the zone's footprint as [x, z] pairs, when tarkov.dev has them. */
+  outline?: [number, number][];
+  top?: number;
+  bottom?: number;
 }
 export interface TaskObjective {
   id: string;
@@ -27,6 +31,7 @@ export interface QuestTask {
   requires?: string[];
   kappaRequired?: boolean;
   lightkeeperRequired?: boolean;
+  wikiLink?: string;
 }
 export interface MapExtract {
   id: string;
