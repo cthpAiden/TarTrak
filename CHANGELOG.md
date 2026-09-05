@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 - 2026-09-06
 
 ### Map
 - Route to an extract: the exit button next to Follow me lists the map's extracts (PMC first, then co-op, Scav, transits); pick one and a dashed line runs from your marker to it with the distance in metres, redrawn on every screenshot. The button shows the distance too. "Clear route" turns it off.
