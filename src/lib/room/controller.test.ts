@@ -112,7 +112,22 @@ describe("RoomController", () => {
     client.onMessage(pos("aaaaaaaa", "Bob"));
     client.onMessage(leave("aaaaaaaa"));
     client.onMessage(hello("bbbbbbbb", "Bob"));
-    expect(Object.keys(app.teammates)).toEqual([]);
+    expect(Object.keys(app.teammates)).toEqual(["bbbbbbbb"]);
+    expect(app.teammates.bbbbbbbb.noPosition).toBe(true);
+  });
+
+  it("lists a joiner on hello and upgrades the row when the first pos arrives", () => {
+    const { client } = makeController();
+    client.onMessage(hello("aaaaaaaa", "Ann"));
+    expect(app.teammates.aaaaaaaa).toMatchObject({ name: "Ann", map: null, noPosition: true });
+    expect(app.toasts.map((t) => t.text)).toEqual(["Ann joined the room"]);
+    client.onMessage(pos("aaaaaaaa", "Ann"));
+    expect(app.teammates.aaaaaaaa.noPosition).toBeUndefined();
+    expect(app.teammates.aaaaaaaa).toMatchObject({ map: "customs", x: 1 });
+    // A repeated hello from the same id is not a second arrival.
+    client.onMessage(hello("aaaaaaaa", "Ann"));
+    expect(app.toasts).toHaveLength(1);
+    expect(app.teammates.aaaaaaaa.noPosition).toBeUndefined();
   });
 
   it("sends the known own position as soon as it joins", () => {

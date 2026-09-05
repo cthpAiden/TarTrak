@@ -6,6 +6,7 @@
   import type { GroupId } from "./points";
   import { QUEST_GLYPHS, type QuestCategory } from "../quests/questLayer";
   import type { CategoryCount, GroupCount } from "./counts";
+  import Chevron from "../ui/Chevron.svelte";
 
   let {
     counts,
@@ -56,19 +57,7 @@
             aria-label="Toggle {g.label} section"
             onclick={() => (collapsed[g.group] = !collapsed[g.group])}
           >
-            <svg
-              viewBox="0 0 16 16"
-              width="16"
-              height="16"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.75"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M6 4l4 4-4 4" />
-            </svg>
+            <Chevron open={search !== "" || !collapsed[g.group]} />
           </button>
           <input
             type="checkbox"
@@ -121,8 +110,6 @@
     width: 22px; height: 22px; display: grid; place-items: center; border-radius: 4px;
   }
   .tri:hover { background: rgba(255, 255, 255, 0.06); color: var(--fg); }
-  .tri svg { transition: transform 150ms ease; }
-  .tri[aria-expanded="true"] svg { transform: rotate(90deg); }
   .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .label.clickable { cursor: pointer; }
   .cnt { color: var(--muted); font-size: 11px; }

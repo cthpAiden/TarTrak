@@ -3,6 +3,7 @@
   import { toggleDone, saveDone } from "./done";
   import { groupByTrader } from "./grouping";
   import type { QuestMarker } from "./markers";
+  import Chevron from "../ui/Chevron.svelte";
 
   let {
     markers,
@@ -82,7 +83,7 @@
       {#each groups as g (g.trader)}
         <div class="trader">
           <button class="hdr" onclick={() => (collapsed[g.trader] = !collapsed[g.trader])} aria-expanded={!collapsed[g.trader]}>
-            <span class="tri">{collapsed[g.trader] ? "▸" : "▾"}</span>{g.trader}<span class="cnt">{g.done}/{g.total}</span>
+            <span class="tri"><Chevron open={!collapsed[g.trader]} /></span>{g.trader}<span class="cnt">{g.done}/{g.total}</span>
           </button>
           {#if !collapsed[g.trader]}
             <ul>
@@ -125,7 +126,8 @@
     display: flex; align-items: center; gap: 6px; width: 100%; background: none; border: none;
     color: var(--fg); font-size: 13px; text-align: left; padding: 5px 0; cursor: pointer;
   }
-  .hdr .tri { color: var(--muted); width: 12px; font-size: 11px; }
+  .hdr .tri { color: var(--muted); width: 22px; height: 22px; display: grid; place-items: center; border-radius: 4px; }
+  .hdr:hover .tri { background: rgba(255, 255, 255, 0.06); color: var(--fg); }
   .hdr .cnt { margin-left: auto; color: var(--muted); font-size: 11px; }
   ul { list-style: none; margin: 0; padding: 0 0 0 18px; }
   li { display: grid; grid-template-columns: auto 1fr auto; column-gap: 6px; padding: 4px 0; border-bottom: 1px solid #262b33; font-size: 13px; }

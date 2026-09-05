@@ -108,7 +108,22 @@ export class RoomController {
     }
     this.dropGhost(m.id, m.name);
     if (m.type === "hello") {
-      if (!app.teammates[m.id]) app.toast(`${m.name} joined the room`);
+      if (app.teammates[m.id]) return;
+      app.toast(`${m.name} joined the room`);
+      // Listed at once, so a joiner who has not taken a screenshot yet still shows up as present.
+      app.upsertTeammate({
+        id: m.id,
+        name: m.name,
+        color: m.color,
+        map: null,
+        x: 0,
+        y: 0,
+        z: 0,
+        yaw: 0,
+        ts: 0,
+        receivedAt: Date.now(),
+        noPosition: true,
+      });
       return;
     }
     app.upsertTeammate({

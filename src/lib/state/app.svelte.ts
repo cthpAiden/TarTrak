@@ -15,6 +15,8 @@ export interface Teammate {
   receivedAt: number;
   /** Set when the relay announced their leave; the marker stays, but a reconnect may replace it. */
   left?: boolean;
+  /** Set for a teammate who has said hello but not yet reported a position; never drawn. */
+  noPosition?: true;
 }
 
 export type MapSource = "log" | "manual";

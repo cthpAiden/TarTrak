@@ -166,7 +166,8 @@
     const len = lineLengthPx;
     const cone = showCone;
     if (!m || !d) return;
-    const wanted: Teammate[] = Object.values(all).filter((t) => t.map === d.key);
+    // A teammate whose game log was not found reports no map; a squad shares a raid, so they go on mine.
+    const wanted: Teammate[] = Object.values(all).filter((t) => !t.noPosition && (t.map === d.key || t.map === null));
     const ids = new Set(wanted.map((t) => t.id));
     for (const [id, marker] of mates) {
       if (!ids.has(id)) {

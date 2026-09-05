@@ -21,7 +21,6 @@
     onChange({ [which]: text });
   }
 
-  let open = $state(false);
   // untrack: these are the editable copies, seeded once from the stored settings.
   let relay = $state(untrack(() => settings.relayUrl));
   let overlayKey = $state(untrack(() => settings.hotkeyOverlay));
@@ -30,8 +29,7 @@
 </script>
 
 <section class="panel">
-  <button class="toggle" onclick={() => (open = !open)}>{open ? "▾" : "▸"} Settings</button>
-  {#if open}
+  <h2>Settings</h2>
     <div class="grid">
       <span>Screenshots</span>
       <div class="dir">
@@ -99,13 +97,12 @@
         Map math and quest data: <a href="https://tarkov.dev" target="_blank" rel="noreferrer">tarkov.dev</a> (MIT). Not affiliated with Battlestate Games.
       </p>
     </details>
-  {/if}
 </section>
 
 <style>
-  .panel { padding: 10px; border-top: 1px solid #2a2f38; font-size: 13px; }
-  .toggle { width: 100%; text-align: left; }
-  .grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 6px 8px; align-items: center; margin-top: 8px; }
+  .panel { padding: 10px; font-size: 13px; }
+  h2 { margin: 0 0 4px; font-size: 14px; }
+  .grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 6px 8px; align-items: center; margin-top: 4px; }
   .dir { display: flex; gap: 4px; min-width: 0; }
   .dir code { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
   input { background: #2a2f38; color: var(--fg); border: 1px solid #3a4048; padding: 3px 6px; min-width: 0; }

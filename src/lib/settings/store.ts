@@ -15,6 +15,8 @@ export interface Settings {
   lastRoom: string;
   lineLengthPx: number;
   showViewCone: boolean;
+  /** Pan the map to my marker on every screenshot. */
+  followMe: boolean;
   layerFilters: Record<string, boolean>;
   hiddenQuests: Record<string, true>;
 }
@@ -38,6 +40,7 @@ export const DEFAULT_SETTINGS: Settings = {
   lastRoom: "",
   lineLengthPx: 28,
   showViewCone: true,
+  followMe: true,
   layerFilters: {},
   hiddenQuests: {},
 };
@@ -57,6 +60,7 @@ const SHAPE: Record<keyof Settings, Kind> = {
   lastRoom: "string",
   lineLengthPx: "number",
   showViewCone: "boolean",
+  followMe: "boolean",
   layerFilters: "record",
   hiddenQuests: "record",
 };

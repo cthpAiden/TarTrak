@@ -119,6 +119,21 @@ describe("room relay", () => {
     expect(await a.quiet(200)).toBe(true);
   });
 
+  it("replays a hello to newcomers until that socket has a pos", async () => {
+    const a = await connect("ROOM06");
+    a.ws.send(JSON.stringify({ type: "hello", name: "A", color: "#abc" }));
+    await new Promise((r) => setTimeout(r, 100));
+    const b = await connect("ROOM06");
+    const replay = JSON.parse(await b.next());
+    expect(replay).toMatchObject({ type: "hello", name: "A", color: "#abc" });
+    expect(typeof replay.id).toBe("string");
+    a.ws.send(pos("A", 5));
+    await b.next();
+    const c = await connect("ROOM06");
+    expect(JSON.parse(await c.next())).toMatchObject({ type: "pos", name: "A", x: 5, id: replay.id });
+    expect(await c.quiet(200)).toBe(true);
+  });
+
   it("auto-responds to ping without disturbing the other sockets", async () => {
     const a = await connect("ROOM05");
     const b = await connect("ROOM05");

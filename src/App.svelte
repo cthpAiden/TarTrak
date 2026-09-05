@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { open } from "@tauri-apps/plugin-dialog";
   import { app } from "./lib/state/app.svelte";
   import { startEventBridge } from "./lib/tauri/events";
@@ -255,6 +255,15 @@
     const p = app.ownPos;
     if (p) room.onOwnPosition(app.currentMap, p);
   });
+
+  // Every screenshot recentres the map on me while follow is on; a small overlay would otherwise
+  // lose the marker after a short walk. untrack: reading settings here must not re-pan on edits.
+  $effect(() => {
+    const at = app.ownUpdatedAt;
+    untrack(() => {
+      if (at && (settings?.followMe ?? true)) mapView?.centerOnMe();
+    });
+  });
 </script>
 
 <div class="layout">
@@ -304,6 +313,18 @@
           {/if}
         </svg>
       </button>
+      <button
+        class="mode-btn follow-btn"
+        aria-pressed={settings?.followMe ?? true}
+        onclick={() => patchSettings({ followMe: !(settings?.followMe ?? true) })}
+        title="Follow me: keep the map centred on my marker"
+        aria-label="Follow me"
+      >
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="8" cy="8" r="4" />
+          <path d="M8 1v3M8 12v3M1 8h3M12 8h3" />
+        </svg>
+      </button>
       {#if room.reconnecting}
         <div class="conn-pill" role="status">
           <span class="dot connecting"></span>
@@ -333,7 +354,7 @@
           {#each TABS as t (t.id)}
             <button role="tab" aria-selected={tab === t.id} onclick={() => (tab = t.id)}>
               {t.label}
-              {#if t.id === "squad" && (room.status === "open" || room.status === "connecting")}
+              {#if t.id === "squad" && room.code}
                 <span class="dot {room.status}"></span>
               {/if}
             </button>

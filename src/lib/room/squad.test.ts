@@ -19,7 +19,7 @@ function mate(over: Partial<Teammate>): Teammate {
 }
 
 const names = (key: string) => (key === "customs" ? "Customs" : key === "woods" ? "Woods" : null);
-const me = { map: "customs", x: 0, z: 0 };
+const me = { map: "customs", pos: { x: 0, z: 0 } };
 
 describe("squadRows", () => {
   it("puts same-map teammates first, then sorts by name", () => {
@@ -49,14 +49,29 @@ describe("squadRows", () => {
     expect(row).toMatchObject({ sameMap: false, mapName: "Woods", distanceM: null });
   });
 
-  it("falls back to no map name for an unknown or missing map", () => {
-    const rows = squadRows([mate({ id: "a", map: "atlantis" }), mate({ id: "b", map: null })], me, 0, names);
-    expect(rows.map((r) => r.mapName)).toEqual([null, null]);
+  it("falls back to no map name for an unknown map", () => {
+    const [row] = squadRows([mate({ id: "a", map: "atlantis" })], me, 0, names);
+    expect(row).toMatchObject({ mapName: null, sameMap: false, mapUnknown: false });
   });
 
-  it("treats everyone as elsewhere when my own position is unknown", () => {
-    const rows = squadRows([mate({ id: "a" })], null, 0, names);
-    expect(rows[0]).toMatchObject({ sameMap: false, distanceM: null, mapName: "Customs" });
+  it("puts a teammate with no map of their own on my map, flagged as unknown", () => {
+    const [row] = squadRows([mate({ id: "a", map: null, x: 3, z: 4 })], me, 0, names);
+    expect(row).toMatchObject({ sameMap: true, mapUnknown: true, mapName: null, distanceM: 5 });
+  });
+
+  it("keeps everyone off my map while I have no map", () => {
+    const rows = squadRows([mate({ id: "a" }), mate({ id: "b", map: null })], { map: null, pos: null }, 0, names);
+    expect(rows.map((r) => r.sameMap)).toEqual([false, false]);
+  });
+
+  it("knows the same map without my position, but has no distance then", () => {
+    const [row] = squadRows([mate({ id: "a", x: 30, z: 40 })], { map: "customs", pos: null }, 0, names);
+    expect(row).toMatchObject({ sameMap: true, distanceM: null, mapName: "Customs" });
+  });
+
+  it("lists a hello-only teammate as present without a position", () => {
+    const [row] = squadRows([mate({ id: "a", map: null, noPosition: true })], me, 0, names);
+    expect(row).toMatchObject({ noPosition: true, sameMap: false, mapUnknown: false, distanceM: null });
   });
 
   it("reports age in whole seconds, never negative", () => {

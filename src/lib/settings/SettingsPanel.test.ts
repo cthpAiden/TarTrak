@@ -16,8 +16,6 @@ function open(settings: Partial<Settings> = {}) {
       onInvalid: (m) => invalid.push(m),
     },
   });
-  target.querySelector("button")!.click();
-  flushSync();
   return { target, panel, changes, invalid };
 }
 

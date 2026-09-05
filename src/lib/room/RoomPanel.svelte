@@ -2,7 +2,7 @@
   import { onMount, untrack } from "svelte";
   import { room } from "./controller.svelte";
   import { generateRoomCode, isValidRoomCode } from "./protocol";
-  import { squadRows } from "./squad";
+  import { squadRows, type SquadRow } from "./squad";
   import { app } from "../state/app.svelte";
   import { getMapDef } from "../map/mapsData";
   import type { Settings } from "../settings/store";
@@ -54,11 +54,22 @@
   const rows = $derived(
     squadRows(
       Object.values(app.teammates),
-      app.ownPos ? { map: app.currentMap, x: app.ownPos.x, z: app.ownPos.z } : null,
+      { map: app.currentMap, pos: app.ownPos ? { x: app.ownPos.x, z: app.ownPos.z } : null },
       now,
       (k) => getMapDef(k)?.name ?? null,
     ),
   );
+
+  function where(r: SquadRow): string {
+    if (r.noPosition) return "no position yet";
+    if (r.sameMap) return r.distanceM !== null ? `${r.distanceM} m` : r.mapUnknown ? "map unknown" : "same map";
+    return r.mapName ?? "elsewhere";
+  }
+  function rowTitle(r: SquadRow): string {
+    if (r.noPosition) return `${r.name} has not taken a screenshot yet`;
+    if (r.mapUnknown) return `${r.name} has no map detected; shown on your map`;
+    return r.sameMap ? `Centre the map on ${r.name}` : "";
+  }
 
   /** The relay accepts any string as a colour, so never let one reach a style attribute unchecked. */
   function swatch(c: string): string {
@@ -113,16 +124,11 @@
       <ul class="squad">
         {#each rows as r (r.id)}
           <li>
-            <button
-              class="mate"
-              disabled={!r.sameMap}
-              title={r.sameMap ? "Centre the map on " + r.name : ""}
-              onclick={() => onFocus(r.id)}
-            >
+            <button class="mate" disabled={!r.sameMap} title={rowTitle(r)} onclick={() => onFocus(r.id)}>
               <span class="swatch" style="background: {swatch(r.color)}"></span>
               <span class="mate-name">{r.name}</span>
-              <span class="muted">{r.sameMap ? r.distanceM + " m" : (r.mapName ?? "elsewhere")}</span>
-              <span class="muted age">{r.ageSec}s</span>
+              <span class="muted">{where(r)}</span>
+              <span class="muted age">{r.noPosition ? "" : `${r.ageSec}s`}</span>
             </button>
           </li>
         {/each}

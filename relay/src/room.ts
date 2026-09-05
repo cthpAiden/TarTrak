@@ -5,6 +5,8 @@ import type { Env } from "./index";
 /** Per-socket state kept by the runtime across hibernation (limit 2 KiB). */
 interface Attachment {
   id: string;
+  /** Serialized `hello` ServerMsg from this socket, replayed to newcomers so they list us at once. */
+  hello?: string;
   /** Serialized last `pos` ServerMsg from this socket, replayed to newcomers. */
   last?: string;
 }
@@ -27,9 +29,11 @@ export class RoomDO extends DurableObject {
     for (const other of this.ctx.getWebSockets()) {
       if (other === server) continue;
       const att = other.deserializeAttachment() as Attachment | null;
-      if (!att?.last) continue;
+      if (!att) continue;
       try {
-        server.send(att.last);
+        // A pos carries the identity too, so the hello is only needed while there is no pos yet.
+        if (att.last) server.send(att.last);
+        else if (att.hello) server.send(att.hello);
       } catch {
         // newcomer socket already gone; nothing to replay
       }
@@ -45,6 +49,7 @@ export class RoomDO extends DurableObject {
     const out: ServerMsg = { ...msg, id: att.id };
     const text = JSON.stringify(out);
     if (msg.type === "pos") ws.serializeAttachment({ ...att, last: text } satisfies Attachment);
+    else ws.serializeAttachment({ ...att, hello: text } satisfies Attachment);
     this.broadcast(text, ws);
   }
 

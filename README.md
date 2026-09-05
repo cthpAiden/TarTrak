@@ -20,18 +20,24 @@ No memory reading, no injection, no hooks, no keystrokes sent to the game, no ac
 4. Team: one player presses **Create**, shares the 6-character code; others enter it and press **Join**.
    Positions travel through the project relay (`wss://tartrak-relay.aidenmileshp.workers.dev`); you can
    point Settings > Relay URL at your own Worker instead (see [Relay](#relay)).
-5. Hotkeys: `F5` overlay mode, `F6` opacity, `Alt+drag` moves the overlay. Rebind in Settings.
+5. Hotkeys: `F5` overlay mode, `F6` opacity, `Alt+drag` moves the overlay. Rebind in Settings. The square
+   button in the map's top-left corner also switches between the full window and the map-only overlay; the
+   crosshair next to it toggles **follow me**, which recentres the map on your marker after every screenshot.
 
 Markers never disappear; they dim slowly after 30 s and settle at 35% after 5 minutes.
 
 **Squad.** Every player marker has a heading line and a translucent view cone (turn the cone off in
-Settings). While you are in a room, the Room panel lists your teammates: distance to you when they are on
+Settings). While you are in a room, the Squad tab lists your teammates: distance to you when they are on
 your map, otherwise the map they are on, plus how long ago they last reported. Click a row to center on them.
+A teammate whose game log was not found reports no map and is drawn on yours, marked "map unknown". The app
+pings the relay every 20 s; if the connection drops, a small "Squad: reconnecting" pill appears next to the
+corner button and the app reconnects by itself, with one notice on loss and one on recovery.
 
 **Details.** Click any marker for a popup with its name, type, elevation, and, for loose loot, the full item
 list; boss spawns show each boss with its spawn chance.
 
-**Filters.** The panel at the top of the sidebar groups everything the map can draw: Extracts, Map
+**Filters.** The sidebar has four tabs: Filters, Squad, Quests and Settings. The Filters tab groups
+everything the map can draw: Extracts, Map
 Tasks, Spawns, Containers, Locks, Hazards, Switches and BTR. Each group and each category shows a
 `shown/total` count for the current map, so a group with nothing on this map still appears as `0/0`.
 PMC, co-op and transit extracts plus every map task category are on by default; everything else is
