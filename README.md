@@ -44,6 +44,9 @@ PMC, co-op and transit extracts plus every map task category are on by default; 
 off. Your choices are saved with the rest of your settings. The filter counts are for the whole
 map; the map itself shows only markers on the selected floor.
 
+**Game mode.** Settings > Game mode picks the tarkov.dev data set: PvP (default) or PvE. Each mode keeps its
+own cache; the quest list footer shows which one is loaded.
+
 **Quest list.** Quests are grouped by trader in the usual trader order, with a `done/total` count per
 trader; sections collapse and quests with markers on the current map sort first. The checkbox marks a
 quest done, and the eye button hides one quest's markers from the map without marking it done.

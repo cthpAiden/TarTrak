@@ -28,17 +28,20 @@ pub fn logs_candidates(install_from_registry: Option<PathBuf>) -> Vec<PathBuf> {
 
 #[cfg(windows)]
 fn registry_install_location() -> Option<PathBuf> {
-    use winreg::enums::HKEY_LOCAL_MACHINE;
+    use winreg::enums::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE};
     use winreg::RegKey;
-    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-    for key in [
-        "SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\EscapeFromTarkov",
-        "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\EscapeFromTarkov",
-    ] {
-        if let Ok(k) = hklm.open_subkey(key) {
-            if let Ok(loc) = k.get_value::<String, _>("InstallLocation") {
-                if !loc.is_empty() {
-                    return Some(PathBuf::from(loc));
+    // The BSG launcher writes the uninstall entry per machine or, for a per-user install, per user.
+    for hive in [HKEY_LOCAL_MACHINE, HKEY_CURRENT_USER] {
+        let root = RegKey::predef(hive);
+        for key in [
+            "SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\EscapeFromTarkov",
+            "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\EscapeFromTarkov",
+        ] {
+            if let Ok(k) = root.open_subkey(key) {
+                if let Ok(loc) = k.get_value::<String, _>("InstallLocation") {
+                    if !loc.is_empty() {
+                        return Some(PathBuf::from(loc));
+                    }
                 }
             }
         }
