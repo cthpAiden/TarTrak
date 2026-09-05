@@ -170,3 +170,20 @@ describe("drawing messages", () => {
     expect(parseServerMessage(JSON.stringify({ type: "cleardraw", map: "customs", id: "r1" }))).toEqual({ type: "cleardraw", map: "customs", id: "r1" });
   });
 });
+
+describe("app version on hello and pos", () => {
+  it("keeps a version when present, leaves it absent otherwise, and rejects a bad one", () => {
+    expect(parseClientMessage(JSON.stringify({ type: "hello", name: "a", color: "b", version: "0.3.1" }))).toEqual({
+      type: "hello",
+      name: "a",
+      color: "b",
+      version: "0.3.1",
+    });
+    expect(parseClientMessage(JSON.stringify({ type: "hello", name: "a", color: "b" }))).toEqual({ type: "hello", name: "a", color: "b" });
+    expect(parseClientMessage(JSON.stringify({ type: "hello", name: "a", color: "b", version: 3 }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ type: "hello", name: "a", color: "b", version: "x".repeat(33) }))).toBeNull();
+    const pos = { type: "pos", name: "a", color: "b", map: null, x: 1, y: 2, z: 3, yaw: 4, ts: 5 };
+    expect(parseClientMessage(JSON.stringify({ ...pos, version: "0.3.1" }))).toEqual({ ...pos, version: "0.3.1" });
+    expect(parseClientMessage(JSON.stringify(pos))).toEqual(pos);
+  });
+});

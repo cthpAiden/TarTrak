@@ -2,6 +2,7 @@ import type { Position } from "../parse/screenshot";
 import { app, type Drawing, type Pin, type Teammate } from "../state/app.svelte";
 import { RoomClient, type ActionMsg, type RoomClientOptions, type RoomStatus } from "./client";
 import type { ServerMsg } from "./protocol";
+import { version as APP_VERSION } from "../../../package.json";
 
 /** The part of RoomClient the controller drives; injectable so the message handling is testable. */
 export interface RoomClientLike {
@@ -18,6 +19,8 @@ export class RoomController {
   private errorToasted = false;
   private wasOpen = false;
   private outageToasted = false;
+  /** Teammate names already warned about a version mismatch; once per room. */
+  private versionWarned = new Set<string>();
 
   constructor(
     private readonly makeClient: (opts: RoomClientOptions) => RoomClientLike = (opts) => new RoomClient(opts),
@@ -34,11 +37,13 @@ export class RoomController {
     this.errorToasted = false;
     this.wasOpen = false;
     this.outageToasted = false;
+    this.versionWarned = new Set();
     this.client = this.makeClient({
       relayUrl,
       code: this.code,
       name,
       color,
+      version: APP_VERSION,
       onMessage: (m) => this.handle(m),
       onStatus: (s) => {
         this.status = s;
@@ -106,6 +111,17 @@ export class RoomController {
     this.client?.sendPosition(map, p);
   }
 
+  /**
+   * An older build drops message types it does not know, so a teammate on it never sees my markers or
+   * drawings and I never learn why. Said once per teammate; a client before 0.3.1 sends no version.
+   */
+  private warnVersion(name: string, theirs: string | undefined): void {
+    if (theirs === APP_VERSION || this.versionWarned.has(name)) return;
+    this.versionWarned.add(name);
+    const runs = theirs ? `TarTrak ${theirs}` : "an older TarTrak";
+    app.toast(`${name} runs ${runs}, you run ${APP_VERSION}: shared markers and drawings need the same version`);
+  }
+
   /** The relay hands out a fresh id per socket, so a reconnect would otherwise leave a frozen twin. */
   private dropGhost(id: string, name: string): void {
     for (const [oldId, t] of Object.entries(app.teammates)) {
@@ -155,6 +171,7 @@ export class RoomController {
       app.clearDrawings(m.map);
       return;
     }
+    this.warnVersion(m.name, m.version);
     // Judged before the ghost is dropped: a same-name marker of any kind means this is a reconnect.
     const rejoin = Object.values(app.teammates).some((t) => t.id !== m.id && t.name === m.name);
     this.dropGhost(m.id, m.name);

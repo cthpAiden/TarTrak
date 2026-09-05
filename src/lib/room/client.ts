@@ -31,6 +31,8 @@ export interface RoomClientOptions {
   code: string;
   name: string;
   color: string;
+  /** Sent with hello and every pos so teammates can tell an older build apart. */
+  version?: string;
   onMessage: (m: ServerMsg) => void;
   onStatus: (s: RoomStatus) => void;
   /** Called when the socket could not even be constructed (an unusable relay URL). */
@@ -103,6 +105,7 @@ export class RoomClient {
       type: "pos",
       name: this.opts.name,
       color: this.opts.color,
+      ...(this.opts.version ? { version: this.opts.version } : {}),
       map,
       x: p.x,
       y: p.y,
@@ -211,6 +214,7 @@ export class RoomClient {
       this.setStatus("open");
       this.startHeartbeat(ws);
       const hello: HelloMsg = { type: "hello", name: this.opts.name, color: this.opts.color };
+      if (this.opts.version) hello.version = this.opts.version;
       ws.send(JSON.stringify(hello));
       // The reconnect got a fresh relay id, so the room only knows the new us once we say where
       // we are; waiting for the next screenshot would leave a gap in everyone else's map.

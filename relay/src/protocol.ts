@@ -14,12 +14,15 @@ export interface HelloMsg {
   type: "hello";
   name: string;
   color: string;
+  /** App version of the sender; absent from clients older than 0.3.1. */
+  version?: string;
 }
 
 export interface PosMsg {
   type: "pos";
   name: string;
   color: string;
+  version?: string;
   map: string | null;
   x: number;
   y: number;
@@ -121,11 +124,18 @@ function parseJson(raw: string): Record<string, unknown> | null {
   return v;
 }
 
+/** Optional short string: absent stays absent, present must be a string within bounds. */
+function optStr(v: unknown): string | undefined | null {
+  if (v === undefined) return undefined;
+  return str(v);
+}
+
 function readHello(o: Record<string, unknown>): HelloMsg | null {
   const name = str(o.name);
   const color = str(o.color);
-  if (name === null || color === null) return null;
-  return { type: "hello", name, color };
+  const version = optStr(o.version);
+  if (name === null || color === null || version === null) return null;
+  return version === undefined ? { type: "hello", name, color } : { type: "hello", name, color, version };
 }
 
 function readPos(o: Record<string, unknown>): PosMsg | null {
@@ -138,9 +148,12 @@ function readPos(o: Record<string, unknown>): PosMsg | null {
   const z = num(o.z);
   const yaw = num(o.yaw);
   const ts = num(o.ts);
-  if (name === null || color === null) return null;
+  const version = optStr(o.version);
+  if (name === null || color === null || version === null) return null;
   if (x === null || y === null || z === null || yaw === null || ts === null) return null;
-  return { type: "pos", name, color, map, x, y, z, yaw, ts };
+  const out: PosMsg = { type: "pos", name, color, map, x, y, z, yaw, ts };
+  if (version !== undefined) out.version = version;
+  return out;
 }
 
 function readPin(o: Record<string, unknown>): PinMsg | null {

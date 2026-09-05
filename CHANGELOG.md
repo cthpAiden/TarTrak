@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Squad
+- The app tells you when a teammate runs a different TarTrak version. An older build silently drops message types it does not know, so shared markers and drawings only work when everyone is on the same version.
+
 ### Performance
 - Less memory: the offline fallback data set is no longer inlined into the app's script (4 MB parsed at every start and kept all session); it is loaded from a file only when there is no cached data. Map points are built for the map on screen instead of all seventeen maps.
 

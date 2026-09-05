@@ -4,6 +4,7 @@ import type { RoomClientOptions } from "./client";
 import { app } from "../state/app.svelte";
 import type { Position } from "../parse/screenshot";
 import type { ServerMsg } from "./protocol";
+import { version as APP_VERSION } from "../../../package.json";
 
 type Handler = (m: ServerMsg) => void;
 
@@ -45,6 +46,7 @@ const pos = (id: string, name: string): ServerMsg => ({
   type: "pos",
   id,
   name,
+  version: APP_VERSION,
   color: "#f00",
   map: "customs",
   x: 1,
@@ -54,7 +56,7 @@ const pos = (id: string, name: string): ServerMsg => ({
   ts: 1,
 });
 const leave = (id: string): ServerMsg => ({ type: "leave", id });
-const hello = (id: string, name: string): ServerMsg => ({ type: "hello", id, name, color: "#f00" });
+const hello = (id: string, name: string): ServerMsg => ({ type: "hello", id, name, color: "#f00", version: APP_VERSION });
 
 describe("RoomController", () => {
   beforeEach(() => {
@@ -84,6 +86,21 @@ describe("RoomController", () => {
     expect(Object.keys(app.pins).sort()).toEqual(["abcd5678", "mine0001"]);
     room.leave();
     expect(Object.keys(app.pins)).toEqual(["mine0001"]);
+  });
+
+  it("sends my version and warns once per teammate on another or no version", () => {
+    const { client } = makeController();
+    expect(client.opts.version).toBe(APP_VERSION);
+    client.onMessage({ type: "hello", id: "a", name: "Old", color: "#f00" });
+    const { version: _v, ...noVersion } = pos("a", "Old") as ServerMsg & { version?: string };
+    client.onMessage(noVersion as ServerMsg);
+    client.onMessage({ type: "hello", id: "b", name: "Other", color: "#f00", version: "0.0.1" });
+    client.onMessage(pos("c", "Same"));
+    const texts = app.toasts.map((t) => t.text).filter((t) => t.includes("runs"));
+    expect(texts).toEqual([
+      `Old runs an older TarTrak, you run ${APP_VERSION}: shared markers and drawings need the same version`,
+      `Other runs TarTrak 0.0.1, you run ${APP_VERSION}: shared markers and drawings need the same version`,
+    ]);
   });
 
   it("adds a teammate's stroke, removes it on undraw, wipes a map on cleardraw, and drops shared strokes on leave", () => {
