@@ -57,6 +57,11 @@ describe("data snapshot", () => {
     expect(ic.extracts.map((e) => e.name).sort()).toEqual(
       ["Emercom Checkpoint", "Hole in the Fence", "Power Station V-Ex", "Railway Exfil", "Saferoom Exfil", "Scav Camp (Co-Op)"].sort(),
     );
+    const byName = (n: string) => points.find((p) => p.mapKey === "interchange" && p.name === n)!;
+    // Both are "shared" to tarkov.dev, but only one of them needs a Scav standing next to you.
+    expect(byName("Scav Camp (Co-Op)").category).toBe("coop");
+    expect(byName("Emercom Checkpoint").category).toBe("shared");
+    expect(isOn({}, "extracts", "coop")).toBe(true);
     const usable = points.filter((p) => p.mapKey === "interchange" && p.group === "extracts" && isOn({}, p.group, p.category));
     expect(usable.map((p) => p.name)).toContain("Emercom Checkpoint");
     expect(usable.map((p) => p.name)).toContain("Railway Exfil");

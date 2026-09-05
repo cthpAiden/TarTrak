@@ -4,7 +4,9 @@
 .hidden-layer { display: none; }
 .off-level { opacity: 0.35; }
 .tt-label {
-  background: rgba(0, 0, 0, 0.6);
+  /* Translucent so the tag hides less of the map; the shadow keeps the text readable over it. */
+  background: rgba(0, 0, 0, 0.35);
+  text-shadow: 0 0 3px #000, 0 0 1px #000;
   color: #fff;
   border: none;
   box-shadow: none;

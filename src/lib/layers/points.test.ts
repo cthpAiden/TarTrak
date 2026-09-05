@@ -185,7 +185,7 @@ describe("point details", () => {
       ["PMC extract"],
       ["Scav extract"],
       ["PMC & Scav extract", "Activated by switch: Basement switch", "Requires Roubles ×20,000"],
-      ["coop extract", "Requires Ark key"],
+      ["Co-op extract: a PMC and a Scav must leave together", "Requires Ark key"],
       ["Transit", "Labs keycard required"],
     ]);
   });

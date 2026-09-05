@@ -39,6 +39,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   "extracts/pmc": "PMC Extracts",
   "extracts/scav": "SCAV Extracts",
   "extracts/shared": "PMC & Scav Extracts",
+  "extracts/coop": "Co-op Extracts (PMC + Scav)",
   "extracts/transit": "Transit Zones",
   "spawns/pmc": "PMC",
   "spawns/scav": "Scav",
@@ -126,8 +127,17 @@ const EXTRACT_DETAILS: Record<string, string> = {
   pmc: "PMC extract",
   scav: "Scav extract",
   shared: "PMC & Scav extract",
+  coop: "Co-op extract: a PMC and a Scav must leave together",
   transit: "Transit",
 };
+
+/**
+ * tarkov.dev files co-op extracts under "shared", but unlike Emercom Checkpoint they only open when a
+ * PMC and a Scav stand in them together; the game names them "(Co-Op)", which is the only marker.
+ */
+function extractCategory(e: MapInfo["extracts"][number]): string {
+  return /\(co-?op\)/i.test(e.name) ? "coop" : e.faction;
+}
 
 const LOCK_DETAILS: Record<string, string> = {
   door: "Door",
@@ -157,7 +167,7 @@ function push(
 
 function extractDetails(e: MapInfo["extracts"][number]): string[] {
   // An unknown faction still gets a readable line rather than vanishing behind a missing label.
-  const details = [EXTRACT_DETAILS[e.faction] ?? `${e.faction} extract`];
+  const details = [EXTRACT_DETAILS[extractCategory(e)] ?? `${e.faction} extract`];
   for (const sw of e.switches ?? []) details.push(`Activated by switch: ${sw}`);
   if (e.requiredItem) {
     const count = e.requiredItem.count > 1 ? ` ×${e.requiredItem.count.toLocaleString("en-US")}` : "";
@@ -169,7 +179,7 @@ function extractDetails(e: MapInfo["extracts"][number]): string[] {
 function pointsForMap(m: MapInfo, out: MapPoint[]): void {
   const key = m.normalizedName;
   for (const e of m.extracts ?? []) {
-    push(out, key, "extracts", e.faction, e.name, e.id, e.position, extractDetails(e), e);
+    push(out, key, "extracts", extractCategory(e), e.name, e.id, e.position, extractDetails(e), e);
   }
   (m.transits ?? []).forEach((t, i) => {
     push(out, key, "extracts", "transit", t.description, t.id || `extracts/transit/${i}`, t.position, [

@@ -55,7 +55,8 @@ const GROUP_ICONS: Record<Exclude<GroupId, "extracts" | "spawns" | "loot" | "haz
 export function iconFile(p: { group: GroupId; category: string }): string {
   switch (p.group) {
     case "extracts":
-      return `extract_${p.category}`;
+      // Co-op extracts share the "both factions" icon; the label and popup carry the difference.
+      return `extract_${p.category === "coop" ? "shared" : p.category}`;
     case "hazards":
       return p.category === "mortar" ? "hazard_mortar" : "hazard";
     case "spawns":
@@ -73,6 +74,7 @@ export function iconFile(p: { group: GroupId; category: string }): string {
 const OUTLINE_COLORS: Record<string, string> = {
   "extracts/pmc": "#00e599",
   "extracts/shared": "#00e4e5",
+  "extracts/coop": "#00e4e5",
   "extracts/scav": "#ff7800",
   "extracts/transit": "#e53500",
 };

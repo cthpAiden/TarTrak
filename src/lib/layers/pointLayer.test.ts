@@ -28,6 +28,7 @@ describe("outlineColor", () => {
 describe("iconFile", () => {
   it("names extract and spawn icons by category", () => {
     expect(iconFile({ group: "extracts", category: "transit" })).toBe("extract_transit");
+    expect(iconFile({ group: "extracts", category: "coop" })).toBe("extract_shared");
     expect(iconFile({ group: "spawns", category: "pmc" })).toBe("spawn_pmc");
     expect(iconFile({ group: "spawns", category: "sniper" })).toBe("spawn_sniper_scav");
     expect(iconFile({ group: "spawns", category: "cultist-priest" })).toBe("spawn_cultist-priest");
