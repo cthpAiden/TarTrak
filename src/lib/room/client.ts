@@ -1,5 +1,5 @@
 import type { Position } from "../parse/screenshot";
-import { parseServerMessage, type HelloMsg, type PosMsg, type ServerMsg } from "./protocol";
+import { parseServerMessage, type HelloMsg, type PinMsg, type PosMsg, type ServerMsg, type UnpinMsg } from "./protocol";
 
 export type RoomStatus = "connecting" | "open" | "closed";
 
@@ -99,6 +99,13 @@ export class RoomClient {
     };
     this.lastPos = this.pending;
     this.flush();
+  }
+
+  /** Sent at once, unthrottled; false while the socket is down so the caller can say so. */
+  send(msg: PinMsg | UnpinMsg): boolean {
+    if (!this.ws || this.ws.readyState !== WS_OPEN) return false;
+    this.ws.send(JSON.stringify(msg));
+    return true;
   }
 
   private now(): number {

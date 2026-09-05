@@ -17,6 +17,7 @@
   import { pointIcon, pointPopupHtml } from "../layers/pointLayer";
   import { labelDivIcon } from "./labels";
   import { watchSize } from "./resize";
+  import { pinIcon, pinPopup } from "./pins";
   import Chevron from "../ui/Chevron.svelte";
 
   let {
@@ -29,6 +30,9 @@
     hitIds,
     showLabels,
     lineLengthPx,
+    canShare,
+    onPin,
+    onRemovePin,
   }: {
     def: MapDef | null;
     pinnedFloor: string | null;
@@ -40,6 +44,10 @@
     hitIds: ReadonlySet<string>;
     showLabels: boolean;
     lineLengthPx: number;
+    /** In a room with the socket up: the right-click menu offers a shared marker. */
+    canShare: boolean;
+    onPin: (p: { x: number; z: number; label: string; shared: boolean }) => void;
+    onRemovePin: (id: string) => void;
   } = $props();
 
   const OWN_COLOR = "#f0b429";
@@ -56,6 +64,14 @@
   let questGroup = $state<L.LayerGroup | null>(null);
   let pointGroup = $state<L.LayerGroup | null>(null);
   let labelGroup = $state<L.LayerGroup | null>(null);
+  let pinGroup = $state<L.LayerGroup | null>(null);
+  /** Right-click menu: where it opens (container pixels) and the game point under the cursor. */
+  let pinMenu = $state<{ px: number; py: number; x: number; z: number } | null>(null);
+  let pinMenuEl: HTMLDivElement | undefined = $state();
+  let pinInput: HTMLInputElement | undefined = $state();
+  let pinLabel = $state("");
+  const PIN_MENU_W = 200;
+  const PIN_MENU_H = 112;
   /** Bumped by every destroy(); a build whose generation is stale drops its result. */
   let gen = 0;
   let stopSizeWatch: (() => void) | null = null;
@@ -74,6 +90,8 @@
     questGroup = null;
     pointGroup = null;
     labelGroup = null;
+    pinGroup = null;
+    pinMenu = null;
     svg = null;
     stopSizeWatch?.();
     stopSizeWatch = null;
@@ -104,6 +122,16 @@
     m.createPane("zones").style.zIndex = "450";
     pointGroup = L.layerGroup().addTo(m);
     labelGroup = L.layerGroup().addTo(m);
+    // Hand-placed pins: above the point and quest markers (600), under the players (620).
+    m.createPane("pins").style.zIndex = "615";
+    pinGroup = L.layerGroup().addTo(m);
+    m.on("contextmenu", (e: L.LeafletMouseEvent) => {
+      pinLabel = "";
+      // Kept inside the map area, so a right-click near the right or bottom edge still shows the whole menu.
+      const px = Math.max(0, Math.min(e.containerPoint.x, container.clientWidth - PIN_MENU_W));
+      const py = Math.max(0, Math.min(e.containerPoint.y, container.clientHeight - PIN_MENU_H));
+      pinMenu = { px, py, x: e.latlng.lng, z: e.latlng.lat };
+    });
     if (!d.svgPath) {
       message = `${d.name}: no vector map available yet`;
       return;
@@ -261,10 +289,45 @@
     floorsOpen = false;
   }
 
-  // Clicking anywhere else closes the menu, like a native dropdown.
+  // Clicking anywhere else closes the menus, like a native dropdown.
   function onWindowPointerDown(e: PointerEvent) {
     if (floorsOpen && floorMenu && !floorMenu.contains(e.target as Node)) floorsOpen = false;
+    if (pinMenu && pinMenuEl && !pinMenuEl.contains(e.target as Node)) pinMenu = null;
   }
+
+  function onWindowKeyDown(e: KeyboardEvent) {
+    if (e.key !== "Escape") return;
+    floorsOpen = false;
+    pinMenu = null;
+  }
+
+  function placePin(shared: boolean) {
+    if (!pinMenu) return;
+    onPin({ x: pinMenu.x, z: pinMenu.z, label: pinLabel.trim().slice(0, 32), shared });
+    pinMenu = null;
+  }
+
+  // The label box takes focus as the menu opens, so a right-click, a word and Enter is all it takes.
+  $effect(() => {
+    if (pinMenu) pinInput?.focus();
+  });
+
+  $effect(() => {
+    const pins = app.pins;
+    const mates = app.teammates;
+    const d = def;
+    const g = pinGroup;
+    if (!g || !d) return;
+    g.clearLayers();
+    for (const p of Object.values(pins)) {
+      if (p.map !== d.key) continue;
+      const marker = L.marker(toLatLng(p.x, p.z), { icon: pinIcon(p), pane: "pins" });
+      if (p.label) marker.bindTooltip(esc(p.label), { permanent: true, direction: "top", className: "tt-label", pane: "pins", interactive: false });
+      const placedBy = p.from ? (mates[p.from]?.name ?? null) : null;
+      marker.bindPopup(() => pinPopup(p, placedBy, () => onRemovePin(p.id)));
+      marker.addTo(g);
+    }
+  });
 
   export function centerOnMe() {
     if (map && app.ownPos) map.panTo(L.latLng(app.ownPos.z, app.ownPos.x));
@@ -279,7 +342,7 @@
   }
 </script>
 
-<svelte:window onpointerdown={onWindowPointerDown} onkeydown={(e) => e.key === "Escape" && (floorsOpen = false)} />
+<svelte:window onpointerdown={onWindowPointerDown} onkeydown={onWindowKeyDown} />
 
 <div class="map-root" bind:this={container} role="application" aria-label="map"></div>
 
@@ -304,6 +367,34 @@
         {/each}
       </div>
     {/if}
+  </div>
+{/if}
+
+{#if pinMenu}
+  <div
+    class="pin-menu"
+    bind:this={pinMenuEl}
+    role="menu"
+    style="left: {pinMenu.px}px; top: {pinMenu.py}px;"
+  >
+    <input
+      bind:this={pinInput}
+      bind:value={pinLabel}
+      maxlength="32"
+      placeholder="Label (optional)"
+      aria-label="Marker label"
+      onkeydown={(e) => e.key === "Enter" && placePin(false)}
+    />
+    <button type="button" role="menuitem" onclick={() => placePin(false)}>Marker for me</button>
+    <button
+      type="button"
+      role="menuitem"
+      disabled={!canShare}
+      title={canShare ? "Everyone in the room sees it" : "Join a squad room first"}
+      onclick={() => placePin(true)}
+    >
+      Shared marker
+    </button>
   </div>
 {/if}
 

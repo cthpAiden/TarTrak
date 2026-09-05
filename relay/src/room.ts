@@ -11,6 +11,12 @@ interface Attachment {
   last?: string;
 }
 
+/** Shared markers per room; a spammer cannot grow the storage past this. */
+const MAX_PINS = 50;
+/** An empty room keeps its pins this long, so a squad that all reconnect at once does not lose them. */
+const EMPTY_ROOM_PIN_TTL_MS = 30 * 60_000;
+const PIN_PREFIX = "pin:";
+
 export class RoomDO extends DurableObject {
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -25,6 +31,8 @@ export class RoomDO extends DurableObject {
 
     this.ctx.acceptWebSocket(server);
     server.serializeAttachment({ id } satisfies Attachment);
+    // Someone is here again: the pins stay.
+    await this.ctx.storage.deleteAlarm();
 
     for (const other of this.ctx.getWebSockets()) {
       if (other === server) continue;
@@ -38,6 +46,13 @@ export class RoomDO extends DurableObject {
         // newcomer socket already gone; nothing to replay
       }
     }
+    for (const text of (await this.ctx.storage.list<string>({ prefix: PIN_PREFIX })).values()) {
+      try {
+        server.send(text);
+      } catch {
+        // newcomer socket already gone
+      }
+    }
     return new Response(null, { status: 101, webSocket: client });
   }
 
@@ -48,9 +63,24 @@ export class RoomDO extends DurableObject {
     const att = (ws.deserializeAttachment() as Attachment | null) ?? { id: "unknown" };
     const out: ServerMsg = { ...msg, id: att.id };
     const text = JSON.stringify(out);
-    if (msg.type === "pos") ws.serializeAttachment({ ...att, last: text } satisfies Attachment);
-    else ws.serializeAttachment({ ...att, hello: text } satisfies Attachment);
+    if (msg.type === "pin") {
+      const key = PIN_PREFIX + msg.pin;
+      const pins = await this.ctx.storage.list<string>({ prefix: PIN_PREFIX });
+      if (pins.size >= MAX_PINS && !pins.has(key)) return;
+      await this.ctx.storage.put(key, text);
+    } else if (msg.type === "unpin") {
+      await this.ctx.storage.delete(PIN_PREFIX + msg.pin);
+    } else if (msg.type === "pos") {
+      ws.serializeAttachment({ ...att, last: text } satisfies Attachment);
+    } else {
+      ws.serializeAttachment({ ...att, hello: text } satisfies Attachment);
+    }
     this.broadcast(text, ws);
+  }
+
+  /** Fires only after the room has been empty for the TTL; a rejoin in between cancels it. */
+  async alarm(): Promise<void> {
+    if (this.ctx.getWebSockets().length === 0) await this.ctx.storage.deleteAll();
   }
 
   async webSocketClose(ws: WebSocket, code: number, reason: string, _wasClean: boolean): Promise<void> {
@@ -70,6 +100,9 @@ export class RoomDO extends DurableObject {
     const att = ws.deserializeAttachment() as Attachment | null;
     if (!att) return;
     this.broadcast(JSON.stringify({ type: "leave", id: att.id } satisfies ServerMsg), ws);
+    if (this.ctx.getWebSockets().every((other) => other === ws)) {
+      void this.ctx.storage.setAlarm(Date.now() + EMPTY_ROOM_PIN_TTL_MS);
+    }
     // Clearing the attachment makes the guard above swallow a second call, so a socket
     // that errors and then closes announces its leave once.
     try {

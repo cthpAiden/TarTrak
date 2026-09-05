@@ -26,6 +26,13 @@ class FakeClient implements RoomClientLike {
   sendPosition(map: string | null, p: Position) {
     this.sent.push({ map, p });
   }
+  open = true;
+  sentPins: unknown[] = [];
+  send(msg: unknown) {
+    if (!this.open) return false;
+    this.sentPins.push(msg);
+    return true;
+  }
 }
 
 function makeController() {
@@ -52,8 +59,45 @@ const hello = (id: string, name: string): ServerMsg => ({ type: "hello", id, nam
 describe("RoomController", () => {
   beforeEach(() => {
     app.clearTeammates();
+    app.pins = {};
     app.ownPos = null;
     app.toasts = [];
+  });
+
+  it("adds a teammate's shared pin, removes it on unpin, and drops shared pins on leave", () => {
+    const { room, client } = makeController();
+    app.addPin({ id: "mine0001", map: "customs", x: 0, z: 0, label: "", color: "#fff", shared: false });
+    client.onMessage({ type: "pin", id: "aaaaaaaa", pin: "abcd1234", map: "customs", x: 1, z: 2, label: "loot", color: "#f00" });
+    expect(app.pins["abcd1234"]).toEqual({
+      id: "abcd1234",
+      map: "customs",
+      x: 1,
+      z: 2,
+      label: "loot",
+      color: "#f00",
+      shared: true,
+      from: "aaaaaaaa",
+    });
+    client.onMessage({ type: "pin", id: "aaaaaaaa", pin: "abcd5678", map: "woods", x: 3, z: 4, label: "", color: "#f00" });
+    client.onMessage({ type: "unpin", id: "bbbbbbbb", pin: "abcd1234" });
+    expect(Object.keys(app.pins).sort()).toEqual(["abcd5678", "mine0001"]);
+    room.leave();
+    expect(Object.keys(app.pins)).toEqual(["mine0001"]);
+  });
+
+  it("shares and unshares my pins through the client, reporting when the socket is down", () => {
+    const { room, client } = makeController();
+    const pin = { id: "abcd1234", map: "customs", x: 1, z: 2, label: "loot", color: "#0f0", shared: true };
+    expect(room.sharePin(pin)).toBe(true);
+    room.unsharePin("abcd1234");
+    expect(client.sentPins).toEqual([
+      { type: "pin", pin: "abcd1234", map: "customs", x: 1, z: 2, label: "loot", color: "#0f0" },
+      { type: "unpin", pin: "abcd1234" },
+    ]);
+    client.open = false;
+    expect(room.sharePin(pin)).toBe(false);
+    room.leave();
+    expect(room.sharePin(pin)).toBe(false);
   });
 
   it("replaces the ghost when the same name reconnects under a new id", () => {

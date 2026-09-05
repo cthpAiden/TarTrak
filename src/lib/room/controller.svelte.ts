@@ -1,13 +1,14 @@
 import type { Position } from "../parse/screenshot";
-import { app, type Teammate } from "../state/app.svelte";
+import { app, type Pin, type Teammate } from "../state/app.svelte";
 import { RoomClient, type RoomClientOptions, type RoomStatus } from "./client";
-import type { ServerMsg } from "./protocol";
+import type { PinMsg, ServerMsg, UnpinMsg } from "./protocol";
 
 /** The part of RoomClient the controller drives; injectable so the message handling is testable. */
 export interface RoomClientLike {
   connect(): void;
   close(): void;
   sendPosition(map: string | null, p: Position): void;
+  send(msg: PinMsg | UnpinMsg): boolean;
 }
 
 export class RoomController {
@@ -74,6 +75,16 @@ export class RoomController {
     this.code = null;
     this.status = "closed";
     app.clearTeammates();
+    app.clearSharedPins();
+  }
+
+  /** False when not connected: the caller keeps the pin private and tells the user. */
+  sharePin(p: Pin): boolean {
+    return this.client?.send({ type: "pin", pin: p.id, map: p.map, x: p.x, z: p.z, label: p.label, color: p.color }) ?? false;
+  }
+
+  unsharePin(id: string): void {
+    this.client?.send({ type: "unpin", pin: id });
   }
 
   onOwnPosition(map: string | null, p: Position): void {
@@ -107,6 +118,14 @@ export class RoomController {
           app.toast(`${t.name} left the room`);
         }
       }
+      return;
+    }
+    if (m.type === "pin") {
+      app.addPin({ id: m.pin, map: m.map, x: m.x, z: m.z, label: m.label, color: m.color, shared: true, from: m.id });
+      return;
+    }
+    if (m.type === "unpin") {
+      app.removePin(m.pin);
       return;
     }
     // Judged before the ghost is dropped: a same-name marker of any kind means this is a reconnect.

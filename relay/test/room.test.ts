@@ -142,6 +142,28 @@ describe("room relay", () => {
     expect(await b.quiet(300)).toBe(true);
   });
 
+  it("stores shared pins, replays them to newcomers and forgets them on unpin", async () => {
+    const a = await connect("ROOM07");
+    const b = await connect("ROOM07");
+    const pin = { type: "pin", pin: "abcd1234", map: "customs", x: 1, z: 2, label: "loot", color: "#f00" };
+    a.ws.send(JSON.stringify(pin));
+    const seen = JSON.parse(await b.next());
+    expect(seen).toMatchObject(pin);
+    expect(typeof seen.id).toBe("string");
+    await new Promise((r) => setTimeout(r, 100));
+
+    const c = await connect("ROOM07");
+    expect(JSON.parse(await c.next())).toMatchObject({ ...pin, id: seen.id });
+    expect(await c.quiet(200)).toBe(true);
+
+    b.ws.send(JSON.stringify({ type: "unpin", pin: "abcd1234" }));
+    expect(JSON.parse(await a.next())).toMatchObject({ type: "unpin", pin: "abcd1234" });
+    expect(JSON.parse(await c.next())).toMatchObject({ type: "unpin", pin: "abcd1234" });
+    await new Promise((r) => setTimeout(r, 100));
+    const d = await connect("ROOM07");
+    expect(await d.quiet(200)).toBe(true);
+  });
+
   it("isolates rooms", async () => {
     const a = await connect("ROOM03");
     const b = await connect("ROOM04");

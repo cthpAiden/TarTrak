@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount, untrack } from "svelte";
   import { open } from "@tauri-apps/plugin-dialog";
-  import { app } from "./lib/state/app.svelte";
+  import { app, type Pin } from "./lib/state/app.svelte";
+  import { newPinId, PRIVATE_PIN_COLOR } from "./lib/map/pins";
   import { startEventBridge } from "./lib/tauri/events";
   import { setOverlay, applyOpacity, nextOpacity, installAltDrag, registerHotkeys } from "./lib/tauri/window";
   import { detectDirs, startScreenshotWatcher, startLogTail, type DetectedDirs } from "./lib/tauri/commands";
@@ -281,6 +282,32 @@
     if (p) room.onOwnPosition(app.currentMap, p);
   });
 
+  function placePin(p: { x: number; z: number; label: string; shared: boolean }) {
+    if (!def) return;
+    const pin: Pin = {
+      id: newPinId(),
+      map: def.key,
+      x: p.x,
+      z: p.z,
+      label: p.label,
+      color: p.shared ? (settings?.color ?? DEFAULT_SETTINGS.color) : PRIVATE_PIN_COLOR,
+      shared: p.shared,
+    };
+    if (pin.shared && !room.sharePin(pin)) {
+      app.toast("Squad not connected: marker kept for you only");
+      pin.shared = false;
+      pin.color = PRIVATE_PIN_COLOR;
+    }
+    app.addPin(pin);
+  }
+
+  function removePin(id: string) {
+    const pin = app.pins[id];
+    if (!pin) return;
+    app.removePin(id);
+    if (pin.shared) room.unsharePin(id);
+  }
+
   // Every screenshot recentres the map on me while follow is on; a small overlay would otherwise
   // lose the marker after a short walk. untrack: reading settings here must not re-pan on edits.
   $effect(() => {
@@ -368,6 +395,9 @@
           {hitIds}
           {showLabels}
           lineLengthPx={settings?.lineLengthPx ?? DEFAULT_SETTINGS.lineLengthPx}
+          canShare={room.status === "open"}
+          onPin={placePin}
+          onRemovePin={removePin}
         />
       {:else}
         <div class="empty">Pick a map above, or load into a raid.</div>

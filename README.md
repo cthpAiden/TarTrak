@@ -26,6 +26,11 @@ No memory reading, no injection, no hooks, no keystrokes sent to the game, no ac
 
 Markers never disappear; they dim slowly after 30 s and settle at 35% after 5 minutes.
 
+**Your own markers.** Right-click anywhere on the map, type a label if you want one, and pick **Marker for
+me** (only this app shows it) or **Shared marker** (everyone in your squad room sees it, in your colour).
+Click a marker for its details and a Remove button; anyone in the room can remove a shared marker. Shared
+markers live as long as the room does, and go away when you leave it.
+
 **Squad.** Every player marker has a heading line (length adjustable in Settings). While you are in a room, the Squad tab lists your teammates: distance to you when they are on
 your map, otherwise the map they are on, plus how long ago they last reported. Click a row to center on them.
 A teammate whose game log was not found reports no map and is drawn on yours, marked "map unknown". The app

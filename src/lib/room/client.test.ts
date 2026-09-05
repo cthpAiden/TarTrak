@@ -73,6 +73,20 @@ describe("RoomClient", () => {
   });
   afterEach(() => vi.useRealTimers());
 
+  it("sends a pin at once while open and refuses while the socket is down", () => {
+    const { client } = make();
+    const msg = { type: "unpin", pin: "abcd1234" } as const;
+    expect(client.send(msg)).toBe(false);
+    client.connect();
+    const ws = FakeWs.instances[0];
+    expect(client.send(msg)).toBe(false);
+    ws.open();
+    expect(client.send(msg)).toBe(true);
+    expect(JSON.parse(ws.sent.at(-1)!)).toEqual(msg);
+    ws.drop();
+    expect(client.send(msg)).toBe(false);
+  });
+
   it("connects, sends hello on open, and forwards parsed server messages", () => {
     const { client, messages, statuses } = make();
     client.connect();

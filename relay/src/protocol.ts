@@ -25,10 +25,31 @@ export interface PosMsg {
   ts: number;
 }
 
-export type ClientMsg = HelloMsg | PosMsg;
+/** A marker placed by hand and shared with the room. `pin` is the client-chosen marker id. */
+export interface PinMsg {
+  type: "pin";
+  pin: string;
+  map: string;
+  x: number;
+  z: number;
+  label: string;
+  color: string;
+}
 
-/** `id` is relay-assigned, 1..32 chars. */
-export type ServerMsg = (HelloMsg & { id: string }) | (PosMsg & { id: string }) | { type: "leave"; id: string };
+export interface UnpinMsg {
+  type: "unpin";
+  pin: string;
+}
+
+export type ClientMsg = HelloMsg | PosMsg | PinMsg | UnpinMsg;
+
+/** `id` is relay-assigned, 1..32 chars: the socket that sent the message. */
+export type ServerMsg =
+  | (HelloMsg & { id: string })
+  | (PosMsg & { id: string })
+  | (PinMsg & { id: string })
+  | (UnpinMsg & { id: string })
+  | { type: "leave"; id: string };
 
 export function isValidRoomCode(code: string): boolean {
   return ROOM_CODE_RE.test(code);
@@ -91,12 +112,35 @@ function readPos(o: Record<string, unknown>): PosMsg | null {
   return { type: "pos", name, color, map, x, y, z, yaw, ts };
 }
 
-export function parseClientMessage(raw: string): ClientMsg | null {
-  const o = parseJson(raw);
-  if (!o) return null;
+function readPin(o: Record<string, unknown>): PinMsg | null {
+  const pin = str(o.pin);
+  const map = str(o.map);
+  const label = str(o.label);
+  const color = str(o.color);
+  const x = num(o.x);
+  const z = num(o.z);
+  if (pin === null || pin.length === 0 || map === null || map.length === 0) return null;
+  if (label === null || color === null || x === null || z === null) return null;
+  return { type: "pin", pin, map, x, z, label, color };
+}
+
+function readUnpin(o: Record<string, unknown>): UnpinMsg | null {
+  const pin = str(o.pin);
+  if (pin === null || pin.length === 0) return null;
+  return { type: "unpin", pin };
+}
+
+function readBody(o: Record<string, unknown>): ClientMsg | null {
   if (o.type === "hello") return readHello(o);
   if (o.type === "pos") return readPos(o);
+  if (o.type === "pin") return readPin(o);
+  if (o.type === "unpin") return readUnpin(o);
   return null;
+}
+
+export function parseClientMessage(raw: string): ClientMsg | null {
+  const o = parseJson(raw);
+  return o ? readBody(o) : null;
 }
 
 export function parseServerMessage(raw: string): ServerMsg | null {
@@ -105,6 +149,6 @@ export function parseServerMessage(raw: string): ServerMsg | null {
   const id = str(o.id);
   if (id === null || id.length === 0) return null;
   if (o.type === "leave") return { type: "leave", id };
-  const body = o.type === "hello" ? readHello(o) : o.type === "pos" ? readPos(o) : null;
+  const body = readBody(o);
   return body ? { ...body, id } : null;
 }

@@ -84,6 +84,27 @@ describe("parseClientMessage", () => {
   });
 });
 
+describe("pins", () => {
+  const pin = { type: "pin", pin: "abcd1234", map: "customs", x: 1.5, z: -2, label: "loot", color: "#f00" };
+
+  it("accepts pin and unpin from clients and with an id from the relay", () => {
+    expect(parseClientMessage(JSON.stringify(pin))).toEqual(pin);
+    expect(parseClientMessage(JSON.stringify({ ...pin, label: "" }))).toEqual({ ...pin, label: "" });
+    expect(parseClientMessage(JSON.stringify({ type: "unpin", pin: "abcd1234" }))).toEqual({ type: "unpin", pin: "abcd1234" });
+    expect(parseServerMessage(JSON.stringify({ ...pin, id: "s1" }))).toEqual({ ...pin, id: "s1" });
+    expect(parseServerMessage(JSON.stringify({ type: "unpin", pin: "abcd1234", id: "s1" }))).toEqual({ type: "unpin", pin: "abcd1234", id: "s1" });
+  });
+
+  it("rejects an empty or missing pin id, an empty map, a long label and bad coordinates", () => {
+    expect(parseClientMessage(JSON.stringify({ ...pin, pin: "" }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ type: "unpin" }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ ...pin, map: "" }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ ...pin, label: "x".repeat(33) }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ ...pin, x: "1" }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ ...pin, z: Infinity }))).toBeNull();
+  });
+});
+
 describe("parseServerMessage", () => {
   it("accepts pos/hello with id and leave", () => {
     expect(parseServerMessage(JSON.stringify({ ...pos, id: "abc" }))).toEqual({ ...pos, id: "abc" });
