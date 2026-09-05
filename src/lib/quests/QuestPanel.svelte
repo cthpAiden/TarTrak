@@ -140,7 +140,7 @@
     </label>
   </div>
   {#if mine.length === 0 && squad.length === 0}
-    <p class="muted small">Nothing yet. Find a quest below and press +; only to-do quests show on the map.</p>
+    <p class="muted small">Nothing yet. Every quest below counts as completed; untick one to show it on the map.</p>
   {:else}
     <div class="todo">
       <ul>
@@ -218,13 +218,14 @@
             <ul>
               {#each g.tasks as { t, count } (t.id)}
                 <li class:here={count > 0} class:listed={todoQuests[t.id]}>
-                  <button
-                    class="icon add"
-                    aria-pressed={!!todoQuests[t.id]}
-                    title={todoQuests[t.id] ? "Remove from to-do" : "Add to to-do"}
-                    aria-label={todoQuests[t.id] ? `Remove ${t.name} from to-do` : `Add ${t.name} to to-do`}
-                    onclick={() => setTodo(t.id, !todoQuests[t.id])}>{todoQuests[t.id] ? "✓" : "+"}</button
-                  >
+                  <!-- Ticked means "completed, keep it off my map"; unticking puts the quest on the to-do list. -->
+                  <input
+                    type="checkbox"
+                    checked={!todoQuests[t.id]}
+                    title={todoQuests[t.id] ? "Tick to hide it again" : "Untick to show it on the map"}
+                    aria-label="{t.name} completed"
+                    onchange={(e) => setTodo(t.id, !e.currentTarget.checked)}
+                  />
                   <span class="name">{t.name}{@render badges(t)}</span>
                   {#if t.wikiLink}
                     <button class="icon wiki" title="Open on the wiki" aria-label="Open {t.name} on the wiki" onclick={() => openWiki(t.wikiLink!)}>?</button>
@@ -277,13 +278,12 @@
   li .meta { grid-row: 2; grid-column: 2; color: var(--muted); font-size: 11px; }
   li.done .name { text-decoration: line-through; color: var(--muted); }
   li.here .name { color: var(--accent); }
-  li.listed .name { opacity: 0.6; }
+  li.listed .name { font-weight: 600; }
   .from { color: var(--muted); font-size: 12px; width: 13px; text-align: center; }
   .icon { background: none; border: none; color: var(--muted); cursor: pointer; padding: 0 3px; font-size: 13px; line-height: 1; }
   .icon:hover { color: var(--fg); }
   .wiki { font-weight: 600; font-size: 12px; }
   .add { font-size: 15px; width: 18px; }
-  .add[aria-pressed="true"] { color: var(--accent); }
   .small { font-size: 11px; margin: 0; }
   .footer { margin: 0; font-size: 11px; }
 </style>

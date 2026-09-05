@@ -37,7 +37,8 @@ left drag into a stroke: in a room the squad sees every stroke live and later jo
 offers undo (also Ctrl+Z) and clear-all, which wipes the map for the whole room.
 
 **Quests.** The Quests tab is a to-do list. "Find quests on <map>" lists the quests with markers on the map you
-are on (type to search, "all maps" widens it); + adds one to your to-do, and only to-do quests draw markers.
+are on (type to search, "all maps" widens it). Every quest there starts ticked, meaning completed; untick one to put
+it on your to-do, and only to-do quests draw markers.
 "Share with squad" sends the list to your room, so teammates see those markers too and can copy quests over.
 
 **Squad.** Every player marker has a heading line (length adjustable in Settings). While you are in a room, the Squad tab lists your teammates: distance to you when they are on

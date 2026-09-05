@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Map
+- The heading line fades out towards its far end, so it no longer hides what is 50 m ahead.
+
+### Quests
+- The quest finder lists every quest as ticked, meaning completed; untick one to show it on the map and put it on your to-do.
+
 ## 0.3.1 - 2026-09-06
 
 ### Map

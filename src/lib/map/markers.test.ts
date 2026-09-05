@@ -88,6 +88,33 @@ describe("PositionMarker", () => {
     expect(north.distanceTo(east)).toBeGreaterThan(0);
   });
 
+  it("fades the line out along its length with a gradient that follows the line and the colour", () => {
+    const m = new PositionMarker(map, { color: "#f0b429", radius: 6, lineLengthM: 28 });
+    m.update(100, -50, 90);
+    const path = (m.line as unknown as { _path: SVGPathElement })._path;
+    expect(path.getAttribute("stroke")).toBe(`url(#${m.gradient.id})`);
+    expect(m.gradient.getAttribute("gradientUnits")).toBe("userSpaceOnUse");
+    const stops = Array.from(m.gradient.children);
+    expect(stops.map((st) => [st.getAttribute("offset"), st.getAttribute("stop-opacity"), st.getAttribute("stop-color")])).toEqual([
+      ["0", "1", "#f0b429"],
+      ["1", "0", "#f0b429"],
+    ]);
+    const [a, b] = m.linePoints().map((p) => map.latLngToLayerPoint(p));
+    expect(Number(m.gradient.getAttribute("x1"))).toBeCloseTo(a.x, 6);
+    expect(Number(m.gradient.getAttribute("y1"))).toBeCloseTo(a.y, 6);
+    expect(Number(m.gradient.getAttribute("x2"))).toBeCloseTo(b.x, 6);
+    expect(Number(m.gradient.getAttribute("y2"))).toBeCloseTo(b.y, 6);
+    expect(map.getContainer().contains(m.gradient)).toBe(true);
+
+    m.setColor("#00ff00");
+    expect(path.getAttribute("stroke")).toBe(`url(#${m.gradient.id})`);
+    expect(stops.every((st) => st.getAttribute("stop-color") === "#00ff00")).toBe(true);
+    m.setOpacity(0.5);
+    expect(path.getAttribute("stroke")).toBe(`url(#${m.gradient.id})`);
+    m.remove();
+    expect(map.getContainer().contains(m.gradient)).toBe(false);
+  });
+
   it("applies opacity to circle and line and removes both", () => {
     const m = new PositionMarker(map, { color: "#fff", radius: 6, lineLengthM: 28, label: "Bob" });
     m.update(0, 0, 0);

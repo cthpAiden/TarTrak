@@ -32,10 +32,32 @@ function ensurePlayerPanes(map: L.Map): void {
   if (!map.getPane(OWN_PANE)) map.createPane(OWN_PANE).style.zIndex = OWN_PANE_Z;
 }
 
-/** A player: filled circle plus a heading line with a fixed on-screen length. */
+const SVG_NS = "http://www.w3.org/2000/svg";
+let gradientSeq = 0;
+
+/** One hidden SVG per map holds the fade gradients; url(#id) resolves anywhere in the document. */
+function gradientDefs(map: L.Map): SVGDefsElement {
+  const container = map.getContainer();
+  let svg = container.querySelector<SVGSVGElement>("svg.tt-defs");
+  if (!svg) {
+    svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("class", "tt-defs");
+    svg.setAttribute("width", "0");
+    svg.setAttribute("height", "0");
+    svg.style.position = "absolute";
+    svg.appendChild(document.createElementNS(SVG_NS, "defs"));
+    container.appendChild(svg);
+  }
+  return svg.querySelector("defs")!;
+}
+
+/** A player: filled circle plus a heading line that fades out towards its far end. */
 export class PositionMarker {
   readonly circle: L.CircleMarker;
   readonly line: L.Polyline;
+  /** Stroke gradient from full colour at the player to transparent at the tip, in layer pixels. */
+  readonly gradient: SVGLinearGradientElement;
+  private readonly gradientId = `tt-fade-${++gradientSeq}`;
   private x = 0;
   private z = 0;
   private yaw = 0;
@@ -58,8 +80,19 @@ export class PositionMarker {
       fillOpacity: 1,
       opacity: 1,
     });
-    // Dotted and thin: a line of sight that hides as little of the map as it can.
+    // Dotted, thin and fading: a line of sight that hides as little of the map as it can.
     this.line = L.polyline([], { pane, color: style.color, weight: 2, opacity: 0.85, dashArray: "1 6", lineCap: "round" });
+    this.gradient = document.createElementNS(SVG_NS, "linearGradient");
+    this.gradient.setAttribute("id", this.gradientId);
+    this.gradient.setAttribute("gradientUnits", "userSpaceOnUse");
+    for (const [offset, opacity] of [["0", "1"], ["1", "0"]]) {
+      const stop = document.createElementNS(SVG_NS, "stop");
+      stop.setAttribute("offset", offset);
+      stop.setAttribute("stop-color", style.color);
+      stop.setAttribute("stop-opacity", opacity);
+      this.gradient.appendChild(stop);
+    }
+    gradientDefs(map).appendChild(this.gradient);
     if (style.label) {
       this.circle.bindTooltip(esc(style.label), {
         permanent: true,
@@ -71,8 +104,15 @@ export class PositionMarker {
       });
     }
     this.line.addTo(map);
+    this.applyGradient();
     this.circle.addTo(map);
     map.on("zoomend", this.onZoom);
+  }
+
+  /** Leaflet resets the stroke to a flat colour on every setStyle, so the gradient goes back on after each. */
+  private applyGradient(): void {
+    const path = (this.line as unknown as { _path?: SVGPathElement })._path;
+    path?.setAttribute("stroke", `url(#${this.gradientId})`);
   }
 
   update(x: number, z: number, yaw: number): void {
@@ -94,6 +134,7 @@ export class PositionMarker {
   setOpacity(o: number): void {
     this.circle.setStyle({ opacity: o, fillOpacity: o });
     this.line.setStyle({ opacity: o });
+    this.applyGradient();
     const tt = this.circle.getTooltip();
     if (tt) tt.setOpacity(o);
   }
@@ -101,6 +142,8 @@ export class PositionMarker {
   setColor(color: string): void {
     this.circle.setStyle({ fillColor: color });
     this.line.setStyle({ color });
+    this.applyGradient();
+    for (const stop of Array.from(this.gradient.children)) stop.setAttribute("stop-color", color);
   }
 
   /** Replaces the name label, e.g. when the teammate changes floor. No-op for a marker made without one. */
@@ -114,6 +157,7 @@ export class PositionMarker {
     this.map.off("zoomend", this.onZoom);
     this.circle.remove();
     this.line.remove();
+    this.gradient.remove();
   }
 
   private redraw(): void {
@@ -125,5 +169,12 @@ export class PositionMarker {
     const end = toLatLng(this.x + Math.sin(rad) * len, this.z + Math.cos(rad) * len);
     this.circle.setLatLng(center);
     this.line.setLatLngs([center, end]);
+    // Gradient axis follows the line in layer pixels; those only change on zoom, which redraws too.
+    const a = this.map.latLngToLayerPoint(center);
+    const b = this.map.latLngToLayerPoint(end);
+    this.gradient.setAttribute("x1", String(a.x));
+    this.gradient.setAttribute("y1", String(a.y));
+    this.gradient.setAttribute("x2", String(b.x));
+    this.gradient.setAttribute("y2", String(b.y));
   }
 }
