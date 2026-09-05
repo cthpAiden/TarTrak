@@ -110,12 +110,19 @@ function toTask(t: Dict, tasksEn: Record<string, unknown>, traders: Dict, trader
   const traderId = str(t.trader);
   const traderKey = str(dict(traders[traderId]).name, traderId);
   const taskMap = typeof t.map === "string" ? t.map : null;
+  // Only a "complete" requirement gates the task; "started" or "failed" ones are alternative paths.
+  const requires = list(t.taskRequirements)
+    .filter((r) => strings(r.status).includes("complete") && typeof r.task === "string")
+    .map((r) => r.task as string);
   return {
     id: str(t.id),
     name: tr(tasksEn, str(t.name)),
     trader: { name: tr(tradersEn, traderKey) },
     minPlayerLevel: typeof t.minPlayerLevel === "number" ? t.minPlayerLevel : 0,
     objectives: list(t.objectives).map((o) => toObjective(o, tasksEn, taskMap)),
+    requires,
+    kappaRequired: t.kappaRequired === true,
+    lightkeeperRequired: t.lightkeeperRequired === true,
   };
 }
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { groupByTrader, TRADER_ORDER, type GroupOpts } from "./grouping";
+import { groupByTrader, isUnlocked, lockedTaskIds, TRADER_ORDER, type GroupOpts } from "./grouping";
 import type { QuestTask } from "./types";
 
 function task(id: string, name: string, trader: string, minPlayerLevel = 1): QuestTask {
@@ -39,6 +39,21 @@ describe("groupByTrader", () => {
     expect(g[0].total).toBe(2);
   });
 
+  it("availableOnly hides tasks with an unfinished prerequisite but keeps done ones", () => {
+    const locked = { ...task("t2", "Locked", "Prapor"), requires: ["t1"] };
+    const doneLocked = { ...task("t3", "DoneLocked", "Prapor"), requires: ["t1"] };
+    const tasks = [task("t1", "Root", "Prapor"), locked, doneLocked];
+    const g = groupByTrader(tasks, opts({ availableOnly: true, done: { t3: true } }));
+    expect(g[0].tasks.map((x) => x.t.id).sort()).toEqual(["t1", "t3"]);
+    const after = groupByTrader(tasks, opts({ availableOnly: true, done: { t1: true }, hideDone: true }));
+    expect(after[0].tasks.map((x) => x.t.id).sort()).toEqual(["t2", "t3"]);
+  });
+
+  it("kappaOnly keeps just the Kappa tasks", () => {
+    const tasks = [task("t1", "A", "Prapor"), { ...task("t2", "B", "Prapor"), kappaRequired: true }];
+    expect(groupByTrader(tasks, opts({ kappaOnly: true }))[0].tasks.map((x) => x.t.id)).toEqual(["t2"]);
+  });
+
   it("filters by player level, with 0 meaning no limit", () => {
     const tasks = [task("t1", "Low", "Prapor", 1), task("t2", "High", "Prapor", 11)];
     expect(groupByTrader(tasks, opts({ playerLevel: 0 }))[0].tasks).toHaveLength(2);
@@ -62,5 +77,15 @@ describe("groupByTrader", () => {
     const g = groupByTrader(tasks, opts({ search: "thera" }));
     expect(g.map((x) => x.trader)).toEqual(["Therapist"]);
     expect(g[0].tasks.map((x) => x.t.id)).toEqual(["t2"]);
+  });
+});
+
+describe("isUnlocked and lockedTaskIds", () => {
+  it("treats missing or empty requirements as unlocked and needs every listed task done", () => {
+    expect(isUnlocked(task("t1", "A", "Prapor"), {})).toBe(true);
+    const t = { ...task("t2", "B", "Prapor"), requires: ["a", "b"] };
+    expect(isUnlocked(t, { a: true })).toBe(false);
+    expect(isUnlocked(t, { a: true, b: true })).toBe(true);
+    expect([...lockedTaskIds([task("t1", "A", "Prapor"), t], { a: true })]).toEqual(["t2"]);
   });
 });

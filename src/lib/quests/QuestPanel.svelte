@@ -11,6 +11,8 @@
     gameMode,
     playerLevel,
     onPlayerLevel,
+    availableOnly,
+    onAvailableOnly,
     hiddenQuests,
     onHiddenChange,
   }: {
@@ -18,12 +20,15 @@
     gameMode: GameMode;
     playerLevel: number;
     onPlayerLevel: (n: number) => void;
+    availableOnly: boolean;
+    onAvailableOnly: (on: boolean) => void;
     hiddenQuests: Record<string, true>;
     onHiddenChange: (h: Record<string, true>) => void;
   } = $props();
 
   let search = $state("");
   let hideDone = $state(true);
+  let kappaOnly = $state(false);
   let collapsed = $state<Record<string, boolean>>({});
 
   const groups = $derived.by(() => {
@@ -36,7 +41,15 @@
         countsOnMap.set(m.taskId, (countsOnMap.get(m.taskId) ?? 0) + 1);
       }
     }
-    return groupByTrader(data.tasks, { search, hideDone, playerLevel, done: app.doneQuests, countsOnMap });
+    return groupByTrader(data.tasks, {
+      search,
+      hideDone,
+      availableOnly,
+      kappaOnly,
+      playerLevel,
+      done: app.doneQuests,
+      countsOnMap,
+    });
   });
 
   function toggle(id: string) {
@@ -77,7 +90,13 @@
         }}
       />
     </label>
+  </div>
+  <div class="row toggles">
     <label><input type="checkbox" bind:checked={hideDone} /> hide done</label>
+    <label title="Only quests whose prerequisite quests you have marked done; also hides their markers">
+      <input type="checkbox" checked={availableOnly} onchange={(e) => onAvailableOnly(e.currentTarget.checked)} /> available
+    </label>
+    <label title="Only quests needed for the Kappa container"><input type="checkbox" bind:checked={kappaOnly} /> Kappa</label>
   </div>
   {#if !app.questData}
     <p class="muted">No quest data yet.</p>
@@ -98,7 +117,11 @@
                     checked={!!app.doneQuests[t.id]}
                     onchange={() => toggle(t.id)}
                   />
-                  <span class="name">{t.name}</span>
+                  <span class="name">
+                    {t.name}
+                    {#if t.kappaRequired}<span class="badge" title="Needed for Kappa">κ</span>{/if}
+                    {#if t.lightkeeperRequired}<span class="badge" title="Needed for Lightkeeper">LK</span>{/if}
+                  </span>
                   <button
                     class="eye"
                     aria-pressed={!!hiddenQuests[t.id]}
@@ -122,6 +145,12 @@
   h2 { margin: 0 0 4px; font-size: 14px; }
   .row { display: flex; gap: 6px; align-items: center; font-size: 12px; }
   .row .search { flex: 1; min-width: 0; }
+  .toggles { flex-wrap: wrap; column-gap: 10px; }
+  .toggles label { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+  .badge {
+    display: inline-block; margin-left: 4px; padding: 0 4px; border-radius: 3px; font-size: 10px; line-height: 14px;
+    vertical-align: 1px; background: #2a2f38; color: var(--accent); border: 1px solid #3a4048;
+  }
   input { background: #2a2f38; color: var(--fg); border: 1px solid #3a4048; padding: 3px 6px; }
   input[type="number"] { width: 48px; }
   .list { overflow-y: auto; flex: 1; }

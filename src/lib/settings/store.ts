@@ -20,6 +20,8 @@ export interface Settings {
   showViewCone: boolean;
   /** Pan the map to my marker on every screenshot. */
   followMe: boolean;
+  /** Hide quests, in the list and on the map, whose prerequisite quests are not done yet. */
+  questsAvailableOnly: boolean;
   layerFilters: Record<string, boolean>;
   hiddenQuests: Record<string, true>;
 }
@@ -45,6 +47,7 @@ export const DEFAULT_SETTINGS: Settings = {
   lineLengthPx: 28,
   showViewCone: true,
   followMe: true,
+  questsAvailableOnly: false,
   layerFilters: {},
   hiddenQuests: {},
 };
@@ -66,6 +69,7 @@ const SHAPE: Record<keyof Settings, Kind> = {
   lineLengthPx: "number",
   showViewCone: "boolean",
   followMe: "boolean",
+  questsAvailableOnly: "boolean",
   layerFilters: "record",
   hiddenQuests: "record",
 };

@@ -18,6 +18,7 @@
   import type { QuestData } from "./lib/quests/types";
   import { extractQuestMarkers } from "./lib/quests/markers";
   import { visibleQuestMarkers } from "./lib/quests/questLayer";
+  import { lockedTaskIds } from "./lib/quests/grouping";
   import FilterPanel from "./lib/layers/FilterPanel.svelte";
   import { buildCounts } from "./lib/layers/counts";
   import { extractPoints } from "./lib/layers/points";
@@ -73,11 +74,14 @@
       : [],
   );
   const showLabels = $derived(isOn(layerFilters, "labels", "landmark"));
+  const lockedQuests = $derived(
+    settings?.questsAvailableOnly && app.questData ? lockedTaskIds(app.questData.tasks, app.doneQuests) : new Set<string>(),
+  );
   // Kept unfiltered by the layer toggles so the panel's shown/total can differ.
   const mapQuestMarkersBeforeFilters = $derived(
     def
       ? visibleQuestMarkers(allQuestMarkers, def.key, app.doneQuests, settings?.playerLevel ?? 0).filter(
-          (m) => !hiddenQuests[m.taskId],
+          (m) => !hiddenQuests[m.taskId] && !lockedQuests.has(m.taskId),
         )
       : [],
   );
@@ -400,6 +404,8 @@
               gameMode={settings.gameMode}
               playerLevel={settings.playerLevel}
               onPlayerLevel={(n) => patchSettings({ playerLevel: n })}
+              availableOnly={settings.questsAvailableOnly}
+              onAvailableOnly={(on) => patchSettings({ questsAvailableOnly: on })}
               hiddenQuests={settings.hiddenQuests}
               onHiddenChange={(h) => patchSettings({ hiddenQuests: h })}
             />

@@ -1,4 +1,4 @@
-export const QUEST_SCHEMA_VERSION = 4;
+export const QUEST_SCHEMA_VERSION = 5;
 
 export interface Vec3 {
   x: number;
@@ -23,6 +23,10 @@ export interface QuestTask {
   trader: { name: string };
   minPlayerLevel: number;
   objectives: TaskObjective[];
+  /** Ids of tasks that must be complete before this one unlocks. */
+  requires?: string[];
+  kappaRequired?: boolean;
+  lightkeeperRequired?: boolean;
 }
 export interface MapExtract {
   id: string;

@@ -72,6 +72,13 @@ const raw: RawBundle = {
           trader: "tr1",
           minPlayerLevel: 5,
           map: "m1",
+          kappaRequired: true,
+          lightkeeperRequired: false,
+          taskRequirements: [
+            { task: "t0", status: ["complete"] },
+            { task: "t9", status: ["started"] },
+            { task: 7, status: ["complete"] },
+          ],
           objectives: [
             {
               id: "o1",
@@ -143,6 +150,15 @@ describe("toQuestData", () => {
     // Unknown trader falls back to the id.
     expect(t2.trader.name).toBe("tr2");
     expect(t2.minPlayerLevel).toBe(0);
+  });
+
+  it("keeps only complete-status prerequisites and the Kappa/Lightkeeper flags", () => {
+    const [t1, t2] = d.tasks;
+    expect(t1.requires).toEqual(["t0"]);
+    expect(t1.kappaRequired).toBe(true);
+    expect(t1.lightkeeperRequired).toBe(false);
+    expect(t2.requires).toEqual([]);
+    expect(t2.kappaRequired).toBe(false);
   });
 
   it("derives objective maps from zones, then the task map", () => {

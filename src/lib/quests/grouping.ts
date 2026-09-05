@@ -17,9 +17,24 @@ export const TRADER_ORDER: readonly string[] = [
 export interface GroupOpts {
   search: string;
   hideDone: boolean;
+  /** Drop tasks whose prerequisite tasks are not all marked done. */
+  availableOnly?: boolean;
+  kappaOnly?: boolean;
   playerLevel: number;
   done: Record<string, true>;
   countsOnMap: Map<string, number>;
+}
+
+/** A task is unlocked once every task it requires is done; one with no known requirements always is. */
+export function isUnlocked(t: QuestTask, done: Record<string, true>): boolean {
+  return (t.requires ?? []).every((id) => done[id]);
+}
+
+/** Ids of the tasks still locked behind an unfinished prerequisite. */
+export function lockedTaskIds(tasks: QuestTask[], done: Record<string, true>): Set<string> {
+  const out = new Set<string>();
+  for (const t of tasks) if (!isUnlocked(t, done)) out.add(t.id);
+  return out;
 }
 
 export interface TraderGroup {
@@ -49,6 +64,9 @@ export function groupByTrader(tasks: QuestTask[], opts: GroupOpts): TraderGroup[
     if (opts.done[t.id]) g.done++;
     if (opts.hideDone && opts.done[t.id]) continue;
     if (opts.playerLevel > 0 && t.minPlayerLevel > opts.playerLevel) continue;
+    if (opts.kappaOnly && !t.kappaRequired) continue;
+    // A done task stays listed when the user shows done ones, whatever its prerequisites say.
+    if (opts.availableOnly && !opts.done[t.id] && !isUnlocked(t, opts.done)) continue;
     if (q && !t.name.toLowerCase().includes(q) && !trader.toLowerCase().includes(q)) continue;
     g.tasks.push({ t, count: opts.countsOnMap.get(t.id) ?? 0 });
   }
