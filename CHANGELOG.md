@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.6.0 - 2026-09-07
 
 ### Map
 - "Go here" on the right-click menu: a straight dotted route line from my marker to the spot under the cursor, with the distance on it, like the route to an extract. Clear it from the route button.
