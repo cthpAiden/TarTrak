@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 - 2026-09-06
 
 ### Quests
 - The quest finder starts with every quest unticked; tick one to put it on your to-do and on the map, untick to take it off. (It used to be the other way round: ticked meant completed.)
