@@ -8,6 +8,8 @@
   import Chevron from "../ui/Chevron.svelte";
   import { GAME_MODE_LABELS, type GameMode } from "./jsonSource";
   import { openUrl } from "@tauri-apps/plugin-opener";
+  import { gateLines, objectiveLine, rewardLine, spansMaps } from "./detail";
+  import type { Faction } from "../settings/store";
 
   let {
     markers,
@@ -20,9 +22,12 @@
     onTodoChange,
     shareTodo,
     onShareTodo,
+    faction = "any",
   }: {
     markers: QuestMarker[];
     gameMode: GameMode;
+    /** My PMC's faction: the finder hides the other side's quests. */
+    faction?: Faction;
     playerLevel: number;
     onPlayerLevel: (n: number) => void;
     availableOnly: boolean;
@@ -39,6 +44,8 @@
   let kappaOnly = $state(false);
   let allMaps = $state(false);
   let collapsed = $state<Record<string, boolean>>({});
+  /** Quests whose objectives, gates and rewards are unfolded, by id. */
+  let expanded = $state<Record<string, boolean>>({});
 
   const mapName = $derived(app.currentMap ? (getMapDef(app.currentMap)?.name ?? app.currentMap) : null);
 
@@ -52,6 +59,9 @@
   });
 
   const byId = $derived(new Map((app.questData?.tasks ?? []).map((t) => [t.id, t])));
+  const mapNameById = $derived(new Map((app.questData?.maps ?? []).map((m) => [m.id, m.name])));
+  const nameOfTask = (id: string) => byId.get(id)?.name;
+  const mapNames = (ids: { id: string }[]) => ids.map((m) => mapNameById.get(m.id) ?? m.id).join(", ");
 
   /** The finder: quests with a marker on this map (or everywhere with "all maps"), done ones left out. */
   const groups = $derived.by(() => {
@@ -66,6 +76,7 @@
       done: app.doneQuests,
       countsOnMap,
       onMapOnly: app.currentMap !== null && !allMaps,
+      faction,
     });
   });
 
@@ -127,6 +138,34 @@
 {#snippet badges(t: QuestTask)}
   {#if t.kappaRequired}<span class="badge" title="Needed for Kappa">κ</span>{/if}
   {#if t.lightkeeperRequired}<span class="badge" title="Needed for Lightkeeper">LK</span>{/if}
+  {#if t.faction}<span class="badge" title="Only {t.faction} PMCs get this quest">{t.faction}</span>{/if}
+{/snippet}
+
+<!-- The quest's name toggles this: its objectives, what still gates it, and what it pays, all from tarkov.dev. -->
+{#snippet name(t: QuestTask)}
+  <button class="name" aria-expanded={!!expanded[t.id]} title={expanded[t.id] ? "Hide details" : "Show objectives and rewards"} onclick={() => (expanded[t.id] = !expanded[t.id])}>
+    {@render portrait(t)}{t.name}{@render badges(t)}
+  </button>
+{/snippet}
+
+{#snippet detail(t: QuestTask)}
+  {#if expanded[t.id]}
+    {@const gates = gateLines(t, app.doneQuests, nameOfTask)}
+    {@const rewards = rewardLine(t)}
+    {@const where = spansMaps(t)}
+    <div class="detail">
+      {#if t.objectives.length > 0}
+        <ul class="objs">
+          {#each t.objectives as o (o.id)}
+            <li class:opt={o.optional}>{objectiveLine(o)}{#if where && o.maps.length > 0}<span class="where">{" · " + mapNames(o.maps)}</span>{/if}</li>
+          {/each}
+        </ul>
+      {/if}
+      {#if gates.length > 0}<p class="line">Needs: {gates.join(" · ")}</p>{/if}
+      {#if rewards}<p class="line">Rewards: {rewards}</p>{/if}
+      {#if t.failsOn?.length}<p class="line warn">Fails on: {t.failsOn.join("; ")}</p>{/if}
+    </div>
+  {/if}
 {/snippet}
 
 {#snippet meta(t: QuestTask, count: number)}
@@ -152,12 +191,13 @@
         {#each mine as { t, count } (t.id)}
           <li class:done={app.doneQuests[t.id]} class:here={count > 0}>
             <input type="checkbox" aria-label="Mark {t.name} done" checked={!!app.doneQuests[t.id]} onchange={() => toggle(t.id)} />
-            <span class="name">{@render portrait(t)}{t.name}{@render badges(t)}</span>
+            {@render name(t)}
             {#if t.wikiLink}
               <button class="icon wiki" title="Open on the wiki" aria-label="Open {t.name} on the wiki" onclick={() => openWiki(t.wikiLink!)}>?</button>
             {/if}
             <button class="icon" title="Remove from to-do" aria-label="Remove {t.name} from to-do" onclick={() => setTodo(t.id, false)}>✕</button>
             {@render meta(t, count)}
+            {@render detail(t)}
           </li>
         {/each}
       </ul>
@@ -167,12 +207,13 @@
           {#each s.tasks as { t, count } (t.id)}
             <li class:here={count > 0}>
               <span class="from" aria-hidden="true">↳</span>
-              <span class="name">{@render portrait(t)}{t.name}{@render badges(t)}</span>
+              {@render name(t)}
               {#if t.wikiLink}
                 <button class="icon wiki" title="Open on the wiki" aria-label="Open {t.name} on the wiki" onclick={() => openWiki(t.wikiLink!)}>?</button>
               {/if}
               <button class="icon add" title="Add to my to-do" aria-label="Add {t.name} to my to-do" onclick={() => setTodo(t.id, true)}>+</button>
               {@render meta(t, count)}
+              {@render detail(t)}
             </li>
           {/each}
         </ul>
@@ -231,12 +272,13 @@
                     aria-label="{t.name} on my to-do"
                     onchange={(e) => setTodo(t.id, e.currentTarget.checked)}
                   />
-                  <span class="name">{@render portrait(t)}{t.name}{@render badges(t)}</span>
+                  {@render name(t)}
                   {#if t.wikiLink}
                     <button class="icon wiki" title="Open on the wiki" aria-label="Open {t.name} on the wiki" onclick={() => openWiki(t.wikiLink!)}>?</button>
                   {/if}
                   <span></span>
                   {@render meta(t, count)}
+                  {@render detail(t)}
                 </li>
               {/each}
             </ul>
@@ -283,6 +325,16 @@
   .list ul { padding-left: 18px; }
   li { display: grid; grid-template-columns: auto 1fr auto auto; column-gap: 6px; align-items: center; padding: 4px 0; border-bottom: 1px solid #262b33; font-size: 13px; }
   li .meta { grid-row: 2; grid-column: 2; color: var(--muted); font-size: 11px; }
+  /* The name is a button so the whole row text unfolds the details; it must look like the text it was. */
+  button.name { background: none; border: 0; padding: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; min-width: 0; }
+  button.name:hover { text-decoration: underline; }
+  .detail { grid-row: 3; grid-column: 2 / -1; font-size: 11px; color: var(--fg); padding: 2px 0 2px; }
+  .objs { padding-left: 14px; list-style: disc; }
+  .objs li { display: list-item; border: 0; padding: 1px 0; font-size: 11px; }
+  .objs li.opt { color: var(--muted); }
+  .where { color: var(--muted); }
+  .detail .line { margin: 2px 0 0; color: var(--muted); }
+  .detail .warn { color: #e0a060; }
   li.done .name { text-decoration: line-through; color: var(--muted); }
   li.here .name { color: var(--accent); }
   li.listed .name { font-weight: 600; }

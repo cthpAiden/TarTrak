@@ -25,6 +25,14 @@ export interface GroupOpts {
   countsOnMap: Map<string, number>;
   /** Keep only tasks with at least one marker on the map (a count above zero). */
   onMapOnly?: boolean;
+  /** My PMC's faction ("usec" or "bear"): the other side's tasks are dropped. Unset or "any" keeps all. */
+  faction?: string;
+}
+
+/** A task is for me unless tarkov.dev restricts it to a faction that is not mine. */
+export function forFaction(t: QuestTask, faction: string | undefined): boolean {
+  if (!t.faction || !faction || faction === "any") return true;
+  return t.faction.toLowerCase() === faction.toLowerCase();
 }
 
 /** A task is unlocked once every task it requires is done; one with no known requirements always is. */
@@ -67,6 +75,7 @@ export function groupByTrader(tasks: QuestTask[], opts: GroupOpts): TraderGroup[
     if (opts.hideDone && opts.done[t.id]) continue;
     if (opts.playerLevel > 0 && t.minPlayerLevel > opts.playerLevel) continue;
     if (opts.kappaOnly && !t.kappaRequired) continue;
+    if (!forFaction(t, opts.faction)) continue;
     if (opts.onMapOnly && !(opts.countsOnMap.get(t.id) ?? 0)) continue;
     // A done task stays listed when the user shows done ones, whatever its prerequisites say.
     if (opts.availableOnly && !opts.done[t.id] && !isUnlocked(t, opts.done)) continue;

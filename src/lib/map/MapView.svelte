@@ -36,6 +36,7 @@
     canShare,
     onPin,
     onRemovePin,
+    onGoHere,
     route,
     drawMode,
     drawColor,
@@ -59,7 +60,9 @@
     canShare: boolean;
     onPin: (p: { x: number; z: number; label: string; shared: boolean }) => void;
     onRemovePin: (id: string) => void;
-    /** Extract to draw a straight line to from my marker, with the distance on it. */
+    /** "Go here" on the right-click menu: route to the spot under the cursor. */
+    onGoHere: (p: { x: number; z: number }) => void;
+    /** Extract or chosen spot to draw a straight line to from my marker, with the distance on it. */
     route: { x: number; z: number; name: string } | null;
     /** While on, a left drag draws a stroke instead of panning. */
     drawMode: boolean;
@@ -102,7 +105,7 @@
   let pinInput: HTMLInputElement | undefined = $state();
   let pinLabel = $state("");
   const PIN_MENU_W = 200;
-  const PIN_MENU_H = 196;
+  const PIN_MENU_H = 228;
   /** Bumped by every destroy(); a build whose generation is stale drops its result. */
   let gen = 0;
   let stopSizeWatch: (() => void) | null = null;
@@ -495,6 +498,12 @@
     pinMenu = null;
   }
 
+  function goHere() {
+    if (!pinMenu) return;
+    onGoHere({ x: pinMenu.x, z: pinMenu.z });
+    pinMenu = null;
+  }
+
   // The label box takes focus as the menu opens, so a right-click, a word and Enter is all it takes.
   $effect(() => {
     if (pinMenu) pinInput?.focus();
@@ -585,6 +594,9 @@
       onclick={() => placePin(true)}
     >
       Shared marker
+    </button>
+    <button type="button" role="menuitem" title="Route line from my marker to this spot, with the distance on it; clear it from the route button" onclick={goHere}>
+      Go here
     </button>
     <hr />
     <button

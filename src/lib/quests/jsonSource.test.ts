@@ -10,6 +10,9 @@ const raw: RawBundle = {
           id: "m1",
           name: "m1 Name",
           normalizedName: "factory",
+          raidDuration: 20,
+          players: "7-8",
+          accessKeys: ["k1", "k-unknown"],
           extracts: [
             { id: "e1", name: "E8_yard", faction: "pmc", position: { x: 1, y: 2, z: 3 } },
             {
@@ -63,8 +66,14 @@ const raw: RawBundle = {
                 { name: "BotZone", chance: 1, spawnKey: "BotZone" },
                 { name: "Gate", chance: 0.5, spawnKey: "ZoneGate" },
               ],
+              escorts: [
+                { mob: "followerBully", amount: [{ chance: 1, count: 2 }, { chance: 0.5, count: 4 }] },
+                { mob: "sniper", amount: [{ chance: 1, count: 1 }] },
+              ],
+              spawnTrigger: "Switch",
             },
-            { mob: "ghost", spawnChance: 0.1, spawnLocations: [] },
+            { mob: "ghost", spawnChance: 0.1, spawnLocations: [], escorts: [], spawnTrigger: null },
+            { mob: "evil", spawnChance: 0.5, spawnLocations: [] },
           ],
           stationaryWeapons: [
             { stationaryWeapon: "gun1", position: { x: 31, y: 32, z: 33 } },
@@ -75,7 +84,10 @@ const raw: RawBundle = {
         m2: { id: "m2", name: "m2 Name", normalizedName: "woods" },
       },
       lootContainers: { lc1: { id: "lc1", name: "lc1 Name", normalizedName: "weapon-box" } },
-      mobs: { bossTagilla: { id: "bossTagilla", name: "bossTagilla", normalizedName: "tagilla" } },
+      mobs: {
+        bossTagilla: { id: "bossTagilla", name: "bossTagilla", normalizedName: "tagilla", imagePortraitLink: "https://assets.tarkov.dev/tagilla-portrait.png" },
+        evil: { id: "evil", name: "evil", normalizedName: "evil", imagePortraitLink: "http://evil.example/portrait.png" },
+      },
     },
   },
   mapsEn: {
@@ -104,6 +116,25 @@ const raw: RawBundle = {
           map: "m1",
           kappaRequired: true,
           lightkeeperRequired: false,
+          factionName: "USEC",
+          experience: 3000,
+          finishRewards: {
+            items: [{ item: "i1", count: 80000 }, { item: "i2" }, { count: 3 }],
+            traderStanding: [{ trader: "tr1", standing: 0.1 }, { trader: "tr-unknown", standing: -0.02 }],
+            skillLevelReward: [{ skill: "Surgery", level: 2 }],
+            offerUnlock: [{ id: "of1" }, { id: "of2" }],
+            craftUnlock: [{ id: "cr1" }],
+          },
+          traderRequirements: [
+            { requirementType: "level", trader: "tr1", value: 2 },
+            { requirementType: "reputation", trader: "tr1", value: 0.5 },
+          ],
+          failConditions: [
+            { type: "taskStatus", task: "t2", status: ["complete"] },
+            { type: "taskStatus", task: "t2", status: ["started"] },
+            { type: "shoot", description: "fc desc" },
+            { type: "shoot", description: "fc-untranslated" },
+          ],
           wikiLink: "https://escapefromtarkov.fandom.com/wiki/Debut",
           neededKeys: [{ map: "m1", keys: ["k1", "k1"] }, { map: "m2", keys: ["k-unknown"] }],
           taskRequirements: [
@@ -130,7 +161,7 @@ const raw: RawBundle = {
                 { id: "z3", map: "m1", position: { x: 7, y: 8, z: 9 } },
               ],
             },
-            { id: "o2", type: "findItem", description: "o2 desc" },
+            { id: "o2", type: "findItem", description: "o2 desc", count: 3, foundInRaid: true, optional: true },
             {
               id: "o4",
               type: "findQuestItem",
@@ -143,13 +174,13 @@ const raw: RawBundle = {
             },
           ],
         },
-        t2: { id: "t2", name: "t2 name", trader: "tr2", map: null, objectives: [{ id: "o3", type: "shoot", description: "o3 desc", maps: ["m2", 5] }] },
+        t2: { id: "t2", name: "t2 name", trader: "tr2", map: null, factionName: "Any", experience: 0, finishRewards: { items: [], traderStanding: [] }, objectives: [{ id: "o3", type: "shoot", description: "o3 desc", maps: ["m2", 5], count: null, foundInRaid: false, optional: false }] },
       },
       questItems: { qi1: { id: "qi1", name: "qi1 Name" } },
     },
   },
   tasksEn: {
-    data: { "t1 name": "Debut", "o1 desc": "Visit the medical camp", "o2 desc": "", "t2 name": "Checking", "qi1 Name": "Secure folder 0013" },
+    data: { "t1 name": "Debut", "o1 desc": "Visit the medical camp", "o2 desc": "", "t2 name": "Checking", "qi1 Name": "Secure folder 0013", "fc desc": "Die with the flare in your pockets" },
   },
   traders: { data: { tr1: { id: "tr1", name: "tr1 Nickname", normalizedName: "prapor" } } },
   tradersEn: { data: { "tr1 Nickname": "Prapor" } },
@@ -306,9 +337,50 @@ describe("toQuestData", () => {
 
   it("maps bosses through the mobs table and falls back for an unknown mob", () => {
     expect(d.maps[0].bosses).toEqual([
-      { name: "Tagilla", normalizedName: "tagilla", spawnChance: 0.35, spawnKeys: ["BotZone", "ZoneGate"] },
+      // Escorts: the largest count of each guard type, summed. Only tarkov.dev's own host may serve a portrait.
+      { name: "Tagilla", normalizedName: "tagilla", spawnChance: 0.35, spawnKeys: ["BotZone", "ZoneGate"], escorts: 5, trigger: "Switch", portrait: "https://assets.tarkov.dev/tagilla-portrait.png" },
       { name: "ghost", normalizedName: "ghost", spawnChance: 0.1, spawnKeys: [] },
+      { name: "evil", normalizedName: "evil", spawnChance: 0.5, spawnKeys: [] },
     ]);
+  });
+
+  it("carries the raid length, player count and access keys of a map, and leaves them off a map without", () => {
+    // A key the item list cannot name is left off rather than shown as an id.
+    expect(d.maps[0]).toMatchObject({ raidDuration: 20, players: "7-8", accessKeys: ["Factory emergency exit key"] });
+    expect(d.maps[1].raidDuration).toBeUndefined();
+    expect(d.maps[1].players).toBeUndefined();
+    expect(d.maps[1].accessKeys).toBeUndefined();
+  });
+
+  it("keeps the faction, experience, rewards, trader level gates and fail conditions of a task", () => {
+    const [t1, t2] = d.tasks;
+    expect(t1.faction).toBe("USEC");
+    expect(t1.experience).toBe(3000);
+    expect(t1.rewards).toEqual({
+      items: [{ name: "Bolts", count: 80000 }, { name: "Screws", count: 1 }],
+      standing: [{ trader: "Prapor", delta: 0.1 }, { trader: "tr-unknown", delta: -0.02 }],
+      skills: [{ name: "Surgery", level: 2 }],
+      offers: 2,
+      crafts: 1,
+    });
+    // Reputation gates are not shown; a "started" status does not fail anything; an untranslated condition is dropped.
+    expect(t1.traderLevels).toEqual([{ trader: "Prapor", level: 2 }]);
+    expect(t1.failsOn).toEqual(["Checking", "Die with the flare in your pockets"]);
+    // "Any" is everyone's, an empty reward set is no reward set.
+    expect(t2.faction).toBeUndefined();
+    expect(t2.experience).toBeUndefined();
+    expect(t2.rewards).toBeUndefined();
+    expect(t2.traderLevels).toBeUndefined();
+    expect(t2.failsOn).toBeUndefined();
+  });
+
+  it("keeps an objective's count, found-in-raid and optional flags only when set", () => {
+    const [t1, t2] = d.tasks;
+    expect(t1.objectives[1]).toMatchObject({ count: 3, foundInRaid: true, optional: true });
+    expect(t1.objectives[0].count).toBeUndefined();
+    expect(t2.objectives[0].count).toBeUndefined();
+    expect(t2.objectives[0].foundInRaid).toBeUndefined();
+    expect(t2.objectives[0].optional).toBeUndefined();
   });
 
   it("names stationary weapons from items_en, then maps_en, then the id", () => {

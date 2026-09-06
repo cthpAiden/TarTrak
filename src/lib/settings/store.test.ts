@@ -62,6 +62,9 @@ describe("mergeSettings", () => {
     expect(mergeSettings({ playerLevel: -5 }).playerLevel).toBe(0);
     expect(mergeSettings({ playerLevel: 300 }).playerLevel).toBe(79);
     expect(mergeSettings({ playerLevel: 42 }).playerLevel).toBe(42);
+    expect(mergeSettings({ faction: "bear" }).faction).toBe("bear");
+    expect(mergeSettings({ faction: "BEAR" }).faction).toBe("any");
+    expect(mergeSettings({ faction: 3 }).faction).toBe("any");
   });
 
   it("defaults layerFilters and todoQuests to empty objects and sharing to off", () => {

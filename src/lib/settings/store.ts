@@ -12,6 +12,8 @@ export interface Settings {
   playerLevel: number;
   /** Which tarkov.dev data set to load: PvP ("regular") or PvE. */
   gameMode: GameMode;
+  /** My PMC's faction: the other side's quests are hidden. */
+  faction: Faction;
   hotkeyOverlay: string;
   hotkeyOpacity: string;
   lastMap: string | null;
@@ -31,6 +33,10 @@ export interface Settings {
   mateColors: Record<string, string>;
 }
 
+export type Faction = "any" | "usec" | "bear";
+export const FACTIONS: readonly Faction[] = ["any", "usec", "bear"];
+export const FACTION_LABELS: Record<Faction, string> = { any: "Any", usec: "USEC", bear: "BEAR" };
+
 /** Default relay: the project-hosted Cloudflare Worker (relay/). Overridable in Settings. */
 export const DEFAULT_RELAY_URL = "wss://tartrak-relay.aidenmileshp.workers.dev";
 /** Placeholder written by builds before the relay was deployed; a store holding it can never connect. */
@@ -45,6 +51,7 @@ export const DEFAULT_SETTINGS: Settings = {
   color: "#3aa0ff",
   playerLevel: 0,
   gameMode: "regular",
+  faction: "any",
   hotkeyOverlay: "F5",
   hotkeyOpacity: "F6",
   lastMap: null,
@@ -68,6 +75,7 @@ const SHAPE: Record<keyof Settings, Kind> = {
   color: "string",
   playerLevel: "number",
   gameMode: "string",
+  faction: "string",
   hotkeyOverlay: "string",
   hotkeyOpacity: "string",
   lastMap: "string?",
@@ -134,6 +142,7 @@ export function mergeSettings(partial: unknown): Settings {
   out.lineLengthM = clamp(out.lineLengthM, 5, 125);
   out.playerLevel = clamp(out.playerLevel, 0, 79);
   if (!GAME_MODES.includes(out.gameMode)) out.gameMode = DEFAULT_SETTINGS.gameMode;
+  if (!FACTIONS.includes(out.faction)) out.faction = DEFAULT_SETTINGS.faction;
   if (!ROOM_CODE_RE.test(out.lastRoom)) out.lastRoom = "";
   out.layerFilters = cleanRecord<boolean>(
     out.layerFilters,

@@ -73,6 +73,33 @@ describe("data snapshot", () => {
     expect(customs.some((p) => (p.categories?.length ?? 0) > 1)).toBe(true);
   });
 
+  it("carries tarkov.dev's raid info, entry keys and boss details", () => {
+    const customs = maps.find((m) => m.normalizedName === "customs")!;
+    expect(customs.raidDuration).toBe(35);
+    expect(customs.players).toBe("10-12");
+    expect(customs.accessKeys).toBeUndefined();
+    const reshala = customs.bosses!.find((b) => b.normalizedName === "reshala")!;
+    expect(reshala.escorts).toBe(4);
+    expect(reshala.portrait?.startsWith("https://assets.tarkov.dev/")).toBe(true);
+    expect(maps.find((m) => m.normalizedName === "the-lab")!.accessKeys).toEqual(["TerraGroup Labs access keycard"]);
+    // The boss spawn popup names the boss with its chance and escort.
+    const dorms = points.find((p) => p.mapKey === "customs" && p.group === "spawns" && p.category === "boss" && p.name.startsWith("Reshala"))!;
+    expect(dorms.details).toContain("Reshala: 60%, 4 guards");
+  });
+
+  it("carries quest factions, rewards, trader level gates and fail conditions", () => {
+    const byFaction = (f: string) => tasks.filter((t) => t.faction === f);
+    expect(byFaction("USEC").length).toBe(6);
+    expect(byFaction("BEAR").length).toBe(6);
+    expect(tasks.filter((t) => t.faction && t.faction !== "USEC" && t.faction !== "BEAR")).toEqual([]);
+    const shortage = tasks.find((t) => t.name === "Shortage")!;
+    expect(shortage.experience).toBeGreaterThan(0);
+    expect(shortage.rewards?.items?.[0].name).toBe("Roubles");
+    expect(shortage.objectives.map((o) => [o.count, o.foundInRaid])).toEqual([[3, true], [3, true]]);
+    expect(tasks.filter((t) => t.traderLevels?.length).length).toBeGreaterThan(50);
+    expect(tasks.find((t) => t.name === "Big Customer")!.failsOn).toEqual(["Chemical - Part 4", "Out of Curiosity"]);
+  });
+
   it("knows every extract faction, labels it, and shows PMC-usable extracts by default", () => {
     for (const m of maps) {
       for (const e of m.extracts) {

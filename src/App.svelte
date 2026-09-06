@@ -43,8 +43,8 @@
   let tab = $state<(typeof TABS)[number]["id"]>("filters");
 
   let pinnedFloor = $state<string | null>(null);
-  /** Point id of the extract the route line leads to. */
-  let routeTarget = $state<string | null>(null);
+  /** Where the route line leads: an extract by point id, or a spot picked with "Go here" on the map. */
+  let route = $state<{ kind: "extract"; id: string } | { kind: "spot"; map: string; x: number; z: number } | null>(null);
   let drawMode = $state(false);
   /** Item finder text; matching points show regardless of the layer toggles. */
   let itemQuery = $state("");
@@ -85,8 +85,16 @@
   );
   const showLabels = $derived(isOn(layerFilters, "labels", "landmark"));
   const extractGroups = $derived(routeGroups(mapPoints));
-  // Looked up on the current map, so a target left over from another map simply draws nothing.
-  const routePoint = $derived(routeTarget ? (mapPoints.find((p) => p.id === routeTarget) ?? null) : null);
+  // Resolved on the current map, so a target left over from another map simply draws nothing.
+  const routePoint = $derived.by(() => {
+    const r = route;
+    if (!r || !def) return null;
+    if (r.kind === "spot") return r.map === def.key ? { id: "spot", x: r.x, z: r.z, name: "chosen spot" } : null;
+    const p = mapPoints.find((p) => p.id === r.id);
+    return p ? { id: p.id, x: p.x, z: p.z, name: p.name } : null;
+  });
+  // tarkov.dev's entry for the map on screen: raid length, player count, bosses.
+  const mapInfo = $derived(def && app.questData ? (app.questData.maps.find((m) => m.normalizedName === def.key) ?? null) : null);
   const routeDistance = $derived(routePoint && app.ownPos ? distanceM(app.ownPos, routePoint) : null);
   // Only to-do quests reach the map; a done one leaves it. Kept unfiltered by the layer toggles so
   // the panel's shown/total can differ.
@@ -426,7 +434,7 @@
         selectedName={routePoint?.name ?? null}
         distanceM={routeDistance}
         from={app.ownPos ? { x: app.ownPos.x, z: app.ownPos.z } : null}
-        onSelect={(id) => (routeTarget = id)}
+        onSelect={(id) => (route = id ? { kind: "extract", id } : null)}
       />
       <button
         class="mode-btn draw-btn"
@@ -463,6 +471,7 @@
           canShare={room.status === "open"}
           onPin={placePin}
           onRemovePin={removePin}
+          onGoHere={(p) => (route = { kind: "spot", map: def.key, x: p.x, z: p.z })}
           route={routePoint ? { x: routePoint.x, z: routePoint.z, name: routePoint.name } : null}
           {drawMode}
           drawColor={settings?.color ?? DEFAULT_SETTINGS.color}
@@ -495,6 +504,7 @@
               {itemQuery}
               onItemQuery={(q) => (itemQuery = q)}
               hitCount={hitIds.size}
+              {mapInfo}
             />
           {:else if tab === "squad"}
             <RoomPanel {settings} onSettingsChange={patchSettings} onFocus={focusTeammate} />
@@ -510,6 +520,7 @@
               onTodoChange={(t) => patchSettings({ todoQuests: t })}
               shareTodo={settings.shareTodo}
               onShareTodo={(on) => patchSettings({ shareTodo: on })}
+              faction={settings.faction}
             />
           {:else}
             <SettingsPanel

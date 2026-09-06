@@ -7,6 +7,8 @@
   import { questIconUrl, type QuestCategory } from "../quests/questLayer";
   import type { CategoryCount, GroupCount } from "./counts";
   import Chevron from "../ui/Chevron.svelte";
+  import MapInfoCard from "../map/MapInfoCard.svelte";
+  import type { MapInfo } from "../quests/types";
 
   let {
     counts,
@@ -15,6 +17,7 @@
     itemQuery = "",
     onItemQuery = () => {},
     hitCount = 0,
+    mapInfo = null,
   }: {
     counts: GroupCount[];
     filters: Filters;
@@ -23,6 +26,8 @@
     onItemQuery?: (q: string) => void;
     /** Points on this map that hold the searched item. */
     hitCount?: number;
+    /** tarkov.dev's entry for the current map: raid length, players, bosses. */
+    mapInfo?: MapInfo | null;
   } = $props();
 
   let search = $state("");
@@ -55,6 +60,7 @@
 
 <section class="panel filters">
   <h2>Filters</h2>
+  <MapInfoCard info={mapInfo} />
   <input class="search" aria-label="Search filters" placeholder="Search filters" bind:value={search} />
   <div class="finder">
     <input

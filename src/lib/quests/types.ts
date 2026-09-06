@@ -1,4 +1,4 @@
-export const QUEST_SCHEMA_VERSION = 10;
+export const QUEST_SCHEMA_VERSION = 11;
 
 export interface Vec3 {
   x: number;
@@ -30,6 +30,22 @@ export interface TaskObjective {
   /** Spawn points of the quest item a findQuestItem objective looks for; drawn like tarkov.dev's item markers. */
   locations?: QuestItemLocation[];
   questItem?: { id: string; name: string };
+  /** How many: items to find or hand over, kills, uses. */
+  count?: number;
+  /** The items must be found in raid. */
+  foundInRaid?: true;
+  /** Not needed to complete the task. */
+  optional?: true;
+}
+/** What finishing a task pays out; only the parts tarkov.dev lists something for are set. */
+export interface TaskRewards {
+  items?: { name: string; count: number }[];
+  /** Trader reputation changes, e.g. Prapor +0.10. */
+  standing?: { trader: string; delta: number }[];
+  skills?: { name: string; level: number }[];
+  /** Number of trader offers and hideout crafts it unlocks. */
+  offers?: number;
+  crafts?: number;
 }
 export interface QuestTask {
   id: string;
@@ -45,6 +61,14 @@ export interface QuestTask {
   wikiLink?: string;
   /** Display names of the keys the task needs, deduplicated. */
   neededKeys?: string[];
+  /** "USEC" or "BEAR" when only that faction gets the task; unset for everyone's. */
+  faction?: string;
+  experience?: number;
+  rewards?: TaskRewards;
+  /** Trader loyalty levels the task needs before it is offered. */
+  traderLevels?: { trader: string; level: number }[];
+  /** What fails the task once taken: the names of the tasks whose completion fails it, or the condition text. */
+  failsOn?: string[];
 }
 export interface MapExtract extends Footprint {
   id: string;
@@ -107,6 +131,12 @@ export interface MapBoss {
   normalizedName: string;
   spawnChance: number;
   spawnKeys: string[];
+  /** Guards that spawn with it, the most tarkov.dev lists. */
+  escorts?: number;
+  /** What spawns it when not the raid start, e.g. "Switch". */
+  trigger?: string;
+  /** tarkov.dev's portrait, an https://assets.tarkov.dev URL. */
+  portrait?: string;
 }
 export interface MapStationaryWeapon {
   id: string;
@@ -122,6 +152,12 @@ export interface MapInfo {
   id: string;
   name: string;
   normalizedName: string;
+  /** Raid length in minutes. */
+  raidDuration?: number;
+  /** Player count range as tarkov.dev writes it, "10-12". */
+  players?: string;
+  /** Names of the keys or keycards needed to enter (The Lab, Terminal). */
+  accessKeys?: string[];
   extracts: MapExtract[];
   transits?: MapTransit[] | null;
   spawns?: MapSpawn[] | null;

@@ -93,14 +93,30 @@ const OWN_LAYER_BOSSES = ["cultist-priest", "rogue", "black-div", "af", "bloodho
 
 const SCAV_SPAWN = { category: "scav", name: "Scav spawn" };
 
+/** Bosses tarkov.dev spawns in the zone; each once, however many spawn entries it has there. */
+function bossesInZone(spawn: MapSpawn, mapBosses: MapBoss[]): MapBoss[] {
+  const matched = mapBosses.filter((b) => spawn.zoneName !== null && b.spawnKeys.includes(spawn.zoneName));
+  return matched.filter((b, i) => matched.findIndex((o) => o.normalizedName === b.normalizedName) === i);
+}
+
+/** "Reshala: 60%, 4 guards" per boss of a boss spawn; its chance, escort and switch trigger from tarkov.dev. */
+export function bossDetails(spawn: MapSpawn, mapBosses: MapBoss[]): string[] {
+  if (!spawn.categories.includes("boss")) return [];
+  return bossesInZone(spawn, mapBosses).map((b) => {
+    const parts = [`${Math.round(b.spawnChance * 100)}%`];
+    if (b.escorts) parts.push(`${b.escorts} ${b.escorts === 1 ? "guard" : "guards"}`);
+    if (b.trigger === "Switch") parts.push("spawns on a switch");
+    return `${b.name}: ${parts.join(", ")}`;
+  });
+}
+
 /**
  * Mirrors tarkov.dev's spawn classification. Returns null for the spawns it draws
  * nothing for: a boss zone with no boss and no scav bot, and any other odd combination.
  */
 export function classifySpawn(spawn: MapSpawn, mapBosses: MapBoss[]): { category: string; name: string } | null {
   if (spawn.categories.includes("boss")) {
-    const matched = mapBosses.filter((b) => spawn.zoneName !== null && b.spawnKeys.includes(spawn.zoneName));
-    const bosses = matched.filter((b, i) => matched.findIndex((o) => o.normalizedName === b.normalizedName) === i);
+    const bosses = bossesInZone(spawn, mapBosses);
     if (bosses.length === 0) {
       return spawn.categories.includes("bot") && spawn.sides.includes("scav") ? SCAV_SPAWN : null;
     }
@@ -200,7 +216,7 @@ function pointsForMap(m: MapInfo, key: string): MapPoint[] {
     const spawn = classifySpawn(s, m.bosses ?? []);
     if (!spawn) return;
     const detail = CATEGORY_LABELS[`spawns/${spawn.category}`] ?? spawn.category;
-    push(out, key, "spawns", spawn.category, spawn.name, `spawns/${spawn.category}/${i}`, s.position, [detail]);
+    push(out, key, "spawns", spawn.category, spawn.name, `spawns/${spawn.category}/${i}`, s.position, [detail, ...bossDetails(s, m.bosses ?? [])]);
   });
   (m.lootContainers ?? []).forEach((c, i) => {
     const category = c.lootContainer.normalizedName;

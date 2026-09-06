@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Map
+- "Go here" on the right-click menu: a straight dotted route line from my marker to the spot under the cursor, with the distance on it, like the route to an extract. Clear it from the route button.
+- A map card at the top of the Filters tab: raid length and player count, the keys needed to enter (The Lab, Terminal, The Labyrinth), and each boss with its spawn chance, escort size, portrait, and whether a switch spawns it.
+- Boss spawn popups name the boss with its chance, escort size and switch trigger.
+
+### Quests
+- Click a quest name to unfold it: every objective with its count, found-in-raid and optional flags (and its map when the quest spans several), what still gates it (prerequisites not done, trader loyalty level, faction), the rewards (XP, items, trader reputation, skills, unlocked offers and crafts), and what fails it.
+- Settings > PMC faction: USEC- or BEAR-only quests of the other side (Drip-Out, Textile, Our Own Land, Counteraction, ...) are hidden from the finder; the rest carry a USEC or BEAR badge.
+
+### Data
+- Data schema 11 (caches refresh on first start): map raid duration, player count and access keys; boss escorts, spawn trigger and portrait; task faction, experience, finish rewards, trader level requirements and fail conditions; objective count, found-in-raid and optional flags.
+
 ## 0.5.0 - 2026-09-07
 
 ### Map

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { groupByTrader, isUnlocked, lockedTaskIds, TRADER_ORDER, type GroupOpts } from "./grouping";
+import { forFaction, groupByTrader, isUnlocked, lockedTaskIds, TRADER_ORDER, type GroupOpts } from "./grouping";
 import type { QuestTask } from "./types";
 
 function task(id: string, name: string, trader: string, minPlayerLevel = 1): QuestTask {
@@ -47,6 +47,16 @@ describe("groupByTrader", () => {
     expect(g[0].tasks.map((x) => x.t.id).sort()).toEqual(["t1", "t3"]);
     const after = groupByTrader(tasks, opts({ availableOnly: true, done: { t1: true }, hideDone: true }));
     expect(after[0].tasks.map((x) => x.t.id).sort()).toEqual(["t2", "t3"]);
+  });
+
+  it("hides the other faction's tasks once a faction is picked", () => {
+    const tasks = [task("t1", "A", "Prapor"), { ...task("t2", "B", "Prapor"), faction: "USEC" }, { ...task("t3", "C", "Prapor"), faction: "BEAR" }];
+    const ids = (faction?: string) => groupByTrader(tasks, opts({ faction }))[0].tasks.map((x) => x.t.id);
+    expect(ids()).toEqual(["t1", "t2", "t3"]);
+    expect(ids("any")).toEqual(["t1", "t2", "t3"]);
+    expect(ids("usec")).toEqual(["t1", "t2"]);
+    expect(ids("bear")).toEqual(["t1", "t3"]);
+    expect(forFaction({ ...task("t2", "B", "Prapor"), faction: "USEC" }, "bear")).toBe(false);
   });
 
   it("kappaOnly keeps just the Kappa tasks", () => {

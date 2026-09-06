@@ -28,6 +28,25 @@ function blurWith(target: HTMLElement, id: string, value: string) {
   flushSync();
 }
 
+describe("SettingsPanel faction", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("offers the three factions and reports a pick", () => {
+    const { target, panel, changes } = open();
+    const select = target.querySelector<HTMLSelectElement>("#set-faction")!;
+    expect([...select.options].map((o) => o.value)).toEqual(["any", "usec", "bear"]);
+    expect(select.value).toBe("any");
+    select.value = "bear";
+    // Svelte delegates change events from the root, so the test event must bubble.
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+    flushSync();
+    expect(changes).toEqual([{ faction: "bear" }]);
+    void unmount(panel);
+  });
+});
+
 describe("SettingsPanel hotkeys", () => {
   afterEach(() => {
     document.body.innerHTML = "";

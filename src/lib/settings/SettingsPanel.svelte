@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from "svelte";
   import { normalizeHotkey } from "../tauri/window";
-  import { DEFAULT_RELAY_URL, type Settings } from "./store";
+  import { DEFAULT_RELAY_URL, FACTIONS, FACTION_LABELS, type Faction, type Settings } from "./store";
   import { GAME_MODES, GAME_MODE_LABELS, type GameMode } from "../quests/jsonSource";
   import { openUrl } from "@tauri-apps/plugin-opener";
   import { version } from "../../../package.json";
@@ -77,6 +77,13 @@
       >
         {#each GAME_MODES as m (m)}
           <option value={m}>{GAME_MODE_LABELS[m]}</option>
+        {/each}
+      </select>
+
+      <label for="set-faction" title="Quests only the other faction gets are hidden">PMC faction</label>
+      <select id="set-faction" value={settings.faction} onchange={(e) => onChange({ faction: e.currentTarget.value as Faction })}>
+        {#each FACTIONS as f (f)}
+          <option value={f}>{FACTION_LABELS[f]}</option>
         {/each}
       </select>
 
