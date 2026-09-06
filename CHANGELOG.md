@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.1 - 2026-09-06
 
 ### Quests
 - A quest marker on another floor stays on the map, dimmed, instead of vanishing; its popup names the floor. Cargo X's laptop on the resort's 3rd floor was invisible from the ground view.
