@@ -1,4 +1,5 @@
 import raw from "../../../data/maps.json";
+import floorBounds from "../../../data/floorBounds.json";
 
 export interface MapExtent {
   height: [number, number];
@@ -27,7 +28,6 @@ export interface MapDef {
   bounds: [[number, number], [number, number]];
   svgPath?: string;
   svgLayer?: string;
-  heightRange?: [number, number];
   /** tarkov.dev's variants of this map (Night Factory, Ground Zero 21+): the same ground, the same positions. */
   altKeys: string[];
   layers: MapLayer[];
@@ -60,7 +60,6 @@ interface RawMap {
   bounds: [[number, number], [number, number]];
   svgPath?: string;
   svgLayer?: string;
-  heightRange?: [number, number];
   altMaps?: string[];
   layers?: MapLayer[];
   labels?: MapLabel[];
@@ -73,6 +72,18 @@ interface RawGroup {
 }
 
 let cache: MapDef[] | null = null;
+
+/**
+ * tarkov.dev leaves some floor extents unbounded: Shoreline's "2nd Floor" is anything between -1 and
+ * 2 m anywhere on the map, which would put a hillside at that height on the resort's 2nd floor.
+ * data/floorBounds.json (scripts/floor-bounds.mjs) traces the floor drawings in the map SVG into
+ * per-building rectangles; an extent without bounds of its own gets them.
+ */
+function withDerivedBounds(mapKey: string, layer: MapLayer): MapLayer {
+  const derived = (floorBounds as unknown as Record<string, Record<string, MapExtent["bounds"]>>)[mapKey]?.[layer.name];
+  if (!derived || !layer.extents) return layer;
+  return { ...layer, extents: layer.extents.map((e) => (e.bounds ? e : { ...e, bounds: derived })) };
+}
 
 export function loadMapDefs(): MapDef[] {
   if (cache) return cache;
@@ -88,9 +99,8 @@ export function loadMapDefs(): MapDef[] {
         bounds: m.bounds,
         svgPath: m.svgPath,
         svgLayer: m.svgLayer,
-        heightRange: m.heightRange,
         altKeys: m.altMaps ?? [],
-        layers: m.layers ?? [],
+        layers: (m.layers ?? []).map((l) => withDerivedBounds(m.key, l)),
         labels: (m.labels ?? []).filter((l) => Array.isArray(l.position) && typeof l.text === "string"),
         minZoom: m.minZoom ?? 1,
         maxZoom: m.maxZoom ?? 5,
@@ -145,8 +155,9 @@ export function onLayer(layer: MapLayer, x: number, z: number, top: number, bott
 /**
  * Whether a marker belongs on the floor currently shown. `activeFloor` null is the base level.
  * A marker is hidden when it sits fully inside a bounded extent of an inactive layer; otherwise it
- * is shown when it is on the active layer, or, on the base level, when it lies within
- * `def.heightRange` and is not fully inside any layer's extents.
+ * is shown when it is on the active layer, or, on the base level, when it is not fully inside any
+ * layer's extents. Height alone never hides a marker: the ground itself climbs above tarkov.dev's
+ * nominal ground band on Shoreline's hills and dips below it on Reserve.
  *
  * `top`/`bottom` default to `y`. Landmark labels pass the sentinel span [-1000, 1000], which is why
  * the base-level test uses full containment rather than any overlap: a label that spans every floor
@@ -170,7 +181,5 @@ export function visibleOnFloor(
     const layer = def.layers.find((l) => l.name === activeFloor);
     return !!layer && onLayer(layer, x, z, top, bottom) !== false;
   }
-  const [lo, hi] = def.heightRange ?? [Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER];
-  if (top < lo || bottom >= hi) return false;
   return !def.layers.some((l) => onLayer(l, x, z, top, bottom) === "full");
 }

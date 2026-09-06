@@ -302,3 +302,42 @@ describe("findItem", () => {
     expect(findItem(pts, "safe").size).toBe(0);
   });
 });
+
+describe("extractPoints on map variants", () => {
+  const variants: QuestData = {
+    schemaVersion: QUEST_SCHEMA_VERSION,
+    fetchedAt: 1,
+    tasks: [],
+    maps: [
+      {
+        id: "f",
+        name: "Factory",
+        normalizedName: "factory",
+        extracts: [{ id: "gate3", name: "Gate 3", faction: "shared", position: { x: 59, y: 1.6, z: 61 } }],
+        lootLoose: [{ position: { x: 1, y: 2, z: 3 }, items: ["Bolts"] }],
+        spawns: [{ zoneName: "BotZone", position: { x: 5, y: 0, z: 5 }, sides: ["scav"], categories: ["bot"] }],
+      },
+      {
+        id: "nf",
+        name: "Night Factory",
+        normalizedName: "night-factory",
+        extracts: [{ id: "gate3-night", name: "Gate 3", faction: "shared", position: { x: 59, y: 1.6, z: 61 } }],
+        lootLoose: [
+          { position: { x: 1, y: 2, z: 3 }, items: ["Bolts"] },
+          { position: { x: 7, y: 8, z: 9 }, items: ["Night vision"] },
+        ],
+        spawns: [{ zoneName: "ZoneCultist", position: { x: 5, y: 0, z: 5 }, sides: ["savage"], categories: ["boss"] }],
+        bosses: [{ name: "Cultist Priest", normalizedName: "cultist-priest", spawnChance: 0.2, spawnKeys: ["ZoneCultist"] }],
+      },
+    ],
+  };
+
+  it("folds a variant's points onto its map, once per spot, with distinct ids", () => {
+    const ps = extractPoints(variants, "factory");
+    expect(ps.every((p) => p.mapKey === "factory")).toBe(true);
+    expect(ps.map((p) => p.id)).toEqual(["gate3", "spawns/scav/0", "lootLoose/item/0", "night-factory/spawns/cultist-priest/0", "night-factory/lootLoose/item/1"]);
+    expect(extractPoints(variants).map((p) => p.id)).toEqual(ps.map((p) => p.id));
+    // The variant is not a map of its own.
+    expect(extractPoints(variants, "night-factory")).toEqual([]);
+  });
+});

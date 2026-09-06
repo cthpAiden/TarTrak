@@ -28,6 +28,16 @@ describe("loadMapDefs", () => {
     expect(primaryMapKey("nope")).toBe("nope");
   });
 
+  it("gives an unbounded floor extent the buildings traced from the map SVG", () => {
+    const shoreline = getMapDef("shoreline")!;
+    const second = shoreline.layers.find((l) => l.name === "2nd Floor")!;
+    expect(second.extents![0].bounds!.length).toBeGreaterThan(0);
+    // Hand-made bounds stay as they are.
+    const gz = getMapDef("ground-zero")!.layers.find((l) => l.name === "2nd Floor")!;
+    expect(gz.extents![1].bounds).toEqual([[[98, 216], [91, 228], "m showroom"]]);
+    expect(gz.extents![0].bounds!.length).toBeGreaterThan(1);
+  });
+
   it("excludes non-interactive projections", () => {
     const defs = loadMapDefs();
     expect(defs).toHaveLength(13);
@@ -38,11 +48,21 @@ describe("loadMapDefs", () => {
 describe("floorForHeight", () => {
   it("returns null on ground and the layer name above/below thresholds (streets)", () => {
     const def = getMapDef("streets-of-tarkov")!;
-    expect(floorForHeight(def, { x: 0, y: 2, z: 0 })).toBeNull();
-    expect(floorForHeight(def, { x: 0, y: 12, z: 0 })).toBe("2nd Floor");
-    expect(floorForHeight(def, { x: 0, y: 17, z: 0 })).toBe("3rd Floor");
+    // (-100, 80) sits in a building drawn on both the 2nd and the 3rd floor; (0, 0) over the underground.
+    expect(floorForHeight(def, { x: -100, y: 2, z: 80 })).toBeNull();
+    expect(floorForHeight(def, { x: -100, y: 12, z: 80 })).toBe("2nd Floor");
+    expect(floorForHeight(def, { x: -100, y: 17, z: 80 })).toBe("3rd Floor");
     expect(floorForHeight(def, { x: 0, y: -8, z: 0 })).toBe("Underground");
-    expect(floorForHeight(def, { x: 0, y: 15, z: 0 })).toBe("3rd Floor"); // half-open boundary: 15 ends 2nd Floor [10,15), starts 3rd [15,20)
+    expect(floorForHeight(def, { x: -100, y: 15, z: 80 })).toBe("3rd Floor"); // half-open boundary: 15 ends 2nd Floor [10,15), starts 3rd [15,20)
+  });
+
+  it("keeps a hillside at floor height on the ground; only the resort has floors (shoreline)", () => {
+    const def = getMapDef("shoreline")!;
+    // Climber's Trail, up north at -1 m: tarkov.dev's unbounded band would call it the 2nd floor.
+    expect(floorForHeight(def, { x: -214, y: -1, z: -362 })).toBeNull();
+    expect(floorForHeight(def, { x: -171, y: 0.14, z: -76 })).toBe("2nd Floor"); // west wing generators
+    expect(floorForHeight(def, { x: -285, y: 2.5, z: -89 })).toBe("3rd Floor"); // Cargo X laptop, east wing 306
+    expect(floorForHeight(def, { x: -323, y: -2.75, z: -78 })).toBeNull(); // Sanitar's office, ground floor
   });
 
   it("respects extent bounds when present (customs dorms)", () => {
@@ -112,8 +132,8 @@ describe("visibleOnFloor", () => {
   const customs = getMapDef("customs")!;
 
   it("hides a 2nd-floor point on the base level and shows it on its floor", () => {
-    expect(visibleOnFloor(streets, null, 0, 0, 12)).toBe(false);
-    expect(visibleOnFloor(streets, "2nd Floor", 0, 0, 12)).toBe(true);
+    expect(visibleOnFloor(streets, null, -100, 80, 12)).toBe(false);
+    expect(visibleOnFloor(streets, "2nd Floor", -100, 80, 12)).toBe(true);
   });
 
   it("hides a ground point while a floor is active", () => {
@@ -136,16 +156,19 @@ describe("visibleOnFloor", () => {
     expect(visibleOnFloor(def, null, 0, 0, 500)).toBe(true);
   });
 
-  it("excludes a point below heightRange on the base level", () => {
-    const def = bareDef({ heightRange: [0, 10] });
-    expect(visibleOnFloor(def, null, 0, 0, -5)).toBe(false);
-    expect(visibleOnFloor(def, null, 0, 0, 5)).toBe(true);
+  it("keeps ground outside tarkov.dev's nominal ground band on the base level", () => {
+    const shoreline = getMapDef("shoreline")!;
+    // Climber's Trail at -1 m is above Shoreline's [-1000, -1] band and on no floor drawing.
+    expect(visibleOnFloor(shoreline, null, -214, -362, -1)).toBe(true);
+    expect(visibleOnFloor(shoreline, null, -285, -89, 2.5)).toBe(false); // Cargo X laptop, 3rd floor
+    const reserve = getMapDef("reserve")!;
+    expect(visibleOnFloor(reserve, null, -62, 38, -7)).toBe(true); // barracks spawn, just under the [-7, ...] band
   });
 
-  it("keeps a label whose span covers the whole map visible on every floor", () => {
+  it("keeps a label whose span covers the whole map visible on every floor of its building", () => {
     // Landmark labels without top/bottom span [-1000, 1000]; they must not vanish on any floor.
-    expect(visibleOnFloor(streets, null, 0, 0, 0, 1000, -1000)).toBe(true);
-    expect(visibleOnFloor(streets, "2nd Floor", 0, 0, 0, 1000, -1000)).toBe(true);
+    expect(visibleOnFloor(streets, null, -100, 80, 0, 1000, -1000)).toBe(true);
+    expect(visibleOnFloor(streets, "2nd Floor", -100, 80, 0, 1000, -1000)).toBe(true);
     expect(visibleOnFloor(customs, null, 200, 150, 0, 1000, -1000)).toBe(true);
   });
 });

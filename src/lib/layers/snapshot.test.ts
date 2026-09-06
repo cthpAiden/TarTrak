@@ -7,6 +7,7 @@ import type { MapInfo, QuestTask } from "../quests/types";
 import { extractQuestMarkers } from "../quests/markers";
 import { extractPoints, CATEGORY_LABELS } from "./points";
 import { isOn } from "./filters";
+import { getMapDef, primaryMapKey } from "../map/mapsData";
 
 const maps = snapshot as unknown as MapInfo[];
 const tasks = tasksSnapshot as unknown as QuestTask[];
@@ -24,7 +25,9 @@ describe("data snapshot", () => {
 
   it("turns every placed extract, transit, container, loot spot, lock, hazard, switch, gun and BTR stop into a point", () => {
     for (const m of maps) {
-      const mine = points.filter((p) => p.mapKey === m.normalizedName);
+      if (primaryMapKey(m.normalizedName) !== m.normalizedName) continue; // variants: below
+      const variants = getMapDef(m.normalizedName)?.altKeys ?? [];
+      const mine = points.filter((p) => p.mapKey === m.normalizedName && !variants.some((v) => p.id.startsWith(`${v}/`)));
       const count = (group: string, not?: string) => mine.filter((p) => p.group === group && p.category !== not).length;
       expect(count("extracts", "transit"), `${m.normalizedName} extracts`).toBe(placed(m.extracts).length);
       expect(mine.filter((p) => p.group === "extracts" && p.category === "transit").length, `${m.normalizedName} transits`).toBe(placed(m.transits).length);
@@ -36,6 +39,22 @@ describe("data snapshot", () => {
       expect(count("guns"), `${m.normalizedName} guns`).toBe(placed(m.stationaryWeapons).length);
       expect(count("btr"), `${m.normalizedName} btr`).toBe(placed(m.btrStations).length);
     }
+  });
+
+  it("folds each variant's own spots onto its map without doubling shared ones", () => {
+    for (const m of maps) {
+      const key = primaryMapKey(m.normalizedName);
+      if (key === m.normalizedName) continue;
+      const own = points.filter((p) => p.id.startsWith(`${m.normalizedName}/`));
+      expect(own.every((p) => p.mapKey === key), m.normalizedName).toBe(true);
+      const at = (p: { group: string; category: string; x: number; y: number; z: number }) => `${p.group}|${p.category}|${p.x}|${p.y}|${p.z}`;
+      const base = new Set(points.filter((p) => p.mapKey === key && !own.includes(p)).map(at));
+      expect(own.filter((p) => base.has(at(p))), m.normalizedName).toEqual([]);
+    }
+    // Night Factory and Ground Zero 21+ carry loot spots and a boss the day/low-level variant lacks.
+    expect(points.some((p) => p.id.startsWith("night-factory/lootLoose/"))).toBe(true);
+    expect(points.some((p) => p.id.startsWith("ground-zero-21/spawns/cultist-priest/"))).toBe(true);
+    expect(points.some((p) => p.mapKey === "night-factory" || p.mapKey === "ground-zero-21" || p.mapKey === "the-lab-dark")).toBe(false);
   });
 
   it("knows every extract faction, labels it, and shows PMC-usable extracts by default", () => {

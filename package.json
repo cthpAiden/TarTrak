@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "tauri": "tauri",
-    "snapshot": "node --experimental-strip-types scripts/snapshot.ts"
+    "snapshot": "node --experimental-strip-types scripts/snapshot.ts",
+    "floor-bounds": "node scripts/floor-bounds.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

@@ -1,3 +1,4 @@
+import { primaryMapKey } from "../map/mapsData";
 import type { Footprint, MapBoss, MapInfo, MapSpawn, QuestData, Vec3 } from "../quests/types";
 
 export type GroupId =
@@ -176,8 +177,9 @@ function extractDetails(e: MapInfo["extracts"][number]): string[] {
   return details;
 }
 
-function pointsForMap(m: MapInfo, out: MapPoint[]): void {
-  const key = m.normalizedName;
+/** The points of one tarkov.dev map entry, tagged with the app map key `key`. */
+function pointsForMap(m: MapInfo, key: string): MapPoint[] {
+  const out: MapPoint[] = [];
   for (const e of m.extracts ?? []) {
     push(out, key, "extracts", extractCategory(e), e.name, e.id, e.position, extractDetails(e), e);
   }
@@ -222,12 +224,34 @@ function pointsForMap(m: MapInfo, out: MapPoint[]): void {
   (m.btrStations ?? []).forEach((b, i) => {
     push(out, key, "btr", "stop", b.name, b.id || `btr/stop/${i}`, b.position, ["BTR stop"]);
   });
+  return out;
 }
 
-/** Points of every map, or of the one map `mapKey` names. */
+/**
+ * Points of every map, or of the one map `mapKey` names. tarkov.dev's variants of a map (Night
+ * Factory, Ground Zero 21+, The Lab (Dark)) fold onto it: their own loot spots and boss spawns are
+ * added after the map's, a spot both list is drawn once, and their synthesised ids carry the
+ * variant's name so they stay distinct.
+ */
 export function extractPoints(data: QuestData, mapKey?: string): MapPoint[] {
   const out: MapPoint[] = [];
-  for (const m of data.maps) if (mapKey === undefined || m.normalizedName === mapKey) pointsForMap(m, out);
+  const seen = new Set<string>();
+  const at = (p: MapPoint) => `${p.mapKey}|${p.group}|${p.category}|${p.x}|${p.y}|${p.z}`;
+  const wanted = data.maps.filter((m) => mapKey === undefined || primaryMapKey(m.normalizedName) === mapKey);
+  const isVariant = (m: MapInfo) => primaryMapKey(m.normalizedName) !== m.normalizedName;
+  for (const m of wanted.filter((m) => !isVariant(m))) {
+    for (const p of pointsForMap(m, m.normalizedName)) {
+      seen.add(at(p));
+      out.push(p);
+    }
+  }
+  for (const m of wanted.filter(isVariant)) {
+    for (const p of pointsForMap(m, primaryMapKey(m.normalizedName))) {
+      if (seen.has(at(p))) continue;
+      seen.add(at(p));
+      out.push({ ...p, id: `${m.normalizedName}/${p.id}` });
+    }
+  }
   return out;
 }
 

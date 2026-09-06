@@ -8,7 +8,12 @@
 - An objective's map list comes from tarkov.dev's own list for it, not only from the task's map. Data schema 9 (caches refresh on first start).
 
 ### Map
+- A floor only claims the buildings drawn on it. tarkov.dev's 2nd and 3rd floor bands on Shoreline, Streets, Ground Zero and Factory covered the whole map, so a hillside at that height flipped the map to the resort's 2nd floor and hid every ground marker. Building outlines are traced from tarkov.dev's floor drawings (`npm run floor-bounds`, data/floorBounds.json).
+- Ground markers above or below tarkov.dev's nominal ground height no longer vanish: Shoreline's Climber's Trail extract, Reserve's barracks spawns.
 - The heading line is thicker with longer dashes, and its far end no longer fades out completely.
+
+### Data
+- Night Factory, Ground Zero 21+ and The Lab (Dark) fold onto Factory, Ground Zero and The Lab: their own loot spots and boss spawns (the Cultist Priest) show there; a spot both variants list is drawn once.
 
 ## 0.4.0 - 2026-09-06
 
