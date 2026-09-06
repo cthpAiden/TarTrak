@@ -119,6 +119,11 @@
   const dataDate = $derived(app.questData ? new Date(app.questData.fetchedAt).toLocaleDateString() : "");
 </script>
 
+{#snippet portrait(t: QuestTask)}
+  <!-- tarkov.dev's trader portrait, bundled per trader id; a trader without one shows nothing. -->
+  <img class="trader-icon" src="/icons/traders/{t.trader.id}.webp" alt="" title={t.trader.name} onerror={(e) => ((e.currentTarget as HTMLImageElement).hidden = true)} />
+{/snippet}
+
 {#snippet badges(t: QuestTask)}
   {#if t.kappaRequired}<span class="badge" title="Needed for Kappa">κ</span>{/if}
   {#if t.lightkeeperRequired}<span class="badge" title="Needed for Lightkeeper">LK</span>{/if}
@@ -140,14 +145,14 @@
     </label>
   </div>
   {#if mine.length === 0 && squad.length === 0}
-    <p class="muted small">Nothing yet. Every quest below counts as completed; untick one to show it on the map.</p>
+    <p class="muted small">Nothing yet. Tick a quest below to put it on your to-do and on the map.</p>
   {:else}
     <div class="todo">
       <ul>
         {#each mine as { t, count } (t.id)}
           <li class:done={app.doneQuests[t.id]} class:here={count > 0}>
             <input type="checkbox" aria-label="Mark {t.name} done" checked={!!app.doneQuests[t.id]} onchange={() => toggle(t.id)} />
-            <span class="name">{t.name}{@render badges(t)}</span>
+            <span class="name">{@render portrait(t)}{t.name}{@render badges(t)}</span>
             {#if t.wikiLink}
               <button class="icon wiki" title="Open on the wiki" aria-label="Open {t.name} on the wiki" onclick={() => openWiki(t.wikiLink!)}>?</button>
             {/if}
@@ -162,7 +167,7 @@
           {#each s.tasks as { t, count } (t.id)}
             <li class:here={count > 0}>
               <span class="from" aria-hidden="true">↳</span>
-              <span class="name">{t.name}{@render badges(t)}</span>
+              <span class="name">{@render portrait(t)}{t.name}{@render badges(t)}</span>
               {#if t.wikiLink}
                 <button class="icon wiki" title="Open on the wiki" aria-label="Open {t.name} on the wiki" onclick={() => openWiki(t.wikiLink!)}>?</button>
               {/if}
@@ -212,21 +217,21 @@
       {#each groups as g (g.trader)}
         <div class="trader">
           <button class="hdr" onclick={() => (collapsed[g.trader] = !collapsed[g.trader])} aria-expanded={!collapsed[g.trader]}>
-            <span class="tri"><Chevron open={!collapsed[g.trader]} /></span>{g.trader}<span class="cnt">{g.tasks.length}</span>
+            <span class="tri"><Chevron open={!collapsed[g.trader]} /></span>{@render portrait(g.tasks[0].t)}{g.trader}<span class="cnt">{g.tasks.length}</span>
           </button>
           {#if !collapsed[g.trader]}
             <ul>
               {#each g.tasks as { t, count } (t.id)}
                 <li class:here={count > 0} class:listed={todoQuests[t.id]}>
-                  <!-- Ticked means "completed, keep it off my map"; unticking puts the quest on the to-do list. -->
+                  <!-- Ticked means "on my to-do, show it on the map". -->
                   <input
                     type="checkbox"
-                    checked={!todoQuests[t.id]}
-                    title={todoQuests[t.id] ? "Tick to hide it again" : "Untick to show it on the map"}
-                    aria-label="{t.name} completed"
-                    onchange={(e) => setTodo(t.id, !e.currentTarget.checked)}
+                    checked={!!todoQuests[t.id]}
+                    title={todoQuests[t.id] ? "Untick to take it off the map" : "Tick to show it on the map"}
+                    aria-label="{t.name} on my to-do"
+                    onchange={(e) => setTodo(t.id, e.currentTarget.checked)}
                   />
-                  <span class="name">{t.name}{@render badges(t)}</span>
+                  <span class="name">{@render portrait(t)}{t.name}{@render badges(t)}</span>
                   {#if t.wikiLink}
                     <button class="icon wiki" title="Open on the wiki" aria-label="Open {t.name} on the wiki" onclick={() => openWiki(t.wikiLink!)}>?</button>
                   {/if}
@@ -256,6 +261,8 @@
   .row .search { flex: 1; min-width: 0; }
   .toggles { flex-wrap: wrap; column-gap: 10px; }
   .toggles label { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+  .trader-icon { width: 16px; height: 16px; border-radius: 3px; vertical-align: -3px; margin-right: 5px; }
+  .hdr .trader-icon { width: 18px; height: 18px; vertical-align: -4px; }
   .badge {
     display: inline-block; margin-left: 4px; padding: 0 4px; border-radius: 3px; font-size: 10px; line-height: 14px;
     vertical-align: 1px; background: #2a2f38; color: var(--accent); border: 1px solid #3a4048;

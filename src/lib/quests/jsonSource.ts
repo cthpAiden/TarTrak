@@ -152,7 +152,7 @@ function toTask(
   return {
     id: str(t.id),
     name: tr(tasksEn, str(t.name)),
-    trader: { name: tr(tradersEn, traderKey) },
+    trader: { id: traderId, name: tr(tradersEn, traderKey) },
     minPlayerLevel: typeof t.minPlayerLevel === "number" ? t.minPlayerLevel : 0,
     objectives: list(t.objectives).map((o) => toObjective(o, tasksEn, taskMap, questItems)),
     requires,

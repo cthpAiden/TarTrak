@@ -5,7 +5,7 @@ import { QUEST_SCHEMA_VERSION, type QuestData } from "./types";
 const d = (fetchedAt: number, tag: string): QuestData => ({
   schemaVersion: QUEST_SCHEMA_VERSION,
   fetchedAt,
-  tasks: [{ id: tag, name: tag, trader: { name: "T" }, minPlayerLevel: 1, objectives: [] }],
+  tasks: [{ id: tag, name: tag, trader: { id: "t", name: "T" }, minPlayerLevel: 1, objectives: [] }],
   maps: [],
 });
 

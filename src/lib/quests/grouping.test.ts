@@ -3,7 +3,7 @@ import { groupByTrader, isUnlocked, lockedTaskIds, TRADER_ORDER, type GroupOpts 
 import type { QuestTask } from "./types";
 
 function task(id: string, name: string, trader: string, minPlayerLevel = 1): QuestTask {
-  return { id, name, trader: { name: trader }, minPlayerLevel, objectives: [] };
+  return { id, name, trader: { id: trader.toLowerCase(), name: trader }, minPlayerLevel, objectives: [] };
 }
 
 const opts = (over: Partial<GroupOpts> = {}): GroupOpts => ({

@@ -23,7 +23,7 @@ const data: QuestData = {
     {
       id: "t1",
       name: "Debut",
-      trader: { name: "Prapor" },
+      trader: { id: "prapor", name: "Prapor" },
       minPlayerLevel: 1,
       objectives: [
         {

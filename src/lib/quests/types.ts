@@ -1,4 +1,4 @@
-export const QUEST_SCHEMA_VERSION = 7;
+export const QUEST_SCHEMA_VERSION = 8;
 
 export interface Vec3 {
   x: number;
@@ -34,7 +34,8 @@ export interface TaskObjective {
 export interface QuestTask {
   id: string;
   name: string;
-  trader: { name: string };
+  /** `id` is tarkov.dev's trader id, the file name of the portrait in public/icons/traders. */
+  trader: { id: string; name: string };
   minPlayerLevel: number;
   objectives: TaskObjective[];
   /** Ids of tasks that must be complete before this one unlocks. */

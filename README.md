@@ -113,6 +113,7 @@ it before tagging.
 - Map images: [tarkov-dev-svg-maps](https://github.com/the-hideout/tarkov-dev-svg-maps), CC BY-NC-SA 4.0, fetched at runtime.
 - Map transforms and quest data: [tarkov.dev](https://tarkov.dev) (MIT). Coordinate math adapted from tarkov.dev.
 - Marker icons: [the-hideout/tarkov-dev](https://github.com/the-hideout/tarkov-dev) `public/maps/interactive` (MIT), copied to `public/icons/` with its licence.
+- Trader portraits in `public/icons/traders/`: Battlestate Games' artwork as served by tarkov.dev (assets.tarkov.dev); not covered by the MIT licence.
 - Screenshot filename format documented by the community (TarkovMonitor).
 
 Escape from Tarkov is a trademark of Battlestate Games. TarTrak is not affiliated with or endorsed by them.

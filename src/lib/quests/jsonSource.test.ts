@@ -194,7 +194,7 @@ describe("toQuestData", () => {
   it("translates task names, trader names and objective descriptions", () => {
     const [t1, t2] = d.tasks;
     expect(t1.name).toBe("Debut");
-    expect(t1.trader.name).toBe("Prapor");
+    expect(t1.trader).toEqual({ id: "tr1", name: "Prapor" });
     expect(t1.minPlayerLevel).toBe(5);
     expect(t1.objectives[0].description).toBe("Visit the medical camp");
     // Missing translation falls back to the key.
