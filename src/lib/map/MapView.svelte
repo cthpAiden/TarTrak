@@ -14,7 +14,7 @@
   import { questIcon, questPopupHtml, esc } from "../quests/questLayer";
   import type { QuestMarker } from "../quests/markers";
   import type { MapPoint } from "../layers/points";
-  import { outlineColor, pointIcon, pointPopupHtml } from "../layers/pointLayer";
+  import { markerIcon, outlineColor, pointIcon, pointPopupHtml } from "../layers/pointLayer";
   import { labelDivIcon } from "./labels";
   import { watchSize } from "./resize";
   import { pinIcon, pinPopup } from "./pins";
@@ -441,8 +441,10 @@
           interactive: false,
         }).addTo(g);
       }
-      const layer = L.marker(toLatLng(p.x, p.z), { icon: pointIcon(p, hits.has(p.id)) });
+      const layer = L.marker(toLatLng(p.x, p.z), { icon: markerIcon(p, hits.has(p.id)) });
       layer.bindTooltip(esc(p.name)).bindPopup(pointPopupHtml(p)).addTo(g);
+      // Offline, or a picture tarkov.dev no longer serves: the group icon takes its place.
+      if (p.icon) layer.getElement()?.querySelector("img")?.addEventListener("error", () => layer.setIcon(pointIcon(p, hits.has(p.id))));
     }
   });
 

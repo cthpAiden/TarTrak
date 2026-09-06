@@ -20,14 +20,28 @@ const bodies = await Promise.all(JSON_FILES.map(getJson));
 const [maps, mapsEn, tasks, tasksEn, traders, tradersEn, itemsEn] = bodies;
 const itemNames = (itemsEn as Dict).data as Dict;
 const categories: Record<string, string> = {};
-for (const c of Object.values(items.handbookCategories as Dict) as Dict[]) categories[c.normalizedName] = itemNames[c.name] ?? c.normalizedName;
+const categoryImages: Record<string, string> = {};
+for (const c of Object.values(items.handbookCategories as Dict) as Dict[]) {
+  categories[c.normalizedName] = itemNames[c.name] ?? c.normalizedName;
+  if (typeof c.imageLink === "string" && c.imageLink.startsWith("https://assets.tarkov.dev/")) categoryImages[c.normalizedName] = c.imageLink;
+}
 const byItem: Record<string, string> = {};
+// Item pictures sit at assets.tarkov.dev/<id>-base-image.webp for nearly every item. The few presets
+// and variants that borrow another item's picture are listed by the id they borrow; an item with no
+// picture at all (a placeholder link) is listed as "", so the app draws the generic icon for it.
+const imageIds: Record<string, string> = {};
+const PICTURE = /^https:\/\/assets\.tarkov\.dev\/([0-9a-f]{24})-base-image\.webp$/;
 for (const it of Object.values(items.items as Dict) as Dict[]) {
   const cat = (items.handbookCategories as Dict)[it.handbookCategories?.[0]];
   byItem[it.id] = cat ? cat.normalizedName : "";
+  const picture = PICTURE.exec(typeof it.baseImageLink === "string" ? it.baseImageLink : "");
+  if (!picture) imageIds[it.id] = "";
+  else if (picture[1] !== it.id) imageIds[it.id] = picture[1];
 }
-writeFileSync("data/itemCategories.json", JSON.stringify({ categories, items: byItem }));
-console.log(`itemCategories: ${Object.keys(byItem).length} items, ${Object.keys(categories).length} categories`);
+writeFileSync("data/itemCategories.json", JSON.stringify({ categories, categoryImages, items: byItem, imageIds }));
+console.log(
+  `itemCategories: ${Object.keys(byItem).length} items, ${Object.keys(categories).length} categories, ${Object.keys(imageIds).length} borrowed or missing pictures`,
+);
 // The adapter bundles that file, so it is loaded only now that the fresh one is on disk.
 const { toQuestData } = await import("../src/lib/quests/jsonSource.ts");
 const bundle: RawBundle = { maps, mapsEn, tasks, tasksEn, traders, tradersEn, itemsEn };

@@ -32,13 +32,14 @@ Click a marker for its details and a Remove button; anyone in the room can remov
 markers live as long as the room does, and go away when you leave it.
 
 **Route and drawings.** The exit button next to Follow me lists the map's extracts; pick one and a dashed line
-runs from your marker to it with the distance in metres, updated on every screenshot. The pencil button turns a
+runs from your marker to it with the distance in metres, updated on every screenshot. **Go here** on the
+right-click menu draws the same line to any spot on the map; the route button clears either. The pencil button turns a
 left drag into a stroke: in a room the squad sees every stroke live and later joiners get them replayed; right-click
 offers undo (also Ctrl+Z) and clear-all, which wipes the map for the whole room.
 
 **Quests.** The Quests tab is a to-do list. "Find quests on <map>" lists the quests with markers on the map you
-are on (type to search, "all maps" widens it). Every quest there starts ticked, meaning completed; untick one to put
-it on your to-do, and only to-do quests draw markers.
+are on (type to search, "all maps" widens it). Tick a quest there to put it on your to-do; only to-do quests draw
+markers, and the checkbox on a to-do entry marks it done.
 "Share with squad" sends the list to your room, so teammates see those markers too and can copy quests over.
 
 **Squad.** Every player marker has a heading line (length adjustable in Settings). While you are in a room, the Squad tab lists your teammates: distance to you when they are on
@@ -50,11 +51,16 @@ pings the relay every 20 s; if the connection drops, a small "Squad: reconnectin
 corner button and the app reconnects by itself, with one notice on loss and one on recovery.
 
 **Details.** Click any marker for a popup with its name, type, elevation, and, for loose loot, the full item
-list; boss spawns show each boss with its spawn chance. Quest objectives with a zone draw its footprint
+list; boss spawns show each boss with its spawn chance, escort size and whether a switch spawns it. A loose loot
+spot holding one item is drawn as that item's picture, one whose items share a handbook category as the category's
+picture (both from assets.tarkov.dev, like tarkov.dev's map); popups also show a lock's key, an extract's fee item
+and a quest item. Quest objectives with a zone draw its footprint
 as a translucent green outline, shown on every floor the zone spans. The "?" button next to a quest opens its
 wiki page in your browser.
 
-**Filters.** The sidebar has four tabs: Filters, Squad, Quests and Settings. The Filters tab groups
+**Filters.** The sidebar has four tabs: Filters, Squad, Quests and Settings. The Filters tab opens with a card
+for the current map: raid length, player count, the keys needed to get in (The Lab, Terminal, The Labyrinth), and
+every boss with its spawn chance and escort size. Below it the tab groups
 everything the map can draw: Extracts, Map
 Tasks, Spawns, Containers, Locks, Hazards, Switches and BTR. Each group and each category shows a
 `shown/total` count for the current map, so a group with nothing on this map still appears as `0/0`.
@@ -67,14 +73,17 @@ more) and every loose-loot spot holding it, every lock opened by a key of that n
 of that name lights up on the current map, whatever the layer toggles say. The box shows how many spots matched.
 
 **Game mode.** Settings > Game mode picks the tarkov.dev data set: PvP (default) or PvE. Each mode keeps its
-own cache; the quest list footer shows which one is loaded.
+own cache; the quest list footer shows which one is loaded. Settings > PMC faction (USEC or BEAR) hides the
+quests only the other faction gets; those quests carry a USEC or BEAR badge.
 
 **Quest list.** Quests are grouped by trader in the usual trader order, with a `done/total` count per
 trader; sections collapse and quests with markers on the current map sort first. The checkbox marks a
-quest done, and the eye button hides one quest's markers from the map without marking it done. Quests needed
+quest done. Quests needed
 for Kappa carry a "κ" badge, Lightkeeper ones "LK"; the **Kappa** toggle lists only those. The **available**
 toggle (saved with your settings) shows only quests whose prerequisite quests you have marked done, and hides
-the markers of the locked ones from the map as well.
+the markers of the locked ones from the map as well. Click a quest's name to unfold it: every objective with
+its count and found-in-raid flag, what still gates it (prerequisites left, trader loyalty level, faction), the
+rewards, and what would fail it.
 
 ## Relay
 

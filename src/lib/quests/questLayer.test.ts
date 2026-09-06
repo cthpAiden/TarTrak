@@ -81,6 +81,12 @@ describe("esc", () => {
 });
 
 describe("questPopupHtml", () => {
+  it("shows the quest item's picture before its name", () => {
+    const html = questPopupHtml(mk("a", { itemName: "Watch", itemImage: "https://assets.tarkov.dev/qi1-base-image.webp" }));
+    expect(html).toContain('<small><img class="popup-item" src="https://assets.tarkov.dev/qi1-base-image.webp" alt="">Quest item: Watch</small>');
+    expect(questPopupHtml(mk("a", { itemName: "Watch" }))).toContain("<small>Quest item: Watch</small>");
+  });
+
   it("names the floor when the marker sits on one, escaped", () => {
     const plain = questPopupHtml(mk("a"));
     expect(questPopupHtml(mk("a"), null)).toBe(plain);

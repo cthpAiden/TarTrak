@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { iconFile, iconUrl, outlineColor, pointIcon, pointPopupHtml } from "./pointLayer";
+import { iconFile, iconUrl, markerIcon, outlineColor, pointIcon, pointPopupHtml } from "./pointLayer";
 import type { MapPoint } from "./points";
+import type L from "leaflet";
 
 const pt = (over: Partial<MapPoint> = {}): MapPoint => ({
   id: "p1",
@@ -74,7 +75,27 @@ describe("pointIcon", () => {
   });
 });
 
+describe("markerIcon", () => {
+  it("draws the point's picture, when it has one, in a 24px box with the same classes", () => {
+    const icon = markerIcon(pt({ group: "lootLoose", category: "keys", icon: "https://assets.tarkov.dev/abc-base-image.webp" }), true) as L.DivIcon;
+    expect(icon.options.html).toBe('<img src="https://assets.tarkov.dev/abc-base-image.webp" alt="">');
+    expect(icon.options.iconSize).toEqual([24, 24]);
+    expect(icon.options.iconAnchor).toEqual([12, 12]);
+    expect(icon.options.className).toBe("point-icon item-icon lootLoose keys hit");
+  });
+
+  it("falls back to the group icon without a picture", () => {
+    const icon = markerIcon(pt({ group: "lootLoose", category: "keys" })) as L.Icon;
+    expect(icon.options.iconUrl).toBe("/icons/loose_loot.png");
+  });
+});
+
 describe("pointPopupHtml", () => {
+  it("puts the point's picture before its name", () => {
+    const html = pointPopupHtml(pt({ name: "Wrench", details: ["Wrench"], y: 1, image: "https://assets.tarkov.dev/abc-base-image.webp" }));
+    expect(html).toBe('<img class="popup-item" src="https://assets.tarkov.dev/abc-base-image.webp" alt=""><b>Wrench</b><br><small>Wrench<br>Elevation 1.0</small>');
+  });
+
   it("lists the details above the elevation line", () => {
     const html = pointPopupHtml(pt({ name: "ZB-1011", details: ["PMC extract"], y: 12.345 }));
     expect(html).toBe("<b>ZB-1011</b><br><small>PMC extract<br>Elevation 12.3</small>");

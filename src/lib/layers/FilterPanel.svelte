@@ -3,6 +3,7 @@
   import "../map/map.css";
   import { isOn, setCategory, setGroup, type Filters } from "./filters";
   import { iconUrl } from "./pointLayer";
+  import { lootCategoryImage } from "./itemImages";
   import type { GroupId } from "./points";
   import { questIconUrl, type QuestCategory } from "../quests/questLayer";
   import type { CategoryCount, GroupCount } from "./counts";
@@ -40,11 +41,12 @@
     btr: true,
   });
 
-  // Labels are the one pseudo-group without a picture; every other row shows its map icon.
+  // Labels are the one pseudo-group without a picture; every other row shows its map icon,
+  // loose loot rows tarkov.dev's picture of their handbook category.
   function rowIcon(c: CategoryCount): string {
-    return c.group === "quests"
-      ? questIconUrl(c.category as QuestCategory)
-      : iconUrl({ group: c.group as GroupId, category: c.category });
+    if (c.group === "quests") return questIconUrl(c.category as QuestCategory);
+    if (c.group === "lootLoose") return lootCategoryImage(c.category) ?? iconUrl({ group: "lootLoose", category: c.category });
+    return iconUrl({ group: c.group as GroupId, category: c.category });
   }
 
   const empty = $derived(counts.every((g) => g.total === 0));

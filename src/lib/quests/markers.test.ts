@@ -104,7 +104,7 @@ describe("extractQuestMarkers", () => {
       ["o4/m-customs/0", 1, 3, 2],
       ["o4/m-customs/1", 4, 6, 5],
     ]);
-    expect(items[0]).toMatchObject({ taskName: "Debut", category: "questItem", itemName: "Bronze pocket watch", description: "Find the watch" });
+    expect(items[0]).toMatchObject({ taskName: "Debut", category: "questItem", itemName: "Bronze pocket watch", description: "Find the watch", itemImage: "https://assets.tarkov.dev/qi1-base-image.webp" });
   });
 
   it("sets the filter category from the objective type", () => {

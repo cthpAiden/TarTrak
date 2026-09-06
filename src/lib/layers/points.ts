@@ -1,5 +1,6 @@
 import { primaryMapKey } from "../map/mapsData";
 import itemCategories from "../../../data/itemCategories.json";
+import { itemImageUrl, lootCategoryImage } from "./itemImages";
 import type { Footprint, MapBoss, MapInfo, MapSpawn, QuestData, Vec3 } from "../quests/types";
 
 export type GroupId =
@@ -79,6 +80,10 @@ export interface MapPoint extends Footprint {
   details: string[];
   /** Every filter row the point belongs to when there is more than one (loose loot with items of several categories); `category` is the first. */
   categories?: string[];
+  /** Picture drawn as the marker instead of the group icon: the item of a single-item loot spot, the category picture of a single-category one. */
+  icon?: string;
+  /** Picture shown in the popup: the item of a loot spot, the key of a lock, the item an extract wants. */
+  image?: string;
 }
 
 /** Handbook category names by slug, tarkov.dev's loose loot filter rows. */
@@ -204,7 +209,8 @@ function extractDetails(e: MapInfo["extracts"][number]): string[] {
 function pointsForMap(m: MapInfo, key: string): MapPoint[] {
   const out: MapPoint[] = [];
   for (const e of m.extracts ?? []) {
-    push(out, key, "extracts", extractCategory(e), e.name, e.id, e.position, extractDetails(e), e);
+    const p = push(out, key, "extracts", extractCategory(e), e.name, e.id, e.position, extractDetails(e), e);
+    if (p && e.requiredItem?.image) p.image = itemImageUrl(e.requiredItem.image);
   }
   (m.transits ?? []).forEach((t, i) => {
     push(out, key, "extracts", "transit", t.description, t.id || `extracts/transit/${i}`, t.position, [
@@ -226,13 +232,23 @@ function pointsForMap(m: MapInfo, key: string): MapPoint[] {
     // One marker in every category row its items fall in, like tarkov.dev; the first names the id.
     const categories = l.categories?.length ? l.categories : ["other"];
     const p = push(out, key, "lootLoose", categories[0], looseLootName(l.items), `lootLoose/${categories[0]}/${i}`, l.position, [...l.items]);
-    if (p && categories.length > 1) p.categories = categories;
+    if (!p) return;
+    if (categories.length > 1) p.categories = categories;
+    // Drawn like tarkov.dev: the item itself for a single-item spot, its category's picture for a single-category one.
+    if (l.image) {
+      p.icon = itemImageUrl(l.image);
+      p.image = p.icon;
+    } else if (categories.length === 1) {
+      const image = lootCategoryImage(categories[0]);
+      if (image) p.icon = image;
+    }
   });
   (m.locks ?? []).forEach((l, i) => {
-    push(out, key, "locks", l.lockType, l.key ?? `Locked ${l.lockType}`, `locks/${l.lockType}/${i}`, l.position, [
+    const p = push(out, key, "locks", l.lockType, l.key ?? `Locked ${l.lockType}`, `locks/${l.lockType}/${i}`, l.position, [
       LOCK_DETAILS[l.lockType] ?? l.lockType,
       ...(l.needsPower ? ["Needs power"] : []),
     ]);
+    if (p && l.keyImage) p.image = itemImageUrl(l.keyImage);
   });
   (m.hazards ?? []).forEach((h, i) => {
     push(out, key, "hazards", h.hazardType, h.name, `hazards/${h.hazardType}/${i}`, h.position, [

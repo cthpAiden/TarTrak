@@ -87,10 +87,26 @@ export function iconUrl(p: { group: GroupId; category: string }): string {
   return `${ICON_DIR}/${iconFile(p)}.png`;
 }
 
-/** The point's details plus its height, which is only ever shown here. */
+/** The point's details plus its height, which is only ever shown here; its picture (item, key) first when it has one. */
 export function pointPopupHtml(p: MapPoint): string {
   const lines = [...p.details, `Elevation ${p.y.toFixed(1)}`];
-  return `<b>${esc(p.name)}</b><br><small>${lines.map(esc).join("<br>")}</small>`;
+  const image = p.image ? `<img class="popup-item" src="${esc(p.image)}" alt="">` : "";
+  return `${image}<b>${esc(p.name)}</b><br><small>${lines.map(esc).join("<br>")}</small>`;
+}
+
+/**
+ * The marker to draw: tarkov.dev's picture of the item or category when the point has one (a single-item
+ * loot spot), scaled to fit 24px like on its map, else the group icon.
+ */
+export function markerIcon(p: MapPoint, hit = false): L.Icon | L.DivIcon {
+  if (!p.icon) return pointIcon(p, hit);
+  return L.divIcon({
+    html: `<img src="${esc(p.icon)}" alt="">`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+    popupAnchor: [0, -12],
+    className: `point-icon item-icon ${p.group} ${p.category}${hit ? " hit" : ""}`,
+  });
 }
 
 /** 24px image marker; PMC spawn arrows point at their spot, so they hang from the bottom edge like on tarkov.dev. */

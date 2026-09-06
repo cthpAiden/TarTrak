@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { lootCategoryImage } from "./itemImages";
 import {
   findItem,
   extractPoints,
@@ -68,9 +69,10 @@ const data: QuestData = {
         { position: { x: 38, y: 0, z: 39 }, items: ["Bolts", "Screws"], categories: ["barter-items", "building-materials"] },
         { position: { x: 44, y: 0, z: 45 }, items: [] },
         { position: null, items: ["Wire"] },
+        { position: { x: 46, y: 0, z: 47 }, items: ["Wrench"], categories: ["tools"], image: "wrench-id" },
       ],
       locks: [
-        { lockType: "door", key: "Factory emergency exit key", position: { x: 40, y: 0, z: 41 } },
+        { lockType: "door", key: "Factory emergency exit key", position: { x: 40, y: 0, z: 41 }, keyImage: "key-id" },
         { lockType: "trunk", key: null, position: { x: 42, y: 0, z: 43 } },
         { lockType: "door", key: "Lab key", needsPower: true, position: { x: 46, y: 0, z: 47 } },
       ],
@@ -149,16 +151,32 @@ describe("extractPoints", () => {
 
   it("names loose loot after its first three items", () => {
     const loose = inGroup("lootLoose");
-    expect(loose.map((p) => p.name)).toEqual(["Bolts, Screws, Nuts +1", "Bolts, Screws", "Loose loot"]);
+    expect(loose.map((p) => p.name)).toEqual(["Bolts, Screws, Nuts +1", "Bolts, Screws", "Loose loot", "Wrench"]);
+  });
+
+  // tarkov.dev draws the item itself for a single-item spot and the category picture for a single-category one.
+  it("draws single-item spots as the item and single-category spots as the category picture", () => {
+    const loose = inGroup("lootLoose");
+    expect(loose[3].icon).toBe("https://assets.tarkov.dev/wrench-id-base-image.webp");
+    expect(loose[3].image).toBe("https://assets.tarkov.dev/wrench-id-base-image.webp");
+    expect(loose[0].icon).toBe(lootCategoryImage("barter-items"));
+    expect(loose[0].icon).toMatch(/^https:\/\/assets\.tarkov\.dev\//);
+    expect(loose[0].image).toBeUndefined();
+    // Two categories, or none known: the generic icon.
+    expect(loose[1].icon).toBeUndefined();
+    expect(loose[2].icon).toBeUndefined();
+    const locks = inGroup("locks");
+    expect(locks[0].image).toBe("https://assets.tarkov.dev/key-id-base-image.webp");
+    expect(locks[1].image).toBeUndefined();
   });
 
   // tarkov.dev's loose loot filters are the items' handbook categories; a spot with items of two
   // categories sits in both rows. A spot whose items the bundled map does not know goes to "other".
   it("puts loose loot in the handbook category rows of its items", () => {
     const loose = inGroup("lootLoose");
-    expect(loose.map((p) => p.category)).toEqual(["barter-items", "barter-items", "other"]);
-    expect(loose.map((p) => p.categories)).toEqual([undefined, ["barter-items", "building-materials"], undefined]);
-    expect(loose.map((p) => p.id)).toEqual(["lootLoose/barter-items/0", "lootLoose/barter-items/1", "lootLoose/other/2"]);
+    expect(loose.map((p) => p.category)).toEqual(["barter-items", "barter-items", "other", "tools"]);
+    expect(loose.map((p) => p.categories)).toEqual([undefined, ["barter-items", "building-materials"], undefined, undefined]);
+    expect(loose.map((p) => p.id)).toEqual(["lootLoose/barter-items/0", "lootLoose/barter-items/1", "lootLoose/other/2", "lootLoose/tools/4"]);
     expect(categoryLabel("lootLoose/barter-items", loose)).toBe("Barter items");
     expect(categoryLabel("lootLoose/other", loose)).toBe("Other loose loot");
   });
@@ -238,6 +256,7 @@ describe("point details", () => {
       ["Bolts", "Screws", "Nuts", "Nails"],
       ["Bolts", "Screws"],
       [],
+      ["Wrench"],
     ]);
   });
 

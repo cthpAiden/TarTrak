@@ -100,6 +100,17 @@ describe("data snapshot", () => {
     expect(tasks.find((t) => t.name === "Big Customer")!.failsOn).toEqual(["Chemical - Part 4", "Out of Curiosity"]);
   });
 
+  it("draws single-item loot spots as their item and lists key pictures on locks", () => {
+    const customs = points.filter((p) => p.mapKey === "customs");
+    const loose = customs.filter((p) => p.group === "lootLoose");
+    const pictured = loose.filter((p) => p.icon?.includes("-base-image.webp"));
+    expect(pictured.length).toBeGreaterThan(100);
+    expect(pictured.every((p) => p.details.length === 1)).toBe(true);
+    expect(loose.some((p) => p.icon?.includes("handbook-category-"))).toBe(true);
+    expect(customs.filter((p) => p.group === "locks" && p.image).length).toBeGreaterThan(10);
+    for (const p of customs) for (const url of [p.icon, p.image]) if (url) expect(url.startsWith("https://assets.tarkov.dev/")).toBe(true);
+  });
+
   it("knows every extract faction, labels it, and shows PMC-usable extracts by default", () => {
     for (const m of maps) {
       for (const e of m.extracts) {
@@ -141,7 +152,7 @@ describe("data snapshot", () => {
     const usable = points.filter((p) => p.mapKey === "interchange" && p.group === "extracts" && isOn({}, p.group, p.category));
     expect(usable.map((p) => p.name)).toContain("Emercom Checkpoint");
     expect(usable.map((p) => p.name)).toContain("Railway Exfil");
-    expect(ic.extracts.find((e) => e.name === "Power Station V-Ex")!.requiredItem).toEqual({ name: "Roubles", count: 20000 });
+    expect(ic.extracts.find((e) => e.name === "Power Station V-Ex")!.requiredItem).toEqual({ name: "Roubles", count: 20000, image: "5449016a4bdc2d6f028b456f" });
     expect(ic.switches?.map((s) => s.name)).toContain("Saferoom Exfil Switch");
   });
 

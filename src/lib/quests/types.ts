@@ -1,4 +1,4 @@
-export const QUEST_SCHEMA_VERSION = 11;
+export const QUEST_SCHEMA_VERSION = 12;
 
 export interface Vec3 {
   x: number;
@@ -78,8 +78,8 @@ export interface MapExtract extends Footprint {
   position: Vec3 | null;
   /** Names of the switches that must be flipped before it opens. */
   switches?: string[];
-  /** Item handed over to use it: the V-Ex fee, a secret-extract item. */
-  requiredItem?: { name: string; count: number };
+  /** Item handed over to use it: the V-Ex fee, a secret-extract item. `image` is its picture id on tarkov.dev, when it has one. */
+  requiredItem?: { name: string; count: number; image?: string };
 }
 export interface MapTransit extends Footprint {
   id: string;
@@ -104,6 +104,8 @@ export interface MapLootLoose {
   items: string[];
   /** Handbook categories of the items (slugs from data/itemCategories.json), deduplicated; tarkov.dev's loose loot filters. */
   categories?: string[];
+  /** Picture id of the one item a single-item spot holds, drawn as its marker like on tarkov.dev. */
+  image?: string;
 }
 export interface MapLock {
   lockType: string;
@@ -112,6 +114,8 @@ export interface MapLock {
   position: Vec3 | null;
   /** Set when the lock only works while the map's power is on. */
   needsPower?: true;
+  /** Picture id of the key on tarkov.dev, for the popup. */
+  keyImage?: string;
 }
 /** Sniper and minefield zones from tarkov.dev's hazards, plus its artillery zones as "mortar". */
 export interface MapHazard extends Footprint {

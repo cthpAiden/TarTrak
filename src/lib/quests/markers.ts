@@ -1,4 +1,5 @@
 import { primaryMapKey } from "../map/mapsData";
+import { itemImageUrl } from "../layers/itemImages";
 import { questCategory, type QuestCategory } from "./questLayer";
 import type { QuestData } from "./types";
 
@@ -13,6 +14,8 @@ export interface QuestMarker {
   description: string;
   /** Name of the quest item this marker is a spawn point of; unset for zone markers. */
   itemName?: string;
+  /** tarkov.dev's picture of that item. */
+  itemImage?: string;
   mapKey: string;
   x: number;
   y: number;
@@ -80,6 +83,7 @@ export function extractQuestMarkers(data: QuestData): QuestMarker[] {
             category: questCategory(obj.type),
             description: obj.description,
             itemName: obj.questItem?.name,
+            itemImage: obj.questItem ? itemImageUrl(obj.questItem.id) : undefined,
             mapKey,
             x: p.x,
             y: p.y,

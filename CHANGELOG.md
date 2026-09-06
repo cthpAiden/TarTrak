@@ -6,13 +6,15 @@
 - "Go here" on the right-click menu: a straight dotted route line from my marker to the spot under the cursor, with the distance on it, like the route to an extract. Clear it from the route button.
 - A map card at the top of the Filters tab: raid length and player count, the keys needed to enter (The Lab, Terminal, The Labyrinth), and each boss with its spawn chance, escort size, portrait, and whether a switch spawns it.
 - Boss spawn popups name the boss with its chance, escort size and switch trigger.
+- Loose loot spots draw like tarkov.dev's: a spot holding one item shows that item's picture as its marker, a spot whose items share a handbook category shows the category's picture, the rest keep the loose loot icon. The Loose Loot filter rows carry the category pictures too. Pictures load from assets.tarkov.dev; offline, the generic icon stands in.
+- Popups show the picture of a loot spot's item, a lock's key, an extract's fee item and a quest item.
 
 ### Quests
 - Click a quest name to unfold it: every objective with its count, found-in-raid and optional flags (and its map when the quest spans several), what still gates it (prerequisites not done, trader loyalty level, faction), the rewards (XP, items, trader reputation, skills, unlocked offers and crafts), and what fails it.
 - Settings > PMC faction: USEC- or BEAR-only quests of the other side (Drip-Out, Textile, Our Own Land, Counteraction, ...) are hidden from the finder; the rest carry a USEC or BEAR badge.
 
 ### Data
-- Data schema 11 (caches refresh on first start): map raid duration, player count and access keys; boss escorts, spawn trigger and portrait; task faction, experience, finish rewards, trader level requirements and fail conditions; objective count, found-in-raid and optional flags.
+- Data schema 12 (caches refresh on first start): map raid duration, player count and access keys; boss escorts, spawn trigger and portrait; task faction, experience, finish rewards, trader level requirements and fail conditions; objective count, found-in-raid and optional flags; picture ids of single-item loot spots, lock keys and extract fee items. data/itemCategories.json (`npm run snapshot`) also carries the handbook category pictures and the few items whose picture belongs to another item.
 
 ## 0.5.0 - 2026-09-07
 

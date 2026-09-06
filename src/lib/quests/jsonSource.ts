@@ -48,6 +48,13 @@ export interface RawBundle {
 }
 
 const ITEM_CATEGORY = (itemCategories as { items: Record<string, string> }).items;
+const ITEM_IMAGE = (itemCategories as { imageIds: Record<string, string> }).imageIds;
+
+/** Picture id of an item on tarkov.dev: its own id unless it borrows another item's; undefined for one without a picture. */
+function imageId(id: string): string | undefined {
+  const mapped = ITEM_IMAGE[id];
+  return mapped === undefined ? id : mapped || undefined;
+}
 
 /** `en[key]` when it is a non-empty string, else `key` itself. */
 export function tr(en: Record<string, unknown>, key: string): string {
@@ -236,6 +243,8 @@ function toMap(
     const transfer = dict(e.transferItem);
     if (typeof transfer.item === "string") {
       out.requiredItem = { name: itemName(itemsEn, mapsEn, transfer.item), count: num(transfer.count, 1) };
+      const image = imageId(transfer.item);
+      if (image) out.requiredItem.image = image;
     }
     return out;
   });
@@ -276,6 +285,9 @@ function toMap(
     // An item the bundled map does not know (newer than this build) leaves the spot in the "other" row.
     const categories = [...new Set(ids.map((id) => ITEM_CATEGORY[id]).filter((c): c is string => !!c))];
     if (categories.length > 0) out.categories = categories;
+    // tarkov.dev draws a single-item spot as the item itself.
+    const image = ids.length === 1 ? imageId(ids[0]) : undefined;
+    if (image) out.image = image;
     return out;
   });
   const locks: MapLock[] = list(m.locks).map((l) => {
@@ -285,6 +297,8 @@ function toMap(
       position: pos(l.position),
     };
     if (l.needsPower === true) lock.needsPower = true;
+    const keyImage = typeof l.key === "string" ? imageId(l.key) : undefined;
+    if (keyImage) lock.keyImage = keyImage;
     return lock;
   });
   const hazards: MapHazard[] = [

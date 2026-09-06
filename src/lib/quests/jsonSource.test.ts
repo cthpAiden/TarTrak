@@ -36,7 +36,10 @@ const raw: RawBundle = {
             { position: { x: 7, y: 8, z: 9 }, sides: ["savage"], categories: ["boss"], zoneName: "5c0a1ff6d174af02a012e42b" },
           ],
           lootContainers: [{ lootContainer: "lc1", position: { x: 10, y: 11, z: 12 } }],
-          lootLoose: [{ position: { x: 13, y: 14, z: 15 }, items: ["i1", "i2", "i1", "i9"] }],
+          lootLoose: [
+            { position: { x: 13, y: 14, z: 15 }, items: ["i1", "i2", "i1", "i9"] },
+            { position: { x: 16, y: 14, z: 15 }, items: ["i2"] },
+          ],
           locks: [
             { id: "l1", lockType: "door", key: "k1", position: { x: 16, y: 17, z: 18 } },
             { id: "l2", lockType: "trunk", position: { x: 19, y: 20, z: 21 } },
@@ -293,7 +296,7 @@ describe("toQuestData", () => {
         faction: "shared",
         position: { x: 2, y: 3, z: 4 },
         switches: ["ZB-013 Power Switch", "sw-unknown"],
-        requiredItem: { name: "Bolts", count: 20000 },
+        requiredItem: { name: "Bolts", count: 20000, image: "i1" },
         outline: [[0, 0], [4, 0], [4, 4]],
         top: 6,
         bottom: 1,
@@ -309,11 +312,15 @@ describe("toQuestData", () => {
     expect(m.lootContainers).toEqual([
       { lootContainer: { id: "lc1", name: "Weapon box", normalizedName: "weapon-box" }, position: { x: 10, y: 11, z: 12 } },
     ]);
-    expect(m.lootLoose).toEqual([{ position: { x: 13, y: 14, z: 15 }, items: ["Bolts", "Screws", "i9"] }]);
+    // A single-item spot carries the item's picture id; a lock its key's; both fall back to the item's own id.
+    expect(m.lootLoose).toEqual([
+      { position: { x: 13, y: 14, z: 15 }, items: ["Bolts", "Screws", "i9"] },
+      { position: { x: 16, y: 14, z: 15 }, items: ["Screws"], image: "i2" },
+    ]);
     expect(m.locks).toEqual([
-      { lockType: "door", key: "Factory emergency exit key", position: { x: 16, y: 17, z: 18 } },
+      { lockType: "door", key: "Factory emergency exit key", position: { x: 16, y: 17, z: 18 }, keyImage: "k1" },
       { lockType: "trunk", key: null, position: { x: 19, y: 20, z: 21 } },
-      { lockType: "door", key: "Factory emergency exit key", position: { x: 1, y: 1, z: 1 }, needsPower: true },
+      { lockType: "door", key: "Factory emergency exit key", position: { x: 1, y: 1, z: 1 }, needsPower: true, keyImage: "k1" },
     ]);
     expect(m.hazards).toEqual([
       { hazardType: "sniper", name: "Sniper", position: { x: 22, y: 23, z: 24 } },

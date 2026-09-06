@@ -61,6 +61,10 @@ body.overlay .pin-menu { background: rgba(30, 35, 43, 0.85); border-color: #3a40
 .map-msg { position: absolute; left: 12px; bottom: 12px; z-index: 1000; color: var(--muted); font-size: 12px; }
 
 .point-icon { filter: drop-shadow(0 0 2px #000); }
+/* An item or category picture as the marker: fitted into the 24px box, outlined in white like on tarkov.dev. */
+.item-icon { display: flex; align-items: center; justify-content: center; background: none; border: 0; }
+.item-icon img { max-width: 24px; max-height: 24px; filter: drop-shadow(0.01em 0.01em #fff) drop-shadow(-0.01em -0.01em #fff); }
+.leaflet-popup-content img.popup-item { max-width: 24px; max-height: 24px; vertical-align: middle; margin-right: 4px; }
 /* Item-finder matches: a glow in the accent colour so they stand out among the other markers. */
 .point-icon.hit { filter: drop-shadow(0 0 3px var(--accent)) drop-shadow(0 0 6px var(--accent)); z-index: 650 !important; }
 
