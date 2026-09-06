@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.1 - 2026-09-07
+
+### Fixes
+- Item pictures on loot spots and in popups are small again: Leaflet overrode the size cap, so Moonshine or a fuel can filled the screen. They now sit in a fixed 20px box.
+
 ## 0.6.0 - 2026-09-07
 
 ### Map
