@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0 - 2026-09-07
+
+### Map
+- The Lab, The Labyrinth and Icebreaker now show a map: tarkov.dev draws these as image tiles rather than a vector drawing, and the tiles load straight from assets.tarkov.dev. The Lab has its Second Level and Technical floors, Icebreaker its sixteen decks.
+- Floors that tarkov.dev only draws as tiles are in the Floors menu too: Customs' 4th floor, Reserve's 2nd to 5th floors sit as an image over the vector map.
+
+### Data
+- Loose loot is filtered by the items' handbook categories, the rows tarkov.dev's map uses (Barter items, Keys, Medical supplies, ...); a spot with items of several categories shows while any of its rows is on. The item-to-category map is bundled (data/itemCategories.json, refreshed by `npm run snapshot`), so the app never downloads tarkov.dev's 17 MB item list. Data schema 10 (caches refresh on first start).
+- Night Factory's and Ground Zero 21+'s extracts no longer double Factory's and Ground Zero's: tarkov.dev lists them under the same names a rounding error apart, now without a faction, and those read as PMC & Scav like on its map.
+- Snapshot refreshed from tarkov.dev's data of 2026-09-07: Interchange lists nine extracts (Railway Exfil once for PMCs and once for Scavs, Path to River (Flare), Smugglers' Tunnel), Factory gained Gate 2, Shoreline five extracts, Ground Zero three. tarkov.dev's data of that day dropped Reserve's D-2 and Armored Train, five Lighthouse extracts, and the switch-to-extract links.
+
 ## 0.4.1 - 2026-09-06
 
 ### Quests
