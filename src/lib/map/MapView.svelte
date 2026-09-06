@@ -83,6 +83,9 @@
   // map and svg are $state so the marker and floor effects re-run once build() assigns them.
   let map = $state<L.Map | null>(null);
   let svg = $state<LoadedSvg | null>(null);
+  /** Raster base (maps without an SVG) and the raster floor drawn over the base, if the active floor is one. */
+  let baseTile: L.TileLayer | null = null;
+  let floorTile: L.TileLayer | null = null;
   let own: PositionMarker | null = null;
   let mates = new Map<string, PositionMarker>();
   // $state so the quest and point effects re-run once build() creates the groups.
@@ -107,7 +110,17 @@
   /** Ticks once a second so the marker effects re-run and re-apply the age fade. */
   let now = $state(Date.now());
 
-  const floorGroup = $derived(def?.layers.find((l) => l.name === activeFloor)?.svgLayer ?? null);
+  const activeLayer = $derived(def?.layers.find((l) => l.name === activeFloor) ?? null);
+  /** Floors this map can draw: an SVG group when the base is the SVG, or tiles either way. */
+  const floorLayers = $derived(def ? def.layers.filter((l) => (l.svgLayer && def.svgPath) || l.tilePath) : []);
+
+  function tileOptions(d: MapDef, pane?: string): L.TileLayerOptions {
+    // Past the deepest tile level Leaflet scales the last one up rather than requesting blanks.
+    const o: L.TileLayerOptions = { tileSize: d.tileSize, bounds: boundsOf(d), minNativeZoom: d.minZoom, maxNativeZoom: d.maxZoom, maxZoom: d.maxZoom + 1 };
+    // An explicit undefined pane would override Leaflet's default tile pane.
+    if (pane) o.pane = pane;
+    return o;
+  }
 
   function destroy() {
     gen++;
@@ -124,6 +137,8 @@
     routeTip = null;
     pinMenu = null;
     svg = null;
+    baseTile = null;
+    floorTile = null;
     stopSizeWatch?.();
     stopSizeWatch = null;
     map?.remove();
@@ -143,6 +158,10 @@
       zoomControl: false,
     });
     m.fitBounds(boundsOf(d));
+    // The SVG is the base when there is one, like tarkov.dev; tiles carry the maps drawn only that way.
+    if (d.tilePath && !d.svgPath) baseTile = L.tileLayer(d.tilePath, tileOptions(d)).addTo(m);
+    // Raster floors sit above the SVG base (overlay pane 400), under the zones (450).
+    m.createPane("floor-tiles").style.zIndex = "410";
     // The sidebar and top bar come and go with overlay mode; Leaflet only watches the window.
     stopSizeWatch = watchSize(container, () => m.invalidateSize({ animate: false }));
     map = m;
@@ -206,7 +225,7 @@
       pinMenu = { px, py, x: e.latlng.lng, z: e.latlng.lat };
     });
     if (!d.svgPath) {
-      message = `${d.name}: no vector map available yet`;
+      if (!d.tilePath) message = `${d.name}: no map image available yet`;
       return;
     }
     try {
@@ -242,8 +261,17 @@
   $effect(() => {
     const s = svg;
     const d = def;
-    const group = floorGroup;
-    if (s && d) showFloor(s, d.svgLayer, group, d.layers.map((l) => l.svgLayer).filter((v): v is string => !!v));
+    const m = map;
+    const layer = activeLayer;
+    if (!d || !m) return;
+    // The floor's SVG group when the base is the SVG; otherwise its tiles, drawn over the base.
+    const svgFloor = s && layer?.svgLayer ? layer.svgLayer : null;
+    const tileFloor = !svgFloor && layer?.tilePath ? layer.tilePath : null;
+    floorTile?.remove();
+    floorTile = tileFloor ? L.tileLayer(tileFloor, tileOptions(d, "floor-tiles")).addTo(m) : null;
+    const dimBase = layer !== null && !layer.show;
+    if (s) showFloor(s, d.svgLayer, svgFloor, d.layers.map((l) => l.svgLayer).filter((v): v is string => !!v), dimBase);
+    baseTile?.getContainer()?.classList.toggle("off-level", dimBase);
   });
 
   // Draw mode takes the drag away from panning; the cursor says so.
@@ -509,7 +537,7 @@
 
 <div class="map-root" bind:this={container} role="application" aria-label="map"></div>
 
-{#if def && def.layers.some((l) => l.svgLayer)}
+{#if def && floorLayers.length > 0}
   <div class="floor-menu" bind:this={floorMenu}>
     <button
       class="floor-toggle"
@@ -525,7 +553,7 @@
       <div class="floor-list" role="listbox" aria-label="Floors">
         <button role="option" aria-selected={pinnedFloor === null} class:active={pinnedFloor === null} onclick={() => pickFloor(null)} title="Follow my height">Auto</button>
         <button role="option" aria-selected={pinnedFloor === ""} class:active={pinnedFloor === ""} onclick={() => pickFloor("")}>Ground</button>
-        {#each def.layers.filter((l) => l.svgLayer) as layer (layer.name)}
+        {#each floorLayers as layer (layer.name)}
           <button role="option" aria-selected={pinnedFloor === layer.name} class:active={pinnedFloor === layer.name} onclick={() => pickFloor(layer.name)}>{layer.name}</button>
         {/each}
       </div>

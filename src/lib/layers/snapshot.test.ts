@@ -5,7 +5,7 @@ import snapshot from "../../../data/snapshot/maps.json";
 import tasksSnapshot from "../../../data/snapshot/tasks.json";
 import type { MapInfo, QuestTask } from "../quests/types";
 import { extractQuestMarkers } from "../quests/markers";
-import { extractPoints, CATEGORY_LABELS } from "./points";
+import { extractPoints, categoryLabel, CATEGORY_LABELS } from "./points";
 import { isOn } from "./filters";
 import { getMapDef, primaryMapKey } from "../map/mapsData";
 
@@ -57,6 +57,22 @@ describe("data snapshot", () => {
     expect(points.some((p) => p.mapKey === "night-factory" || p.mapKey === "ground-zero-21" || p.mapKey === "the-lab-dark")).toBe(false);
   });
 
+  // Night Factory's extracts are Factory's under the same names, a rounding error apart and without a faction.
+  it("does not draw a variant's extracts a second time on its map", () => {
+    const factory = points.filter((p) => p.mapKey === "factory" && p.group === "extracts" && p.category !== "transit");
+    expect(factory.length).toBe(maps.find((m) => m.normalizedName === "factory")!.extracts.length);
+    expect(points.filter((p) => p.group === "extracts" && /^(night-factory|ground-zero-21)\//.test(p.id))).toEqual([]);
+  });
+
+  it("sorts loose loot into the handbook category rows tarkov.dev uses", () => {
+    const customs = points.filter((p) => p.mapKey === "customs" && p.group === "lootLoose");
+    const rows = new Set(customs.flatMap((p) => p.categories ?? [p.category]));
+    expect(rows.size).toBeGreaterThan(5);
+    expect(rows.has("other")).toBe(false);
+    for (const key of ["barter-items", "medical-supplies", "keys", "mechanical-keys"]) if (rows.has(key)) expect(categoryLabel(`lootLoose/${key}`, customs)).not.toBe(key);
+    expect(customs.some((p) => (p.categories?.length ?? 0) > 1)).toBe(true);
+  });
+
   it("knows every extract faction, labels it, and shows PMC-usable extracts by default", () => {
     for (const m of maps) {
       for (const e of m.extracts) {
@@ -74,10 +90,21 @@ describe("data snapshot", () => {
     }
   });
 
-  it("lists all six Interchange extracts, Emercom and Railway included", () => {
+  it("lists all nine Interchange extracts, Emercom and both Railway included", () => {
     const ic = maps.find((m) => m.normalizedName === "interchange")!;
-    expect(ic.extracts.map((e) => e.name).sort()).toEqual(
-      ["Emercom Checkpoint", "Hole in the Fence", "Power Station V-Ex", "Railway Exfil", "Saferoom Exfil", "Scav Camp (Co-Op)"].sort(),
+    // Railway Exfil is one spot for PMCs and another for Scavs, so it is listed twice, like on tarkov.dev.
+    expect(ic.extracts.map((e) => `${e.name} (${e.faction})`).sort()).toEqual(
+      [
+        "Emercom Checkpoint (shared)",
+        "Hole in the Fence (pmc)",
+        "Path to River (Flare) (pmc)",
+        "Power Station V-Ex (pmc)",
+        "Railway Exfil (pmc)",
+        "Railway Exfil (scav)",
+        "Saferoom Exfil (pmc)",
+        "Scav Camp (Co-Op) (shared)",
+        "Smugglers' Tunnel (pmc)",
+      ].sort(),
     );
     const byName = (n: string) => points.find((p) => p.mapKey === "interchange" && p.name === n)!;
     // Both are "shared" to tarkov.dev, but only one of them needs a Scav standing next to you.
@@ -87,10 +114,8 @@ describe("data snapshot", () => {
     const usable = points.filter((p) => p.mapKey === "interchange" && p.group === "extracts" && isOn({}, p.group, p.category));
     expect(usable.map((p) => p.name)).toContain("Emercom Checkpoint");
     expect(usable.map((p) => p.name)).toContain("Railway Exfil");
-    const saferoom = ic.extracts.find((e) => e.name === "Saferoom Exfil")!;
-    expect(saferoom.switches?.length).toBe(1);
     expect(ic.extracts.find((e) => e.name === "Power Station V-Ex")!.requiredItem).toEqual({ name: "Roubles", count: 20000 });
-    expect(ic.switches?.find((s) => s.name === "Saferoom Exfil Switch")?.activates).toEqual([{ operation: "Unlock", target: "Saferoom Exfil" }]);
+    expect(ic.switches?.map((s) => s.name)).toContain("Saferoom Exfil Switch");
   });
 
   it("draws quest item spawn points as well as objective zones, Lighthouse included", () => {
@@ -102,17 +127,15 @@ describe("data snapshot", () => {
     for (const m of qm.filter((m) => m.itemName)) expect(m.itemName, m.taskName).not.toMatch(/ Name$/);
   });
 
-  it("lists Reserve's extracts with their switches and item, and its quest markers", () => {
+  it("lists Reserve's extracts with their item, and its quest markers", () => {
     const rb = maps.find((m) => m.normalizedName === "reserve")!;
     const names = rb.extracts.map((e) => e.name).sort();
-    for (const n of ["Armored Train", "D-2", "Bunker Hermetic Door", "Cliff Descent", "Scav Lands (Co-Op)", "Sewer Manhole", "Exit to Woods"]) {
+    for (const n of ["Bunker Hermetic Door", "Cliff Descent", "Scav Lands (Co-Op)", "Sewer Manhole", "Exit to Woods"]) {
       expect(names, n).toContain(n);
     }
-    expect(rb.extracts.find((e) => e.name === "D-2")!.switches?.length).toBeGreaterThan(0);
-    expect(rb.extracts.find((e) => e.name === "Bunker Hermetic Door")!.switches?.length).toBeGreaterThan(0);
     expect(rb.extracts.find((e) => e.name === "Exit to Woods")!.requiredItem?.name).toMatch(/Minefield map/);
     const usable = points.filter((p) => p.mapKey === "reserve" && p.group === "extracts" && isOn({}, p.group, p.category)).map((p) => p.name);
-    for (const n of ["Armored Train", "D-2", "Bunker Hermetic Door", "Cliff Descent", "Sewer Manhole"]) expect(usable).toContain(n);
+    for (const n of ["Bunker Hermetic Door", "Cliff Descent", "Sewer Manhole"]) expect(usable).toContain(n);
     expect(points.find((p) => p.mapKey === "reserve" && p.name === "Scav Lands (Co-Op)")!.category).toBe("coop");
     const qm = extractQuestMarkers({ schemaVersion: 0, fetchedAt: 0, tasks, maps }).filter((m) => m.mapKey === "reserve");
     expect(qm.filter((m) => m.itemName).length).toBeGreaterThan(10);

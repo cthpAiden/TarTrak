@@ -1,7 +1,7 @@
 import { QUEST_CATEGORIES, QUEST_CATEGORY_LABELS } from "../quests/questLayer";
 import type { QuestMarker } from "../quests/markers";
 import { isOn, groupState, type Filters, type GroupState } from "./filters";
-import { categoryLabel, filterKey, GROUP_LABELS, GROUP_ORDER, type MapPoint } from "./points";
+import { categoryLabel, GROUP_LABELS, GROUP_ORDER, type MapPoint } from "./points";
 
 export interface CategoryCount {
   key: string;
@@ -61,7 +61,12 @@ export function buildCounts(
   labelCount = 0,
 ): GroupCount[] {
   const pointTotals = new Map<string, number>();
-  for (const p of mapPoints) pointTotals.set(filterKey(p), (pointTotals.get(filterKey(p)) ?? 0) + 1);
+  for (const p of mapPoints) {
+    for (const c of p.categories ?? [p.category]) {
+      const key = `${p.group}/${c}`;
+      pointTotals.set(key, (pointTotals.get(key) ?? 0) + 1);
+    }
+  }
   const questTotals = new Map<string, number>();
   for (const m of mapQuestMarkers) questTotals.set(m.category, (questTotals.get(m.category) ?? 0) + 1);
 

@@ -53,8 +53,8 @@ export function buildSvgElement(svgText: string): LoadedSvg {
 }
 
 /**
- * Base group is always shown (dimmed when a floor is up); the chosen floor is shown; the other
- * known floors are hidden. Groups the map definition does not mention (Customs' `First_Floor`
+ * Base group is always shown, dimmed while `dimBase` (a floor is up, drawn here or as tiles);
+ * the chosen floor group is shown; the other known floors are hidden. Groups the map definition does not mention (Customs' `First_Floor`
  * holds ground-floor interiors) are left alone — hiding them would drop real map content.
  */
 export function showFloor(
@@ -62,6 +62,7 @@ export function showFloor(
   baseGroup: string | undefined,
   floorGroup: string | null,
   knownFloorGroups: string[],
+  dimBase: boolean = floorGroup !== null,
 ): void {
   const inner = svg.element.children[0];
   if (!inner) return;
@@ -73,6 +74,6 @@ export function showFloor(
     if (!isBase && !known.has(g.id)) continue;
     const isFloor = g.id === floorGroup;
     g.classList.toggle("hidden-layer", !isBase && !isFloor);
-    g.classList.toggle("off-level", isBase && floorGroup !== null);
+    g.classList.toggle("off-level", isBase && dimBase);
   }
 }

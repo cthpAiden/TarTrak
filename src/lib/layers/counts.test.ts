@@ -97,6 +97,16 @@ describe("buildCounts", () => {
     expect(extracts.state).toBe("some");
   });
 
+  it("counts a loose loot spot in every category row its items fall in", () => {
+    const both = { ...point("lootLoose", "barter-items", "Bolts, Keycard", 0), categories: ["barter-items", "keys"] };
+    const groups = buildCounts([both, point("lootLoose", "keys", "Keycard", 1)], [], { "lootLoose/keys": true });
+    const loose = groups.find((g) => g.group === "lootLoose")!;
+    expect(loose.categories.map((c) => [c.category, c.total, c.shown])).toEqual([
+      ["barter-items", 1, 0],
+      ["keys", 2, 2],
+    ]);
+  });
+
   it("reports group state all and none", () => {
     const points = [point("locks", "door"), point("locks", "container", "Safe", 1)];
     const allOn = buildCounts(points, [], { "locks/door": true, "locks/container": true });

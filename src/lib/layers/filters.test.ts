@@ -1,5 +1,17 @@
 import { describe, it, expect } from "vitest";
-import { isOn, groupState, setGroup, setCategory, FILTER_KEY_RE, type Filters } from "./filters";
+import { isOn, pointOn, groupState, setGroup, setCategory, FILTER_KEY_RE, type Filters } from "./filters";
+
+describe("pointOn", () => {
+  it("shows a multi-category point while any of its rows is on", () => {
+    const p = { group: "lootLoose", category: "barter-items", categories: ["barter-items", "keys"] };
+    expect(pointOn({}, p)).toBe(false);
+    expect(pointOn({ "lootLoose/keys": true }, p)).toBe(true);
+    expect(pointOn({ "lootLoose/barter-items": true, "lootLoose/keys": false }, p)).toBe(true);
+    expect(pointOn({ lootLoose: true, "lootLoose/barter-items": false, "lootLoose/keys": false }, p)).toBe(false);
+    // Without the list, the single category decides.
+    expect(pointOn({ "lootLoose/keys": true }, { group: "lootLoose", category: "barter-items" })).toBe(false);
+  });
+});
 
 describe("isOn", () => {
   it("falls back to the defaults when no key is set", () => {

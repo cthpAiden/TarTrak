@@ -8,6 +8,8 @@ export interface MapExtent {
 export interface MapLayer {
   name: string;
   svgLayer?: string;
+  /** Raster floor drawing, a Leaflet tile URL template; some floors (Reserve's, The Lab's) only exist this way. */
+  tilePath?: string;
   show?: boolean;
   extents?: MapExtent[];
 }
@@ -28,6 +30,9 @@ export interface MapDef {
   bounds: [[number, number], [number, number]];
   svgPath?: string;
   svgLayer?: string;
+  /** Raster map as a Leaflet tile URL template, used when there is no SVG (The Lab, The Labyrinth, Icebreaker). */
+  tilePath?: string;
+  tileSize: number;
   /** tarkov.dev's variants of this map (Night Factory, Ground Zero 21+): the same ground, the same positions. */
   altKeys: string[];
   layers: MapLayer[];
@@ -60,6 +65,8 @@ interface RawMap {
   bounds: [[number, number], [number, number]];
   svgPath?: string;
   svgLayer?: string;
+  tilePath?: string;
+  tileSize?: number;
   altMaps?: string[];
   layers?: MapLayer[];
   labels?: MapLabel[];
@@ -99,6 +106,8 @@ export function loadMapDefs(): MapDef[] {
         bounds: m.bounds,
         svgPath: m.svgPath,
         svgLayer: m.svgLayer,
+        tilePath: m.tilePath,
+        tileSize: m.tileSize ?? 256,
         altKeys: m.altMaps ?? [],
         layers: (m.layers ?? []).map((l) => withDerivedBounds(m.key, l)),
         labels: (m.labels ?? []).filter((l) => Array.isArray(l.position) && typeof l.text === "string"),

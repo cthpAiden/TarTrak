@@ -1,4 +1,5 @@
 import { primaryMapKey } from "../map/mapsData";
+import itemCategories from "../../../data/itemCategories.json";
 import type { Footprint, MapBoss, MapInfo, MapSpawn, QuestData, Vec3 } from "../quests/types";
 
 export type GroupId =
@@ -51,7 +52,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   "spawns/black-div": "Black Division",
   "spawns/af": "Arena Fighters",
   "spawns/bloodhound": "Bloodhounds",
-  "lootLoose/item": "Loose loot",
+  "lootLoose/other": "Other loose loot",
   "locks/door": "Doors",
   "locks/container": "Containers",
   "locks/trunk": "Trunks",
@@ -76,7 +77,12 @@ export interface MapPoint extends Footprint {
   z: number;
   /** Short, already human-readable extra lines for the point's popup. */
   details: string[];
+  /** Every filter row the point belongs to when there is more than one (loose loot with items of several categories); `category` is the first. */
+  categories?: string[];
 }
+
+/** Handbook category names by slug, tarkov.dev's loose loot filter rows. */
+const LOOT_CATEGORY_LABELS = (itemCategories as { categories: Record<string, string> }).categories;
 
 export function filterKey(p: { group: string; category: string }): string {
   return `${p.group}/${p.category}`;
@@ -157,13 +163,14 @@ function push(
   position: Vec3 | null,
   details: string[],
   foot?: Footprint,
-): void {
-  if (!position) return;
+): MapPoint | null {
+  if (!position) return null;
   const p: MapPoint = { id, group, category, name, mapKey, x: position.x, y: position.y, z: position.z, details };
   if (foot?.outline) p.outline = foot.outline;
   if (foot?.top !== undefined) p.top = foot.top;
   if (foot?.bottom !== undefined) p.bottom = foot.bottom;
   out.push(p);
+  return p;
 }
 
 function extractDetails(e: MapInfo["extracts"][number]): string[] {
@@ -200,7 +207,10 @@ function pointsForMap(m: MapInfo, key: string): MapPoint[] {
     push(out, key, "loot", category, c.lootContainer.name, `loot/${category}/${i}`, c.position, ["Container"]);
   });
   (m.lootLoose ?? []).forEach((l, i) => {
-    push(out, key, "lootLoose", "item", looseLootName(l.items), `lootLoose/item/${i}`, l.position, [...l.items]);
+    // One marker in every category row its items fall in, like tarkov.dev; the first names the id.
+    const categories = l.categories?.length ? l.categories : ["other"];
+    const p = push(out, key, "lootLoose", categories[0], looseLootName(l.items), `lootLoose/${categories[0]}/${i}`, l.position, [...l.items]);
+    if (p && categories.length > 1) p.categories = categories;
   });
   (m.locks ?? []).forEach((l, i) => {
     push(out, key, "locks", l.lockType, l.key ?? `Locked ${l.lockType}`, `locks/${l.lockType}/${i}`, l.position, [
@@ -231,12 +241,15 @@ function pointsForMap(m: MapInfo, key: string): MapPoint[] {
  * Points of every map, or of the one map `mapKey` names. tarkov.dev's variants of a map (Night
  * Factory, Ground Zero 21+, The Lab (Dark)) fold onto it: their own loot spots and boss spawns are
  * added after the map's, a spot both list is drawn once, and their synthesised ids carry the
- * variant's name so they stay distinct.
+ * variant's name so they stay distinct. A variant's extracts are the map's own under the same
+ * names (their positions differ by a rounding error and they come without a faction), so a name
+ * the map already has is not drawn again.
  */
 export function extractPoints(data: QuestData, mapKey?: string): MapPoint[] {
   const out: MapPoint[] = [];
   const seen = new Set<string>();
-  const at = (p: MapPoint) => `${p.mapKey}|${p.group}|${p.category}|${p.x}|${p.y}|${p.z}`;
+  const at = (p: MapPoint) =>
+    p.group === "extracts" ? `${p.mapKey}|extracts|${p.name}` : `${p.mapKey}|${p.group}|${p.category}|${p.x}|${p.y}|${p.z}`;
   const wanted = data.maps.filter((m) => mapKey === undefined || primaryMapKey(m.normalizedName) === mapKey);
   const isVariant = (m: MapInfo) => primaryMapKey(m.normalizedName) !== m.normalizedName;
   for (const m of wanted.filter((m) => !isVariant(m))) {
@@ -273,7 +286,7 @@ export function findItem(points: MapPoint[], query: string): Set<string> {
 
 /** Label for a category key: CATEGORY_LABELS, else the name of the first point with that key, else the slug. */
 export function categoryLabel(key: string, points: MapPoint[]): string {
-  const fixed = CATEGORY_LABELS[key];
+  const fixed = CATEGORY_LABELS[key] ?? (key.startsWith("lootLoose/") ? LOOT_CATEGORY_LABELS[key.slice("lootLoose/".length)] : undefined);
   if (fixed) return fixed;
   const hit = points.find((p) => filterKey(p) === key);
   if (hit) return hit.name;

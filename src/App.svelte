@@ -21,7 +21,7 @@
   import FilterPanel from "./lib/layers/FilterPanel.svelte";
   import { buildCounts } from "./lib/layers/counts";
   import { extractPoints } from "./lib/layers/points";
-  import { isOn } from "./lib/layers/filters";
+  import { isOn, pointOn } from "./lib/layers/filters";
   import { findItem } from "./lib/layers/points";
   import { loadDone } from "./lib/quests/done";
   import MapView from "./lib/map/MapView.svelte";
@@ -78,7 +78,7 @@
     def
       ? mapPoints.filter(
           (p) =>
-            (hitIds.has(p.id) || isOn(layerFilters, p.group, p.category)) &&
+            (hitIds.has(p.id) || pointOn(layerFilters, p)) &&
             visibleOnFloor(def, activeFloor, p.x, p.z, p.y, p.top, p.bottom),
         )
       : [],

@@ -26,6 +26,11 @@ export function isOn(f: Filters, group: string, category: string): boolean {
   return DEFAULT_ON.has(key) || DEFAULT_ON.has(group);
 }
 
+/** A loose loot spot with items of several categories shows while any of those rows is on. */
+export function pointOn(f: Filters, p: { group: string; category: string; categories?: string[] }): boolean {
+  return p.categories ? p.categories.some((c) => isOn(f, p.group, c)) : isOn(f, p.group, p.category);
+}
+
 export type GroupState = "all" | "none" | "some";
 
 export function groupState(f: Filters, group: string, categories: readonly string[]): GroupState {

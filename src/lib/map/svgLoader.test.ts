@@ -47,6 +47,16 @@ describe("showFloor", () => {
     expect(g("Ground_Level").classList.contains("off-level")).toBe(true);
   });
 
+  // Reserve's 2nd floor is tiles only: no SVG group to show, but the base still dims under it.
+  it("dims the base for a floor drawn as tiles", () => {
+    const s = buildSvgElement(SVG);
+    showFloor(s, "Ground_Level", null, KNOWN, true);
+    const g = (id: string) => s.element.querySelector<SVGGElement>(`#${id}`)!;
+    expect(g("Ground_Level").classList.contains("off-level")).toBe(true);
+    expect(g("Ground_Level").classList.contains("hidden-layer")).toBe(false);
+    expect(g("Second_Floor").classList.contains("hidden-layer")).toBe(true);
+  });
+
   // Customs' First_Floor holds 106 ground-floor interior elements and is in no map definition.
   it("leaves groups the map definition does not know about alone", () => {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 200">

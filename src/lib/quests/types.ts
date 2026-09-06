@@ -1,4 +1,4 @@
-export const QUEST_SCHEMA_VERSION = 9;
+export const QUEST_SCHEMA_VERSION = 10;
 
 export interface Vec3 {
   x: number;
@@ -78,6 +78,8 @@ export interface MapLootLoose {
   position: Vec3 | null;
   /** Item names, deduplicated, in source order. */
   items: string[];
+  /** Handbook categories of the items (slugs from data/itemCategories.json), deduplicated; tarkov.dev's loose loot filters. */
+  categories?: string[];
 }
 export interface MapLock {
   lockType: string;

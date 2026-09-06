@@ -64,8 +64,8 @@ const data: QuestData = {
         { lootContainer: { id: "lc2", name: "Medcase", normalizedName: "medcase" }, position: { x: 34, y: 0, z: 35 } },
       ],
       lootLoose: [
-        { position: { x: 36, y: 0, z: 37 }, items: ["Bolts", "Screws", "Nuts", "Nails"] },
-        { position: { x: 38, y: 0, z: 39 }, items: ["Bolts", "Screws"] },
+        { position: { x: 36, y: 0, z: 37 }, items: ["Bolts", "Screws", "Nuts", "Nails"], categories: ["barter-items"] },
+        { position: { x: 38, y: 0, z: 39 }, items: ["Bolts", "Screws"], categories: ["barter-items", "building-materials"] },
         { position: { x: 44, y: 0, z: 45 }, items: [] },
         { position: null, items: ["Wire"] },
       ],
@@ -149,8 +149,18 @@ describe("extractPoints", () => {
 
   it("names loose loot after its first three items", () => {
     const loose = inGroup("lootLoose");
-    expect(loose.map((p) => p.category)).toEqual(["item", "item", "item"]);
     expect(loose.map((p) => p.name)).toEqual(["Bolts, Screws, Nuts +1", "Bolts, Screws", "Loose loot"]);
+  });
+
+  // tarkov.dev's loose loot filters are the items' handbook categories; a spot with items of two
+  // categories sits in both rows. A spot whose items the bundled map does not know goes to "other".
+  it("puts loose loot in the handbook category rows of its items", () => {
+    const loose = inGroup("lootLoose");
+    expect(loose.map((p) => p.category)).toEqual(["barter-items", "barter-items", "other"]);
+    expect(loose.map((p) => p.categories)).toEqual([undefined, ["barter-items", "building-materials"], undefined]);
+    expect(loose.map((p) => p.id)).toEqual(["lootLoose/barter-items/0", "lootLoose/barter-items/1", "lootLoose/other/2"]);
+    expect(categoryLabel("lootLoose/barter-items", loose)).toBe("Barter items");
+    expect(categoryLabel("lootLoose/other", loose)).toBe("Other loose loot");
   });
 
   it("maps hazards, switches and BTR stations", () => {
@@ -321,7 +331,7 @@ describe("extractPoints on map variants", () => {
         id: "nf",
         name: "Night Factory",
         normalizedName: "night-factory",
-        extracts: [{ id: "gate3-night", name: "Gate 3", faction: "shared", position: { x: 59, y: 1.6, z: 61 } }],
+        extracts: [{ id: "gate3-night", name: "Gate 3", faction: "shared", position: { x: 59.0001, y: 1.6, z: 61 } }],
         lootLoose: [
           { position: { x: 1, y: 2, z: 3 }, items: ["Bolts"] },
           { position: { x: 7, y: 8, z: 9 }, items: ["Night vision"] },
@@ -335,7 +345,7 @@ describe("extractPoints on map variants", () => {
   it("folds a variant's points onto its map, once per spot, with distinct ids", () => {
     const ps = extractPoints(variants, "factory");
     expect(ps.every((p) => p.mapKey === "factory")).toBe(true);
-    expect(ps.map((p) => p.id)).toEqual(["gate3", "spawns/scav/0", "lootLoose/item/0", "night-factory/spawns/cultist-priest/0", "night-factory/lootLoose/item/1"]);
+    expect(ps.map((p) => p.id)).toEqual(["gate3", "spawns/scav/0", "lootLoose/other/0", "night-factory/spawns/cultist-priest/0", "night-factory/lootLoose/other/1"]);
     expect(extractPoints(variants).map((p) => p.id)).toEqual(ps.map((p) => p.id));
     // The variant is not a map of its own.
     expect(extractPoints(variants, "night-factory")).toEqual([]);

@@ -12,6 +12,19 @@ describe("loadMapDefs", () => {
     expect(getMapDef("nope")).toBeUndefined();
   });
 
+  it("carries tile maps and raster floors", () => {
+    const lab = getMapDef("the-lab")!;
+    expect(lab.svgPath).toBeUndefined();
+    expect(lab.tilePath).toBe("https://assets.tarkov.dev/maps/labs_v4/1st/{z}/{x}/{y}.png");
+    expect(lab.tileSize).toBe(175);
+    expect(lab.layers.map((l) => l.name)).toEqual(["Second Level", "Technical"]);
+    expect(lab.layers[0].tilePath).toContain("labs_v4/2nd/");
+    expect(getMapDef("the-labyrinth")!.tileSize).toBe(256);
+    // Reserve's floors are tiles only; Customs' 4th floor too.
+    expect(getMapDef("reserve")!.layers.find((l) => l.name === "2nd Floor")!.tilePath).toMatch(/reserve/);
+    expect(getMapDef("customs")!.layers.find((l) => l.name === "4th Floor")!.svgLayer).toBeUndefined();
+  });
+
   it("carries landmark labels", () => {
     const labels = getMapDef("streets-of-tarkov")!.labels;
     expect(labels.length).toBeGreaterThan(40);
@@ -84,6 +97,7 @@ function bareDef(over: Partial<MapDef> = {}): MapDef {
       [0, 0],
       [100, 100],
     ],
+    tileSize: 256,
     altKeys: [],
     layers: [],
     labels: [],

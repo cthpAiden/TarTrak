@@ -1,6 +1,7 @@
 // Adapter for the static json.tarkov.dev files: raw records keyed by id, with every
 // user-facing string held as a translation key that the matching `*_en` file resolves.
 import { QUEST_SCHEMA_VERSION } from "./types.ts";
+import itemCategories from "../../../data/itemCategories.json" with { type: "json" };
 import type {
   Footprint,
   MapBoss,
@@ -44,6 +45,8 @@ export interface RawBundle {
   tradersEn: unknown;
   itemsEn: unknown;
 }
+
+const ITEM_CATEGORY = (itemCategories as { items: Record<string, string> }).items;
 
 /** `en[key]` when it is a non-empty string, else `key` itself. */
 export function tr(en: Record<string, unknown>, key: string): string {
@@ -178,7 +181,8 @@ function toMap(
     const out: MapExtract = {
       id: str(e.id),
       name: tr(mapsEn, str(e.name)),
-      faction: str(e.faction),
+      // A variant map's extracts (Night Factory, Ground Zero 21+) come without one; tarkov.dev shows those as shared.
+      faction: typeof e.faction === "string" && e.faction !== "" ? e.faction : "shared",
       position: pos(e.position),
       ...footprint(e),
     };
@@ -218,10 +222,17 @@ function toMap(
       position: pos(c.position),
     };
   });
-  const lootLoose: MapLootLoose[] = list(m.lootLoose).map((l) => ({
-    position: pos(l.position),
-    items: [...new Set(strings(l.items).map((id) => itemName(itemsEn, mapsEn, id)))],
-  }));
+  const lootLoose: MapLootLoose[] = list(m.lootLoose).map((l) => {
+    const ids = strings(l.items);
+    const out: MapLootLoose = {
+      position: pos(l.position),
+      items: [...new Set(ids.map((id) => itemName(itemsEn, mapsEn, id)))],
+    };
+    // An item the bundled map does not know (newer than this build) leaves the spot in the "other" row.
+    const categories = [...new Set(ids.map((id) => ITEM_CATEGORY[id]).filter((c): c is string => !!c))];
+    if (categories.length > 0) out.categories = categories;
+    return out;
+  });
   const locks: MapLock[] = list(m.locks).map((l) => {
     const lock: MapLock = {
       lockType: str(l.lockType),
