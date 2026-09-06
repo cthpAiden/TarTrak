@@ -59,7 +59,9 @@ export function questIcon(m: QuestMarker): L.Icon {
   });
 }
 
-export function questPopupHtml(m: QuestMarker): string {
+/** `floor` is the name of the floor layer the marker sits on, when it is on one. */
+export function questPopupHtml(m: QuestMarker, floor: string | null = null): string {
   const item = m.itemName ? `<br><small>Quest item: ${esc(m.itemName)}</small>` : "";
-  return `<b>${esc(m.taskName)}</b><br><small>${esc(m.trader)} · lvl ${m.minLevel}</small><br>${esc(m.description)}${item}`;
+  const level = floor ? `<br><small>${esc(floor)}</small>` : "";
+  return `<b>${esc(m.taskName)}</b><br><small>${esc(m.trader)} · lvl ${m.minLevel}</small><br>${esc(m.description)}${item}${level}`;
 }

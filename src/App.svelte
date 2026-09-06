@@ -93,13 +93,8 @@
   const mapQuestMarkersBeforeFilters = $derived(
     def ? allQuestMarkers.filter((m) => m.mapKey === def.key && !app.doneQuests[m.taskId] && trackedQuests.has(m.taskId)) : [],
   );
-  const questMarkers = $derived(
-    def
-      ? mapQuestMarkersBeforeFilters.filter(
-          (m) => isOn(layerFilters, "quests", m.category) && visibleOnFloor(def, activeFloor, m.x, m.z, m.y, m.top, m.bottom),
-        )
-      : [],
-  );
+  // Layer toggles only: a marker on another floor is drawn dimmed by the map view, not dropped.
+  const questMarkers = $derived(mapQuestMarkersBeforeFilters.filter((m) => isOn(layerFilters, "quests", m.category)));
 
   function focusTeammate(id: string) {
     const t = app.teammates[id];

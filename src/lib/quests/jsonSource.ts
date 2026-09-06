@@ -123,8 +123,10 @@ function toObjective(o: Dict, tasksEn: Record<string, unknown>, taskMap: string 
   const locations: QuestItemLocation[] = list(o.possibleLocations)
     .map((l) => ({ map: { id: str(l.map) }, positions: list(l.positions).map(pos).filter((p): p is Vec3 => p !== null) }))
     .filter((l) => l.map.id !== "" && l.positions.length > 0);
-  const placedMaps = [...new Set([...zones.map((z) => z.map.id), ...locations.map((l) => l.map.id)])].map((id) => ({ id }));
-  const maps = placedMaps.length > 0 ? placedMaps : taskMap ? [{ id: taskMap }] : [];
+  // The objective's own map list (a "kill Scavs on Customs or Woods" objective has no zones) plus
+  // wherever its zones and item spawns sit; the task's map only when it names none.
+  const listed = [...new Set([...strings(o.maps), ...zones.map((z) => z.map.id), ...locations.map((l) => l.map.id)])].map((id) => ({ id }));
+  const maps = listed.length > 0 ? listed : taskMap ? [{ id: taskMap }] : [];
   const out: TaskObjective = { id: str(o.id), type: str(o.type), description: tr(tasksEn, str(o.description)), maps, zones };
   if (locations.length > 0) out.locations = locations;
   if (typeof o.questItem === "string") {

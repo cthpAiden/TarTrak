@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { esc, questCategory, visibleQuestMarkers, questIcon, questIconFile } from "./questLayer";
+import { esc, questCategory, visibleQuestMarkers, questIcon, questIconFile, questPopupHtml } from "./questLayer";
 import type { QuestMarker } from "./markers";
 
 const mk = (id: string, over: Partial<QuestMarker> = {}): QuestMarker => ({
@@ -77,5 +77,14 @@ describe("esc", () => {
 
   it("leaves ordinary names alone", () => {
     expect(esc("ZB-1011")).toBe("ZB-1011");
+  });
+});
+
+describe("questPopupHtml", () => {
+  it("names the floor when the marker sits on one, escaped", () => {
+    const plain = questPopupHtml(mk("a"));
+    expect(questPopupHtml(mk("a"), null)).toBe(plain);
+    expect(questPopupHtml(mk("a"), "3rd Floor")).toBe(`${plain}<br><small>3rd Floor</small>`);
+    expect(questPopupHtml(mk("a"), "<b>")).toContain("<small>&#60;b&#62;</small>");
   });
 });

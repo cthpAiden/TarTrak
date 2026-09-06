@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Quests
+- A quest marker on another floor stays on the map, dimmed, instead of vanishing; its popup names the floor. Cargo X's laptop on the resort's 3rd floor was invisible from the ground view.
+- Objectives tarkov.dev places on Night Factory, Ground Zero 21+ or The Lab (Dark) show on Factory, Ground Zero and The Lab; one that it lists for both variants is drawn once. Health Care Privacy - Part 5 had no marker at all.
+- An objective's map list comes from tarkov.dev's own list for it, not only from the task's map. Data schema 9 (caches refresh on first start).
+
+### Map
+- The heading line is thicker with longer dashes, and its far end no longer fades out completely.
+
 ## 0.4.0 - 2026-09-06
 
 ### Quests

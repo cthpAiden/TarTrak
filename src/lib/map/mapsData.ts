@@ -28,6 +28,8 @@ export interface MapDef {
   svgPath?: string;
   svgLayer?: string;
   heightRange?: [number, number];
+  /** tarkov.dev's variants of this map (Night Factory, Ground Zero 21+): the same ground, the same positions. */
+  altKeys: string[];
   layers: MapLayer[];
   labels: MapLabel[];
   minZoom: number;
@@ -59,6 +61,7 @@ interface RawMap {
   svgPath?: string;
   svgLayer?: string;
   heightRange?: [number, number];
+  altMaps?: string[];
   layers?: MapLayer[];
   labels?: MapLabel[];
   minZoom?: number;
@@ -86,6 +89,7 @@ export function loadMapDefs(): MapDef[] {
         svgPath: m.svgPath,
         svgLayer: m.svgLayer,
         heightRange: m.heightRange,
+        altKeys: m.altMaps ?? [],
         layers: m.layers ?? [],
         labels: (m.labels ?? []).filter((l) => Array.isArray(l.position) && typeof l.text === "string"),
         minZoom: m.minZoom ?? 1,
@@ -97,6 +101,11 @@ export function loadMapDefs(): MapDef[] {
 
 export function getMapDef(key: string): MapDef | undefined {
   return loadMapDefs().find((d) => d.key === key);
+}
+
+/** The map an alt key is a variant of, e.g. "night-factory" -> "factory"; any other key comes back as is. */
+export function primaryMapKey(key: string): string {
+  return loadMapDefs().find((d) => d.altKeys.includes(key))?.key ?? key;
 }
 
 function inBounds(b: [[number, number], [number, number], string?], x: number, z: number): boolean {

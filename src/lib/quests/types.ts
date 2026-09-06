@@ -1,4 +1,4 @@
-export const QUEST_SCHEMA_VERSION = 8;
+export const QUEST_SCHEMA_VERSION = 9;
 
 export interface Vec3 {
   x: number;

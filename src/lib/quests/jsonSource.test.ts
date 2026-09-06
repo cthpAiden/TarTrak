@@ -116,6 +116,7 @@ const raw: RawBundle = {
               id: "o1",
               type: "visit",
               description: "o1 desc",
+              maps: ["m1"],
               zones: [
                 {
                   id: "z1",
@@ -142,7 +143,7 @@ const raw: RawBundle = {
             },
           ],
         },
-        t2: { id: "t2", name: "t2 name", trader: "tr2", map: null, objectives: [{ id: "o3", type: "shoot", description: "o3 desc" }] },
+        t2: { id: "t2", name: "t2 name", trader: "tr2", map: null, objectives: [{ id: "o3", type: "shoot", description: "o3 desc", maps: ["m2", 5] }] },
       },
       questItems: { qi1: { id: "qi1", name: "qi1 Name" } },
     },
@@ -228,7 +229,7 @@ describe("toQuestData", () => {
     expect(t2.neededKeys).toEqual([]);
   });
 
-  it("derives objective maps from zones, then the task map", () => {
+  it("derives objective maps from its own list, its zones and item spawns, then the task map", () => {
     const [t1, t2] = d.tasks;
     expect(t1.objectives[0].maps).toEqual([{ id: "m1" }, { id: "m2" }]);
     expect(t1.objectives[0].zones).toEqual([
@@ -239,7 +240,7 @@ describe("toQuestData", () => {
     expect(t1.objectives[1].maps).toEqual([{ id: "m1" }]);
     expect(t1.objectives[1].zones).toEqual([]);
     expect(t1.objectives[1].locations).toBeUndefined();
-    expect(t2.objectives[0].maps).toEqual([]);
+    expect(t2.objectives[0].maps).toEqual([{ id: "m2" }]);
   });
 
   it("keeps quest item spawn points per map, named, and counts their maps as the objective's", () => {

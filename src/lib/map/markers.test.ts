@@ -49,8 +49,9 @@ describe("PositionMarker", () => {
     expect(b.lat).toBeCloseTo(-50, 6);
     expect(m.center().lng).toBe(100);
     expect(m.center().lat).toBe(-50);
-    expect(m.line.options.dashArray).toBe("2 10");
-    expect(m.line.options.weight).toBe(3);
+    expect(m.line.options.dashArray).toBe("5 10");
+    expect(m.line.options.weight).toBe(4);
+    expect(Array.from(m.gradient.children).map((stop) => stop.getAttribute("stop-opacity"))).toEqual(["1", "0.3"]);
   });
 
   it("puts the line end 28 m along the CRS heading direction", () => {
@@ -98,7 +99,7 @@ describe("PositionMarker", () => {
     const stops = Array.from(m.gradient.children);
     expect(stops.map((st) => [st.getAttribute("offset"), st.getAttribute("stop-opacity"), st.getAttribute("stop-color")])).toEqual([
       ["0", "1", "#f0b429"],
-      ["1", "0", "#f0b429"],
+      ["1", "0.3", "#f0b429"],
     ]);
     const [a, b] = m.linePoints().map((p) => map.latLngToLayerPoint(p));
     expect(Number(m.gradient.getAttribute("x1"))).toBeCloseTo(a.x, 6);

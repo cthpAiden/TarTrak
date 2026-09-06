@@ -111,3 +111,56 @@ describe("extractQuestMarkers", () => {
     expect(extractQuestMarkers(data).map((m) => m.category)).toEqual(["visit", "visit", "questItem", "questItem"]);
   });
 });
+
+describe("extractQuestMarkers on alt maps", () => {
+  const alt: QuestData = {
+    schemaVersion: QUEST_SCHEMA_VERSION,
+    fetchedAt: 1,
+    maps: [
+      { id: "m-factory", name: "Factory", normalizedName: "factory", extracts: [] },
+      { id: "m-night", name: "Night Factory", normalizedName: "night-factory", extracts: [] },
+    ],
+    tasks: [
+      {
+        id: "t2",
+        name: "Night visit",
+        trader: { id: "prapor", name: "Prapor" },
+        minPlayerLevel: 1,
+        objectives: [
+          {
+            id: "o5",
+            type: "visit",
+            description: "Visit the office",
+            maps: [{ id: "m-factory" }, { id: "m-night" }],
+            zones: [
+              { id: "z-day", map: { id: "m-factory" }, position: { x: 1, y: 2, z: 3 } },
+              { id: "z-night", map: { id: "m-night" }, position: { x: 1, y: 2, z: 3 } },
+              { id: "z-night-only", map: { id: "m-night" }, position: { x: 7, y: 8, z: 9 } },
+            ],
+          },
+          {
+            id: "o6",
+            type: "findQuestItem",
+            description: "Find the folder",
+            maps: [{ id: "m-night" }],
+            questItem: { id: "qi2", name: "Folder" },
+            locations: [
+              { map: { id: "m-factory" }, positions: [{ x: 4, y: 5, z: 6 }] },
+              { map: { id: "m-night" }, positions: [{ x: 4, y: 5, z: 6 }, { x: 10, y: 11, z: 12 }] },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+
+  it("folds Night Factory onto Factory, one marker per position of an objective", () => {
+    const ms = extractQuestMarkers(alt);
+    expect(ms.map((m) => [m.id, m.mapKey, m.x, m.y, m.z])).toEqual([
+      ["z-day", "factory", 1, 2, 3],
+      ["z-night-only", "factory", 7, 8, 9],
+      ["o6/m-factory/0", "factory", 4, 5, 6],
+      ["o6/m-night/1", "factory", 10, 11, 12],
+    ]);
+  });
+});

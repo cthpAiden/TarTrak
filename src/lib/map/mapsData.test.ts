@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { loadMapDefs, getMapDef, floorForHeight, onLayer, visibleOnFloor, type MapDef } from "./mapsData";
+import { loadMapDefs, getMapDef, primaryMapKey, floorForHeight, onLayer, visibleOnFloor, type MapDef } from "./mapsData";
 
 describe("loadMapDefs", () => {
   it("loads the interactive maps with display names", () => {
@@ -16,6 +16,16 @@ describe("loadMapDefs", () => {
     const labels = getMapDef("streets-of-tarkov")!.labels;
     expect(labels.length).toBeGreaterThan(40);
     expect(labels[0]).toMatchObject({ text: expect.any(String), position: [expect.any(Number), expect.any(Number)] });
+  });
+
+  it("resolves the alt keys tarkov.dev folds into a map (night factory, ground zero 21+) to that map", () => {
+    expect(getMapDef("factory")?.altKeys).toEqual(["night-factory"]);
+    expect(getMapDef("customs")?.altKeys).toEqual([]);
+    expect(primaryMapKey("night-factory")).toBe("factory");
+    expect(primaryMapKey("ground-zero-21")).toBe("ground-zero");
+    expect(primaryMapKey("the-lab-dark")).toBe("the-lab");
+    expect(primaryMapKey("customs")).toBe("customs");
+    expect(primaryMapKey("nope")).toBe("nope");
   });
 
   it("excludes non-interactive projections", () => {
@@ -54,6 +64,7 @@ function bareDef(over: Partial<MapDef> = {}): MapDef {
       [0, 0],
       [100, 100],
     ],
+    altKeys: [],
     layers: [],
     labels: [],
     minZoom: 1,

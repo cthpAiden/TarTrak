@@ -74,6 +74,8 @@
   const ROUTE_COLOR = "#f0b429";
   /** A drag adds a point every few pixels; finer only bloats the stroke without changing its look. */
   const DRAW_MIN_PX = 3;
+  /** A quest marker on another floor: dimmed like tarkov.dev's, so a 3rd-floor objective still shows from the ground. */
+  const OFF_FLOOR_OPACITY = 0.35;
   /** tarkov.dev draws quest zones in this green. */
   const QUEST_ZONE_COLOR = "#4caf50";
 
@@ -362,22 +364,30 @@
 
   $effect(() => {
     const markers = questMarkers;
+    const d = def;
+    const floor = activeFloor;
     const g = questGroup;
-    if (!g) return;
+    if (!g || !d) return;
     g.clearLayers();
     for (const m of markers) {
+      const on = visibleOnFloor(d, floor, m.x, m.z, m.y, m.top, m.bottom);
+      const dim = on ? 1 : OFF_FLOOR_OPACITY;
       if (m.outline) {
         L.polygon(m.outline.map(([x, z]) => toLatLng(x, z)), {
           pane: "zones",
           color: QUEST_ZONE_COLOR,
           weight: 1,
-          opacity: 0.7,
+          opacity: 0.7 * dim,
           fillColor: QUEST_ZONE_COLOR,
-          fillOpacity: 0.15,
+          fillOpacity: 0.15 * dim,
           interactive: false,
         }).addTo(g);
       }
-      L.marker(toLatLng(m.x, m.z), { icon: questIcon(m) }).bindTooltip(esc(m.taskName)).bindPopup(questPopupHtml(m)).addTo(g);
+      // Off-floor markers sit under the current floor's so they never cover one.
+      L.marker(toLatLng(m.x, m.z), { icon: questIcon(m), opacity: dim, zIndexOffset: on ? 0 : -1000 })
+        .bindTooltip(esc(m.taskName))
+        .bindPopup(questPopupHtml(m, floorForHeight(d, m)))
+        .addTo(g);
     }
   });
 
