@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Overlay
+- The readout footer is gone; it hid the bottom of the map. Teammate distances stay as a small pill in the map's bottom-right corner, shown only while a teammate is on the map. The route target's distance is already on the route picker.
+
 ### Memory
 - Map markers no longer each get their own compositor layer: Leaflet placed every marker with a 3D transform, which made Chromium promote each one to a layer of about 35 KB. With every layer on, Streets' three thousand markers cost the renderer over 100 MB; they now share the marker pane's layer. Positions and zoom animations are unchanged.
 - Only the point markers near the view exist in the page: the view padded by one screen on each side. A drag or a single wheel notch never reaches the edge of that; a larger jump fills the newly visible area in within a frame or two, what is on screen first. Filter, floor and item-finder changes now add and remove only the markers that changed instead of rebuilding them all, so typing in the item finder no longer rebuilds thousands of markers per keystroke.
