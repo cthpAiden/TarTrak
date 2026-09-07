@@ -69,4 +69,31 @@ one tarkov.dev's map uses), Leaflet's `keepBuffer`, and WebView2 browser flags.
 
 ## Results
 
-Filled in at the end of the branch; see the measurement table there.
+Release builds of main (0.7.0) and of this branch, each started fresh under a throwaway identifier
+with the same warm caches, Streets of Tarkov, window 1100x750, measured after a forced GC. "default"
+is the filter set a new install has (labels, extracts, tracked quests: 60 markers); "heavy" is every
+layer on (3,081 markers). "zoomed" is four wheel notches into the map centre, measured 20 s later.
+Private working set is what Task Manager's Memory column shows; commit is the charge against RAM
+plus page file. Per-process figures are for the renderer and the GPU process; totals cover all
+eight processes.
+
+| scenario | build | renderer | gpu | total private | total commit | markers in DOM |
+|---|---|---|---|---|---|---|
+| default, opening view | main | 44 MB | 43 MB | 143 MB | 304 MB | 60 |
+| default, opening view | branch | 43 MB | 39 MB | 139 MB | 300 MB | 60 |
+| heavy, opening view | main | 164 MB | 211 MB | 432 MB | 897 MB | 3,081 |
+| heavy, opening view | branch | 95 MB | 49 MB | 201 MB | 333 MB | 3,081 |
+| heavy, zoomed | main | 194 MB | 173 MB | 427 MB | 807 MB | 3,081 |
+| heavy, zoomed | branch | 155 MB | 94 MB | 308 MB | 686 MB | 1,668 |
+
+- With every layer on, the app now takes less than half the memory it did (201 vs 432 MB private) at
+  the opening view. The compositor layers were costing the GPU process as much as the renderer.
+- Zoomed in, the branch sits 119 MB under main. Its renderer is higher than at the opening view
+  because each zoom animation still promotes the moving markers to layers for its 250 ms and Chromium
+  gives that memory back slowly; the culled markers are gone from the DOM (1,668 of 3,081 left, with
+  4 notches ending short of full zoom).
+- With the default filters the change is within noise (4 MB): the JS heap after GC drops from 10.6
+  to 7.6 MB from the interned data, and there are too few markers for the rest to matter.
+- Screenshots of main and of the branch at the zoomed heavy view are pixel-identical.
+- The GPU process's commit (400 to 630 MB) is mostly the NVIDIA driver's reservation and is not
+  resident; its private working set is the figure to compare.
