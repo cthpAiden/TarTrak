@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Memory
+- Map markers no longer each get their own compositor layer: Leaflet placed every marker with a 3D transform, which made Chromium promote each one to a layer of about 35 KB. With every layer on, Streets' three thousand markers cost the renderer over 100 MB; they now share the marker pane's layer. Positions and zoom animations are unchanged.
+- Only the point markers near the view exist in the page: the view padded by one screen on each side. A drag or a single wheel notch never reaches the edge of that; a larger jump fills the newly visible area in within a frame or two, what is on screen first. Filter, floor and item-finder changes now add and remove only the markers that changed instead of rebuilding them all, so typing in the item finder no longer rebuilds thousands of markers per keystroke.
+- Quest data uses less heap: repeated strings (an item name appears in tens of thousands of loot spots, 311 distinct) and loot container descriptors are shared after loading. Popup text is built when a popup opens instead of being kept for every marker.
+
 ## 0.7.0 - 2026-09-07
 
 ### Overlay

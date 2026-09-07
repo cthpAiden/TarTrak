@@ -1,4 +1,5 @@
 import { BaseDirectory, exists, mkdir, readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
+import { compactQuestData } from "./compact";
 import { fetchQuestData } from "./query";
 import { bundledSnapshot } from "./snapshot";
 import { QUEST_SCHEMA_VERSION, type QuestData } from "./types";
@@ -34,6 +35,15 @@ export function isStale(fetchedAt: number, now: number): boolean {
   return now - fetchedAt > MAX_AGE_MS;
 }
 
+/** Interned when it can be; a shape the compaction does not expect still gets through as it is. */
+function compacted(d: QuestData): QuestData {
+  try {
+    return compactQuestData(d);
+  } catch {
+    return d;
+  }
+}
+
 /** Emit the best data available now, then refresh in the background if needed. Never throws. */
 export async function loadQuestData(deps: QuestLoaderDeps, onUpdate: (d: QuestData, s: QuestSource) => void): Promise<void> {
   let cached: QuestData | null = null;
@@ -42,7 +52,7 @@ export async function loadQuestData(deps: QuestLoaderDeps, onUpdate: (d: QuestDa
   } catch {
     cached = null;
   }
-  if (cached) onUpdate(cached, "cache");
+  if (cached) onUpdate(compacted(cached), "cache");
   else {
     let snap: QuestData | null = null;
     try {
@@ -50,13 +60,13 @@ export async function loadQuestData(deps: QuestLoaderDeps, onUpdate: (d: QuestDa
     } catch {
       snap = null;
     }
-    if (snap) onUpdate(snap, "snapshot");
+    if (snap) onUpdate(compacted(snap), "snapshot");
   }
   if (cached && !isStale(cached.fetchedAt, deps.now())) return;
   try {
     const fresh = await deps.fetchRemote();
     fresh.fetchedAt = deps.now();
-    onUpdate(fresh, "network");
+    onUpdate(compacted(fresh), "network");
     await deps.writeCache(fresh);
   } catch {
     // offline or API down: whatever we emitted above stands

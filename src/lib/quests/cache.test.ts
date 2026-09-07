@@ -78,6 +78,26 @@ describe("loadQuestData", () => {
     await loadQuestData(dp, onUpdate);
     expect(onUpdate).not.toHaveBeenCalled();
   });
+
+  it("emits compacted data for the cache source", async () => {
+    const boxA = { lootContainer: { id: "c1", name: "Drawer", normalizedName: "drawer" }, position: null };
+    const boxB = { lootContainer: { id: "c1", name: "Drawer", normalizedName: "drawer" }, position: null };
+    const cached: QuestData = {
+      schemaVersion: QUEST_SCHEMA_VERSION,
+      fetchedAt: 1_000_000_000_000 - 1000,
+      tasks: [],
+      maps: [
+        { id: "customs", name: "Customs", normalizedName: "customs", extracts: [], lootContainers: [boxA] },
+        { id: "factory", name: "Factory", normalizedName: "factory", extracts: [], lootContainers: [boxB] },
+      ],
+    };
+    const dp = deps({ readCache: async () => cached });
+    const updates: string[] = [];
+    await loadQuestData(dp, (data, src) => updates.push(src));
+
+    expect(updates).toEqual(["cache"]);
+    expect(boxA.lootContainer).toBe(boxB.lootContainer);
+  });
 });
 
 describe("isQuestData", () => {

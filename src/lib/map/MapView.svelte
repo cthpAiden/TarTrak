@@ -14,7 +14,8 @@
   import { questIcon, questPopupHtml, esc } from "../quests/questLayer";
   import type { QuestMarker } from "../quests/markers";
   import type { MapPoint } from "../layers/points";
-  import { markerIcon, outlineColor, pointIcon, pointPopupHtml } from "../layers/pointLayer";
+  import { PointMarkers } from "../layers/pointMarkers";
+  import { installFlatMarkers } from "./flatMarkers";
   import { labelDivIcon } from "./labels";
   import { watchSize } from "./resize";
   import { pinIcon, pinPopup } from "./pins";
@@ -73,6 +74,9 @@
     onClearDraw: () => void;
   } = $props();
 
+  // Before the first marker exists: 2D transforms keep the renderer from giving every marker a layer.
+  installFlatMarkers();
+
   const OWN_COLOR = "#f0b429";
   const ROUTE_COLOR = "#f0b429";
   /** A drag adds a point every few pixels; finer only bloats the stroke without changing its look. */
@@ -93,7 +97,8 @@
   let mates = new Map<string, PositionMarker>();
   // $state so the quest and point effects re-run once build() creates the groups.
   let questGroup = $state<L.LayerGroup | null>(null);
-  let pointGroup = $state<L.LayerGroup | null>(null);
+  /** Owns the point markers: only the ones near the view exist, added and removed by id. */
+  let pointMarkers = $state<PointMarkers | null>(null);
   let labelGroup = $state<L.LayerGroup | null>(null);
   let pinGroup = $state<L.LayerGroup | null>(null);
   let drawGroup = $state<L.LayerGroup | null>(null);
@@ -132,7 +137,8 @@
     own?.remove();
     own = null;
     questGroup = null;
-    pointGroup = null;
+    pointMarkers?.dispose();
+    pointMarkers = null;
     labelGroup = null;
     pinGroup = null;
     drawGroup = null;
@@ -173,7 +179,7 @@
     m.createPane("labels").style.zIndex = "460";
     // Quest zone footprints: above the map SVG (400), under the labels and every marker.
     m.createPane("zones").style.zIndex = "450";
-    pointGroup = L.layerGroup().addTo(m);
+    pointMarkers = new PointMarkers(m, L.layerGroup().addTo(m));
     labelGroup = L.layerGroup().addTo(m);
     // Hand-placed pins: above the point and quest markers (600), under the players (620).
     m.createPane("pins").style.zIndex = "615";
@@ -415,37 +421,16 @@
         }).addTo(g);
       }
       // Off-floor markers sit under the current floor's so they never cover one.
+      // Popup HTML is built when it opens; a string per marker would sit in memory unused.
       L.marker(toLatLng(m.x, m.z), { icon: questIcon(m), opacity: dim, zIndexOffset: on ? 0 : -1000 })
         .bindTooltip(esc(m.taskName))
-        .bindPopup(questPopupHtml(m, floorForHeight(d, m)))
+        .bindPopup(() => questPopupHtml(m, floorForHeight(d, m)))
         .addTo(g);
     }
   });
 
   $effect(() => {
-    const all = points;
-    const hits = hitIds;
-    const g = pointGroup;
-    if (!g) return;
-    g.clearLayers();
-    for (const p of all) {
-      if (p.outline) {
-        const color = outlineColor(p);
-        L.polygon(p.outline.map(([x, z]) => toLatLng(x, z)), {
-          pane: "zones",
-          color,
-          weight: 1,
-          opacity: 0.7,
-          fillColor: color,
-          fillOpacity: 0.12,
-          interactive: false,
-        }).addTo(g);
-      }
-      const layer = L.marker(toLatLng(p.x, p.z), { icon: markerIcon(p, hits.has(p.id)) });
-      layer.bindTooltip(esc(p.name)).bindPopup(pointPopupHtml(p)).addTo(g);
-      // Offline, or a picture tarkov.dev no longer serves: the group icon takes its place.
-      if (p.icon) layer.getElement()?.querySelector("img")?.addEventListener("error", () => layer.setIcon(pointIcon(p, hits.has(p.id))));
-    }
+    pointMarkers?.setPoints(points, hitIds);
   });
 
   $effect(() => {
