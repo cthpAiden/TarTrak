@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.7.1 - 2026-09-08
 
 ### Memory
 - Map markers no longer each get their own compositor layer: Leaflet placed every marker with a 3D transform, which made Chromium promote each one to a layer of about 35 KB. With every layer on, Streets' three thousand markers cost the renderer over 100 MB; they now share the marker pane's layer. Positions and zoom animations are unchanged.
