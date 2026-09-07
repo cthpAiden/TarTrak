@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { tr, toQuestData, JSON_FILES, JSON_TARKOV_DEV, type RawBundle } from "./jsonSource";
 import { QUEST_SCHEMA_VERSION } from "./types";
+import { CURATED_EXTRACTS } from "./curatedExtracts";
 
 const raw: RawBundle = {
   maps: {
@@ -214,7 +215,8 @@ describe("JSON_FILES", () => {
 });
 
 describe("toQuestData", () => {
-  const d = toQuestData(raw, 1234);
+  // No curated extracts: the bundled file knows Factory and would add its real extracts to the fixture's.
+  const d = toQuestData(raw, 1234, {});
 
   it("stamps the schema version and fetch time", () => {
     expect(d.schemaVersion).toBe(QUEST_SCHEMA_VERSION);
@@ -396,6 +398,21 @@ describe("toQuestData", () => {
       { id: "gun2", name: "AGS-30 30x29mm automatic grenade launcher", position: null },
       { id: "gun3", name: "gun3", position: { x: 34, y: 35, z: 36 } },
     ]);
+  });
+
+  it("keeps the curated extracts as tarkov.dev lists them, restores the missing, drops the unknown", () => {
+    const curated = {
+      factory: [
+        { id: "e1", name: "Courtyard", faction: "scav", position: { x: 9, y: 9, z: 9 } },
+        { id: "e3", name: "Gate 3", faction: "pmc", position: { x: 5, y: 6, z: 7 } },
+      ],
+    };
+    const m = toQuestData(raw, 1234, curated).maps[0];
+    expect(m.extracts.map((e) => `${e.name} (${e.faction})`)).toEqual(["Courtyard (pmc)", "Gate 3 (pmc)"]);
+    expect(m.extracts[1]).toEqual(curated.factory[1]);
+    // The bundled file is the default: the fixture's Factory gets the real list, Woods its whole list.
+    expect(toQuestData(raw, 1234).maps[0].extracts).toEqual(CURATED_EXTRACTS.factory);
+    expect(toQuestData(raw, 1234).maps[1].extracts).toEqual(CURATED_EXTRACTS.woods);
   });
 
   it("gives a map with no layer arrays empty ones and falls back to the name key", () => {

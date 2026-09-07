@@ -273,9 +273,8 @@ function pointsForMap(m: MapInfo, key: string): MapPoint[] {
  * Points of every map, or of the one map `mapKey` names. tarkov.dev's variants of a map (Night
  * Factory, Ground Zero 21+, The Lab (Dark)) fold onto it: their own loot spots and boss spawns are
  * added after the map's, a spot both list is drawn once, and their synthesised ids carry the
- * variant's name so they stay distinct. A variant's extracts are the map's own under the same
- * names (their positions differ by a rounding error and they come without a faction), so a name
- * the map already has is not drawn again.
+ * variant's name so they stay distinct. A variant's extracts are the map's own (their positions
+ * differ by a rounding error and they come without a faction), so its extracts group is skipped.
  */
 export function extractPoints(data: QuestData, mapKey?: string): MapPoint[] {
   const out: MapPoint[] = [];
@@ -292,7 +291,8 @@ export function extractPoints(data: QuestData, mapKey?: string): MapPoint[] {
   }
   for (const m of wanted.filter(isVariant)) {
     for (const p of pointsForMap(m, primaryMapKey(m.normalizedName))) {
-      if (seen.has(at(p))) continue;
+      // A variant's extracts and transits are the map's own; tarkov.dev has misfiled extracts before.
+      if (p.group === "extracts" || seen.has(at(p))) continue;
       seen.add(at(p));
       out.push({ ...p, id: `${m.normalizedName}/${p.id}` });
     }

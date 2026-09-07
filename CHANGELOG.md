@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixes
+- Lighthouse has its Road to Military Base V-Ex again, with Side Tunnel (Co-Op), Southern Road, Hideout Under the Landing Stage and Industrial Zone Gates; Reserve its D-2 and Armored Train, Woods its Friendship Bridge (Co-Op), The Lab its Medical Block Elevator, Shoreline its Railway Bridge. tarkov.dev regenerated its map data on 2026-09-06 without them, and with other maps' extracts filed under the wrong map (Woods' UN Roadblock and Scav Bunker on Ground Zero, Customs' Scav Checkpoint on Streets, Reserve's Cliff Descent on Shoreline, a "Gate 2" on Factory), while its API was down; the game had not changed (patch 1.1.5.0 is not out yet).
+- Extracts no longer depend on tarkov.dev alone: `data/extracts.json` holds every map's extracts, checked against independent sources, and the app draws that list. An extract tarkov.dev still lists is drawn as tarkov.dev has it (so a moved spot or a changed faction shows), one it dropped comes from the file, one the file does not know is left off. `npm run snapshot` reports what the file restored and what upstream lists that the file left off, for the next patch. Data schema 13, so caches refresh on first start and the extracts come back at once.
+
 ## 0.6.1 - 2026-09-07
 
 ### Fixes

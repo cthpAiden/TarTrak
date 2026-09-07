@@ -44,8 +44,23 @@ console.log(
 );
 // The adapter bundles that file, so it is loaded only now that the fresh one is on disk.
 const { toQuestData } = await import("../src/lib/quests/jsonSource.ts");
+const { CURATED_EXTRACTS } = await import("../src/lib/quests/curatedExtracts.ts");
 const bundle: RawBundle = { maps, mapsEn, tasks, tasksEn, traders, tradersEn, itemsEn };
 const data = toQuestData(bundle, Date.now());
+
+// What data/extracts.json put back, and what upstream lists that the file left off: both are worth
+// a look before a release, since upstream has dropped and misfiled real extracts before (September 2026).
+const bare = toQuestData(bundle, Date.now(), {});
+for (const m of data.maps) {
+  const upstream = new Set(bare.maps.find((b) => b.normalizedName === m.normalizedName)?.extracts.map((e) => e.name));
+  const curated = CURATED_EXTRACTS[m.normalizedName];
+  if (!curated) continue;
+  const restored = m.extracts.filter((e) => !upstream.has(e.name)).map((e) => e.name);
+  const known = new Set(curated.map((e) => e.name));
+  const dropped = [...upstream].filter((n) => !known.has(n));
+  if (restored.length > 0) console.log(`${m.normalizedName}: restored from data/extracts.json: ${restored.join(", ")}`);
+  if (dropped.length > 0) console.log(`${m.normalizedName}: upstream lists, left off as data/extracts.json does not know them: ${dropped.join(", ")}`);
+}
 
 mkdirSync("data/snapshot", { recursive: true });
 writeFileSync("data/snapshot/tasks.json", JSON.stringify(data.tasks));

@@ -117,6 +117,13 @@ Quest data is fetched live from tarkov.dev and cached locally. `npm run snapshot
 fallback into `data/snapshot/` (PvP data), used when tarkov.dev is unreachable and no cache exists; refresh
 it before tagging.
 
+`data/extracts.json` lists every extract of every map, checked against sources independent of tarkov.dev,
+and is what the app draws: an extract tarkov.dev still lists is drawn as tarkov.dev has it, one it dropped
+comes from the file, one the file does not know is left off (tarkov.dev's September 2026 data regeneration
+lost five of Lighthouse's extracts and filed Woods' UN Roadblock under Ground Zero, among others). A map the
+file does not cover takes tarkov.dev's list as it comes. `npm run snapshot` prints what the file restored and
+what upstream lists that the file left off, so it can be kept current when a patch changes a map.
+
 ## Credits and licenses
 
 - Map images: [tarkov-dev-svg-maps](https://github.com/the-hideout/tarkov-dev-svg-maps), CC BY-NC-SA 4.0, fetched at runtime.

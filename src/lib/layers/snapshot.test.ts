@@ -165,10 +165,54 @@ describe("data snapshot", () => {
     for (const m of qm.filter((m) => m.itemName)) expect(m.itemName, m.taskName).not.toMatch(/ Name$/);
   });
 
+  // tarkov.dev's September 2026 data regeneration dropped these; data/extracts.json keeps them on the map.
+  it("lists all thirteen Lighthouse extracts, the V-Ex included, and draws them", () => {
+    const lh = maps.find((m) => m.normalizedName === "lighthouse")!;
+    expect(lh.extracts.map((e) => `${e.name} (${e.faction})`).sort()).toEqual(
+      [
+        "Armored Train (shared)",
+        "Hideout Under the Landing Stage (scav)",
+        "Industrial Zone Gates (scav)",
+        "Mountain Pass (pmc)",
+        "Northern Checkpoint (pmc)",
+        "Passage by the Lake (pmc)",
+        "Path to Shoreline (pmc)",
+        "Path to Shoreline (scav)",
+        "Road to Military Base V-Ex (pmc)",
+        "Scav Hideout at the Grotto (scav)",
+        "Side Tunnel (Co-Op) (shared)",
+        "Southern Road (pmc)",
+        "Southern Road Landslide (scav)",
+      ].sort(),
+    );
+    const vex = points.find((p) => p.mapKey === "lighthouse" && p.name === "Road to Military Base V-Ex")!;
+    expect(vex.category).toBe("pmc");
+    expect(vex.details).toContain("Requires Roubles ×20,000");
+    expect(vex.image).toMatch(/5449016a4bdc2d6f028b456f/);
+    expect(vex.outline?.length).toBe(4);
+    expect(isOn({}, vex.group, vex.category)).toBe(true);
+    expect(points.find((p) => p.mapKey === "lighthouse" && p.name === "Side Tunnel (Co-Op)")!.category).toBe("coop");
+    const woods = maps.find((m) => m.normalizedName === "woods")!;
+    expect(woods.extracts.map((e) => e.name)).toContain("Friendship Bridge (Co-Op)");
+    const lab = maps.find((m) => m.normalizedName === "the-lab")!;
+    expect(lab.extracts.map((e) => e.name)).toContain("Medical Block Elevator");
+  });
+
+  // The same regeneration filed other maps' extracts under Ground Zero, Streets, Shoreline and Factory.
+  it("leaves off the extracts tarkov.dev misfiled, on the map and its variants", () => {
+    const names = (key: string) => points.filter((p) => p.mapKey === key && p.group === "extracts").map((p) => p.name);
+    for (const n of ["UN Roadblock", "Scav Bunker", "Pinewood Basement (Co-Op)"]) expect(names("ground-zero")).not.toContain(n);
+    for (const n of ["Scav Checkpoint", "Basement Entrance"]) expect(names("streets-of-tarkov")).not.toContain(n);
+    for (const n of ["Cliff Descent", "CCP Temporary", "Rock Passage"]) expect(names("shoreline")).not.toContain(n);
+    expect(names("factory")).not.toContain("Gate 2");
+    expect(names("woods")).toContain("UN Roadblock");
+    expect(names("reserve")).toContain("Cliff Descent");
+  });
+
   it("lists Reserve's extracts with their item, and its quest markers", () => {
     const rb = maps.find((m) => m.normalizedName === "reserve")!;
     const names = rb.extracts.map((e) => e.name).sort();
-    for (const n of ["Bunker Hermetic Door", "Cliff Descent", "Scav Lands (Co-Op)", "Sewer Manhole", "Exit to Woods"]) {
+    for (const n of ["Bunker Hermetic Door", "Cliff Descent", "Scav Lands (Co-Op)", "Sewer Manhole", "Exit to Woods", "D-2", "Armored Train"]) {
       expect(names, n).toContain(n);
     }
     expect(rb.extracts.find((e) => e.name === "Exit to Woods")!.requiredItem?.name).toMatch(/Minefield map/);

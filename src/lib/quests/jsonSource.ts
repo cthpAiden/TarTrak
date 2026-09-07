@@ -1,6 +1,7 @@
 // Adapter for the static json.tarkov.dev files: raw records keyed by id, with every
 // user-facing string held as a translation key that the matching `*_en` file resolves.
 import { QUEST_SCHEMA_VERSION } from "./types.ts";
+import { CURATED_EXTRACTS, mergeExtracts, type CuratedExtracts } from "./curatedExtracts.ts";
 import itemCategories from "../../../data/itemCategories.json" with { type: "json" };
 import type {
   Footprint,
@@ -227,9 +228,10 @@ function toMap(
   itemsEn: Record<string, unknown>,
   containers: Dict,
   mobs: Dict,
+  curated: CuratedExtracts,
 ): MapInfo {
   const switchNames = new Map(list(m.switches).map((sw) => [str(sw.id), tr(mapsEn, str(sw.name))]));
-  const extracts: MapExtract[] = list(m.extracts).map((e) => {
+  const upstreamExtracts: MapExtract[] = list(m.extracts).map((e) => {
     const out: MapExtract = {
       id: str(e.id),
       name: tr(mapsEn, str(e.name)),
@@ -248,6 +250,7 @@ function toMap(
     }
     return out;
   });
+  const extracts = mergeExtracts(upstreamExtracts, curated[str(m.normalizedName)]);
   const transits: MapTransit[] = list(m.transits).map((t) => {
     const out: MapTransit = {
       id: str(t.id),
@@ -376,7 +379,8 @@ function toMap(
   return info;
 }
 
-export function toQuestData(raw: RawBundle, now: number): QuestData {
+/** `curated` is the extract list merged over tarkov.dev's per map; the bundled one unless a test says otherwise. */
+export function toQuestData(raw: RawBundle, now: number, curated: CuratedExtracts = CURATED_EXTRACTS): QuestData {
   const mapsData = need(dict(raw.maps).data, "maps.data");
   const rawMaps = need(mapsData.maps, "maps.data.maps");
   const containers = dict(mapsData.lootContainers);
@@ -393,7 +397,7 @@ export function toQuestData(raw: RawBundle, now: number): QuestData {
   return {
     schemaVersion: QUEST_SCHEMA_VERSION,
     tasks: Object.values(rawTasks).map((t) => toTask(dict(t), tasksEn, traders, tradersEn, itemsEn, mapsEn, questItems, taskNames)),
-    maps: Object.values(rawMaps).map((m) => toMap(dict(m), mapsEn, itemsEn, containers, mobs)),
+    maps: Object.values(rawMaps).map((m) => toMap(dict(m), mapsEn, itemsEn, containers, mobs, curated)),
     fetchedAt: now,
   };
 }
