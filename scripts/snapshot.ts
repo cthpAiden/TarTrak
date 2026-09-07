@@ -50,16 +50,30 @@ const data = toQuestData(bundle, Date.now());
 
 // What data/extracts.json put back, and what upstream lists that the file left off: both are worth
 // a look before a release, since upstream has dropped and misfiled real extracts before (September 2026).
+// Each left-off name says where it sits, since that is what gave the regeneration's strays away: a spot
+// another map's extract has (to within 10 m) is that extract misfiled, a spot this map already has (to
+// within 20 m) is an alias of it. A spot of its own is what a real new extract looks like.
 const bare = toQuestData(bundle, Date.now(), {});
+const spots = bare.maps.flatMap((b) => b.extracts.filter((e) => e.position).map((e) => ({ map: b.normalizedName, name: e.name, id: e.id, position: e.position! })));
+function evidence(e: (typeof spots)[number]): string {
+  const marks = new Set<string>();
+  for (const s of spots) {
+    if (s.id === e.id || (s.map === e.map && s.name === e.name)) continue;
+    const distance = Math.hypot(s.position.x - e.position.x, s.position.z - e.position.z);
+    if (s.map === e.map && distance < 20) marks.add(`same spot as ${s.name}`);
+    if (s.map !== e.map && distance < 10) marks.add(`same spot as ${s.map}'s ${s.name}`);
+  }
+  return marks.size > 0 ? ` (${[...marks].join("; ")})` : " (a spot of its own: check the game)";
+}
 for (const m of data.maps) {
   const upstream = new Set(bare.maps.find((b) => b.normalizedName === m.normalizedName)?.extracts.map((e) => e.name));
   const curated = CURATED_EXTRACTS[m.normalizedName];
   if (!curated) continue;
   const restored = m.extracts.filter((e) => !upstream.has(e.name)).map((e) => e.name);
   const known = new Set(curated.map((e) => e.name));
-  const dropped = [...upstream].filter((n) => !known.has(n));
+  const dropped = spots.filter((s) => s.map === m.normalizedName && !known.has(s.name)).map((s) => `${s.name}${evidence(s)}`);
   if (restored.length > 0) console.log(`${m.normalizedName}: restored from data/extracts.json: ${restored.join(", ")}`);
-  if (dropped.length > 0) console.log(`${m.normalizedName}: upstream lists, left off as data/extracts.json does not know them: ${dropped.join(", ")}`);
+  if (dropped.length > 0) console.log(`${m.normalizedName}: upstream lists, left off as data/extracts.json does not know them:\n  ${dropped.join("\n  ")}`);
 }
 
 mkdirSync("data/snapshot", { recursive: true });
