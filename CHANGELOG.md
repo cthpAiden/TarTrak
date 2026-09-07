@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0 - 2026-09-07
+
+### Overlay
+- Overlay mode is one rounded box with a compass tape across the top: my heading sits under the centre marker as a three-digit bearing, the tape scrolls with every screenshot, and a coloured tick marks the bearing of the route target (amber) and of each teammate (their squad colour). A target behind me is pinned to the edge it lies beyond, dimmed. Bearings use the app's heading convention, so "contact at 041" reads straight off the tape.
+- A readout footer under the map: metres to the route target and its name, then each teammate's distance in their colour. Without a position it says so.
+- The box has a hairline border and rounded corners; the game shows around them. Toasts sit above the footer.
+
 ## 0.6.2 - 2026-09-07
 
 ### Fixes

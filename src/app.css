@@ -13,7 +13,12 @@ body {
   background: var(--bg);
   overflow: hidden;
 }
-body.overlay { background: rgba(20, 23, 28, 0.55); }
+/* The window is transparent, so the rounded box below is the whole overlay and the game shows around its corners. */
+body.overlay { background: transparent; }
+body.overlay .layout {
+  box-sizing: border-box; border-radius: 7px; border: 1px solid rgba(255, 255, 255, 0.13);
+  background: rgba(14, 17, 22, 0.94); overflow: hidden;
+}
 body.overlay .side { display: none; }
 body.overlay .topbar { padding: 2px 6px; font-size: 12px; background: rgba(30, 35, 43, 0.75); }
 .map-tools { position: absolute; top: 8px; left: 8px; z-index: 1000; display: flex; gap: 6px; align-items: flex-start; }

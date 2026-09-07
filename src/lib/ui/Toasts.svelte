@@ -15,6 +15,8 @@
     z-index: 2000; display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
     pointer-events: none;
   }
+  /* Above the overlay's readout footer instead of on it. */
+  :global(body.overlay) .toasts { bottom: 44px; }
   :global(.toast) {
     background: rgba(30, 35, 43, 0.85); color: #fff; padding: 6px 10px; border: 1px solid #3a4048;
     border-radius: 4px; box-shadow: none; font-size: 12px; max-width: 260px;

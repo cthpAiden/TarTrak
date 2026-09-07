@@ -28,6 +28,10 @@
   import RoutePicker from "./lib/map/RoutePicker.svelte";
   import { distanceM, routeGroups } from "./lib/map/route";
   import MapPicker from "./lib/map/MapPicker.svelte";
+  import CompassTape from "./lib/map/CompassTape.svelte";
+  import OverlayReadout from "./lib/map/OverlayReadout.svelte";
+  import { bearingDeg, type CompassTarget } from "./lib/map/compass";
+  import { mateColor } from "./lib/room/squad";
   import Toasts from "./lib/ui/Toasts.svelte";
   import Banner from "./lib/ui/Banner.svelte";
 
@@ -96,6 +100,28 @@
   // tarkov.dev's entry for the map on screen: raid length, player count, bosses.
   const mapInfo = $derived(def && app.questData ? (app.questData.maps.find((m) => m.normalizedName === def.key) ?? null) : null);
   const routeDistance = $derived(routePoint && app.ownPos ? distanceM(app.ownPos, routePoint) : null);
+  // Teammates drawn on my map, the map view's filter, for the overlay's compass and footer.
+  const overlayMates = $derived.by(() => {
+    const d = def;
+    if (!d) return [];
+    const colors = settings?.mateColors ?? {};
+    return Object.values(app.teammates)
+      .filter((t) => !t.noPosition && (t.map === d.key || t.map === null))
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((t) => ({ id: t.id, name: t.name, color: mateColor(t.name, t.color, colors), x: t.x, z: t.z }));
+  });
+  const compassTargets = $derived.by((): CompassTarget[] => {
+    const me = app.ownPos;
+    if (!me) return [];
+    const targets: CompassTarget[] = [];
+    if (routePoint) targets.push({ id: "route", bearing: bearingDeg(me, routePoint), color: "#f0b429", label: routePoint.name, kind: "route" });
+    // Relay ids are any 1..32 chars; the prefix keeps one from colliding with the "route" key above.
+    for (const m of overlayMates) targets.push({ id: `mate:${m.id}`, bearing: bearingDeg(me, m), color: m.color, label: m.name, kind: "mate" });
+    return targets;
+  });
+  const readoutMates = $derived(
+    overlayMates.map((m) => ({ id: m.id, name: m.name, color: m.color, distanceM: app.ownPos ? distanceM(app.ownPos, m) : null })),
+  );
   // Only to-do quests reach the map; a done one leaves it. Kept unfiltered by the layer toggles so
   // the panel's shown/total can differ.
   const mapQuestMarkersBeforeFilters = $derived(
@@ -393,6 +419,9 @@
     <button onclick={cycleOpacity}>{opacity}%</button>
   </header>
   {/if}
+  {#if overlay}
+    <CompassTape heading={app.ownPos?.yaw ?? null} targets={compassTargets} />
+  {/if}
 
   {#if !screenshotsDir}
     <Banner text="Screenshot folder not found." action="Pick folder" onaction={() => pickDir("screenshots")} />
@@ -535,5 +564,12 @@
       {/if}
     </aside>
   </div>
+  {#if overlay}
+    <OverlayReadout
+      route={routePoint ? { name: routePoint.name, distanceM: routeDistance } : null}
+      mates={readoutMates}
+      hasPosition={app.ownPos !== null}
+    />
+  {/if}
 </div>
 <Toasts />
