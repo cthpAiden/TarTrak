@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.6.2 - 2026-09-07
 
 ### Fixes
 - Lighthouse has its Road to Military Base V-Ex again, with Side Tunnel (Co-Op), Southern Road, Hideout Under the Landing Stage and Industrial Zone Gates; Reserve its D-2 and Armored Train, Woods its Friendship Bridge (Co-Op), The Lab its Medical Block Elevator, Shoreline its Railway Bridge. tarkov.dev regenerated its map data on 2026-09-06 without them, and with other maps' extracts filed under the wrong map (Woods' UN Roadblock and Scav Bunker on Ground Zero, Customs' Scav Checkpoint on Streets, Reserve's Cliff Descent on Shoreline, a "Gate 2" on Factory), while its API was down; the game had not changed (patch 1.1.5.0 is not out yet).
