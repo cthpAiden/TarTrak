@@ -29,7 +29,7 @@
   import { distanceM, routeGroups } from "./lib/map/route";
   import MapPicker from "./lib/map/MapPicker.svelte";
   import CompassTape from "./lib/map/CompassTape.svelte";
-  import OverlayReadout from "./lib/map/OverlayReadout.svelte";
+  import MateReadout from "./lib/map/MateReadout.svelte";
   import { bearingDeg, type CompassTarget } from "./lib/map/compass";
   import { mateColor } from "./lib/room/squad";
   import Toasts from "./lib/ui/Toasts.svelte";
@@ -100,7 +100,7 @@
   // tarkov.dev's entry for the map on screen: raid length, player count, bosses.
   const mapInfo = $derived(def && app.questData ? (app.questData.maps.find((m) => m.normalizedName === def.key) ?? null) : null);
   const routeDistance = $derived(routePoint && app.ownPos ? distanceM(app.ownPos, routePoint) : null);
-  // Teammates drawn on my map, the map view's filter, for the overlay's compass and footer.
+  // Teammates drawn on my map, the map view's filter, for the overlay's compass and distance pill.
   const overlayMates = $derived.by(() => {
     const d = def;
     if (!d) return [];
@@ -484,6 +484,9 @@
           {room.status === "connecting" ? "Squad: connecting…" : "Squad: reconnecting…"}
         </div>
       {/if}
+      {#if overlay && readoutMates.length > 0}
+        <MateReadout mates={readoutMates} />
+      {/if}
       {#if def}
         <MapView
           bind:this={mapView}
@@ -564,12 +567,5 @@
       {/if}
     </aside>
   </div>
-  {#if overlay}
-    <OverlayReadout
-      route={routePoint ? { name: routePoint.name, distanceM: routeDistance } : null}
-      mates={readoutMates}
-      hasPosition={app.ownPos !== null}
-    />
-  {/if}
 </div>
 <Toasts />

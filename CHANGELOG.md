@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Overlay
+- The readout footer is gone; it hid the bottom of the map. Teammate distances stay as a small pill in the map's bottom-right corner, shown only while a teammate is on the map. The route target's distance is already on the route picker.
+
 ## 0.7.1 - 2026-09-08
 
 ### Memory
