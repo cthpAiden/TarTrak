@@ -78,6 +78,7 @@ const raw: RawBundle = {
             },
             { mob: "ghost", spawnChance: 0.1, spawnLocations: [], escorts: [], spawnTrigger: null },
             { mob: "evil", spawnChance: 0.5, spawnLocations: [] },
+            { mob: "exUsecFree", spawnChance: 0.9, spawnLocations: [{ name: "Chalet", chance: 1, spawnKey: "Zone_Chalet" }] },
           ],
           stationaryWeapons: [
             { stationaryWeapon: "gun1", position: { x: 31, y: 32, z: 33 } },
@@ -91,6 +92,8 @@ const raw: RawBundle = {
       mobs: {
         bossTagilla: { id: "bossTagilla", name: "bossTagilla", normalizedName: "tagilla", imagePortraitLink: "https://assets.tarkov.dev/tagilla-portrait.png" },
         evil: { id: "evil", name: "evil", normalizedName: "evil", imagePortraitLink: "http://evil.example/portrait.png" },
+        ExUsec: { id: "ExUsec", name: "ExUsec", normalizedName: "rogue", imagePortraitLink: "https://assets.tarkov.dev/rogue-portrait.webp" },
+        exUsecFree: { id: "exUsecFree", name: "exUsecFree", normalizedName: "exusecfree", imagePortraitLink: "https://assets.tarkov.dev/unknown-npc-portrait.webp" },
       },
     },
   },
@@ -101,6 +104,8 @@ const raw: RawBundle = {
       E8_yard: "Courtyard",
       ZB013_switch: "ZB-013 Power Switch",
       bossTagilla: "Tagilla",
+      ExUsec: "Rogue",
+      exUsecFree: "exUsecFree",
       "gun2 Name": "AGS-30 30x29mm automatic grenade launcher",
       FAC_TRANSIT_12_DESC: "Transit to Woods",
       FAC_TRANSIT_12_COND: "Labs keycard required",
@@ -350,6 +355,9 @@ describe("toQuestData", () => {
       { name: "Tagilla", normalizedName: "tagilla", spawnChance: 0.35, spawnKeys: ["BotZone", "ZoneGate"], escorts: 5, trigger: "Switch", portrait: "https://assets.tarkov.dev/tagilla-portrait.png" },
       { name: "ghost", normalizedName: "ghost", spawnChance: 0.1, spawnKeys: [] },
       { name: "evil", normalizedName: "evil", spawnChance: 0.5, spawnKeys: [] },
+      // Patch 1.1.5.0 (2026-09-08) filed the chalet Rogues under a new, untranslated mob id; it is
+      // read as the Rogue mob so the card names and pictures them.
+      { name: "Rogue", normalizedName: "rogue", spawnChance: 0.9, spawnKeys: ["Zone_Chalet"], portrait: "https://assets.tarkov.dev/rogue-portrait.webp" },
     ]);
   });
 

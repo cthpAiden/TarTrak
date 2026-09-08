@@ -57,6 +57,13 @@ function imageId(id: string): string | undefined {
   return mapped === undefined ? id : mapped || undefined;
 }
 
+/**
+ * Mob ids read as another mob's entry. Patch 1.1.5.0 (2026-09-08) moved Lighthouse's Rogues to the
+ * chalets under a new id that tarkov.dev lists without a translation or a portrait; the Rogue mob
+ * still has both. Used only when the target mob is in the table.
+ */
+const MOB_ALIASES: Record<string, string> = { exUsecFree: "ExUsec" };
+
 /** `en[key]` when it is a non-empty string, else `key` itself. */
 export function tr(en: Record<string, unknown>, key: string): string {
   const value = en[key];
@@ -336,7 +343,9 @@ function toMap(
     position: { x: b.x as number, y: b.y as number, z: b.z as number },
   }));
   const bosses: MapBoss[] = list(m.bosses).map((b) => {
-    const mob = dict(mobs[str(b.mob)]);
+    const mobId = str(b.mob);
+    const alias = MOB_ALIASES[mobId];
+    const mob = dict(mobs[alias && mobs[alias] ? alias : mobId]);
     const out: MapBoss = {
       name: tr(mapsEn, str(mob.name, str(b.mob))),
       normalizedName: str(mob.normalizedName, str(b.mob)),

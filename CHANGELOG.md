@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Data
+- Patch 1.1.5.0 (2026-09-08, the Lighthouse rework): the bundled tarkov.dev snapshot is regenerated from the files tarkov.dev rebuilt after the patch. Lighthouse's map card now lists the Rogues at the chalets and Glukhar at the water treatment plant; Icebreaker's access key is the Sudak-Tudak marine repair kit; renamed items (the face masks that lost their armour) carry their new names.
+- tarkov.dev files the chalet Rogues under a new mob id it neither translates nor pictures; the app reads that id as the Rogue mob, so the card says "Rogue" with the Rogue portrait instead of "exUsecFree".
+- Not yet in tarkov.dev's data, so not yet drawn: the stationary weapons and landmines the patch removed from the water treatment plant, the Icebreaker transit at the pier, the BTR route, the moved Marked Room and Prapor's camp, the new tasks (To the Light, Pay the Fare!, Can't Drink Away Skill), and the redrawn Lighthouse map. Extracts are unchanged. Rerun `npm run snapshot` when tarkov.dev catches up.
+
 ## 0.7.2 - 2026-09-08
 
 ### Overlay
