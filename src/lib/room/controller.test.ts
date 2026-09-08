@@ -5,6 +5,7 @@ import { app } from "../state/app.svelte";
 import type { Position } from "../parse/screenshot";
 import type { ServerMsg } from "./protocol";
 import { version as APP_VERSION } from "../../../package.json";
+import { DISTINCT_COLORS } from "./squad";
 
 type Handler = (m: ServerMsg) => void;
 
@@ -42,12 +43,12 @@ function makeController() {
   return { room: c, client: FakeClient.last! };
 }
 
-const pos = (id: string, name: string): ServerMsg => ({
+const pos = (id: string, name: string, color = "#f00"): ServerMsg => ({
   type: "pos",
   id,
   name,
   version: APP_VERSION,
-  color: "#f00",
+  color,
   map: "customs",
   x: 1,
   y: 2,
@@ -353,5 +354,38 @@ describe("RoomController", () => {
     client.opts.onStatus("closed");
     expect(app.toasts).toHaveLength(0);
     expect(controller.reconnecting).toBe(false);
+  });
+
+  it("shows the second teammate who sends the stock colour in a spare one, on hello and on pos", () => {
+    const { client } = makeController();
+    client.onMessage(hello("aaaaaaaa", "Ann"));
+    client.onMessage(hello("bbbbbbbb", "Bob"));
+    expect(app.teammates.aaaaaaaa.color).toBe("#f00");
+    expect(app.teammates.bbbbbbbb.color).toBe(DISTINCT_COLORS[0]);
+    client.onMessage(pos("bbbbbbbb", "Bob"));
+    expect(app.teammates.bbbbbbbb.color).toBe(DISTINCT_COLORS[0]);
+    client.onMessage(pos("cccccccc", "Cid", DISTINCT_COLORS[0]));
+    expect(app.teammates.cccccccc.color).toBe(DISTINCT_COLORS[1]);
+  });
+
+  it("keeps a teammate's stand-in colour across a reconnect and drops it once they send a new colour", () => {
+    const { client } = makeController();
+    client.onMessage(pos("aaaaaaaa", "Ann"));
+    client.onMessage(pos("bbbbbbbb", "Bob"));
+    client.onMessage(leave("bbbbbbbb"));
+    client.onMessage(pos("cccccccc", "Bob"));
+    expect(app.teammates.cccccccc.color).toBe(DISTINCT_COLORS[0]);
+    client.onMessage(pos("cccccccc", "Bob", "#0f0"));
+    expect(app.teammates.cccccccc.color).toBe("#0f0");
+  });
+
+  it("starts the colour bookkeeping afresh on each join", () => {
+    const { room, client } = makeController();
+    client.onMessage(pos("aaaaaaaa", "Ann"));
+    client.onMessage(pos("bbbbbbbb", "Bob"));
+    expect(app.teammates.bbbbbbbb.color).toBe(DISTINCT_COLORS[0]);
+    room.join("abc123", "Me", "#fff", "wss://relay.test");
+    FakeClient.last!.onMessage(pos("bbbbbbbb", "Bob"));
+    expect(app.teammates.bbbbbbbb.color).toBe("#f00");
   });
 });

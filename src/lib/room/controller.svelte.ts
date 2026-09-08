@@ -2,6 +2,7 @@ import type { Position } from "../parse/screenshot";
 import { app, type Drawing, type Pin, type Teammate } from "../state/app.svelte";
 import { RoomClient, type ActionMsg, type RoomClientOptions, type RoomStatus } from "./client";
 import type { ServerMsg } from "./protocol";
+import { distinctColor } from "./squad";
 import { version as APP_VERSION } from "../../../package.json";
 
 /** The part of RoomClient the controller drives; injectable so the message handling is testable. */
@@ -23,6 +24,11 @@ export class RoomController {
   private outageToasted = false;
   /** Teammate names already warned about a version mismatch; once per room. */
   private versionWarned = new Set<string>();
+  /**
+   * The colour each teammate is shown in, by name, with the colour they sent to earn it. Sticky so
+   * a reconnect keeps it; recomputed once they send a new colour.
+   */
+  private shownColors = new Map<string, { sent: string; shown: string }>();
 
   constructor(
     private readonly makeClient: (opts: RoomClientOptions) => RoomClientLike = (opts) => new RoomClient(opts),
@@ -41,6 +47,7 @@ export class RoomController {
     this.wasOpen = false;
     this.outageToasted = false;
     this.versionWarned = new Set();
+    this.shownColors = new Map();
     this.client = this.makeClient({
       relayUrl,
       code: this.code,
@@ -149,6 +156,19 @@ export class RoomController {
     );
   }
 
+  /**
+   * Two teammates who both send the stock colour would be told apart by nothing, so the later one
+   * is shown in a spare colour instead. Judged against the colours the others are shown in now.
+   */
+  private shownColor(name: string, sent: string): string {
+    const known = this.shownColors.get(name);
+    if (known && known.sent === sent) return known.shown;
+    const taken = Object.values(app.teammates).filter((t) => t.name !== name).map((t) => t.color);
+    const shown = distinctColor(sent, taken);
+    this.shownColors.set(name, { sent, shown });
+    return shown;
+  }
+
   private handle(m: ServerMsg): void {
     if (m.type === "leave") {
       // Keep the last known marker; the spec says markers never disappear on their own.
@@ -195,6 +215,7 @@ export class RoomController {
     // Judged before the ghost is dropped: a same-name marker of any kind means this is a reconnect.
     const rejoin = Object.values(app.teammates).some((t) => t.id !== m.id && t.name === m.name);
     this.dropGhost(m.id, m.name);
+    const color = this.shownColor(m.name, m.color);
     if (m.type === "hello") {
       if (app.teammates[m.id]) return;
       if (!rejoin) app.toast(`${m.name} joined the room`);
@@ -202,7 +223,7 @@ export class RoomController {
       app.upsertTeammate({
         id: m.id,
         name: m.name,
-        color: m.color,
+        color,
         map: null,
         x: 0,
         y: 0,
@@ -217,7 +238,7 @@ export class RoomController {
     app.upsertTeammate({
       id: m.id,
       name: m.name,
-      color: m.color,
+      color,
       map: m.map,
       x: m.x,
       y: m.y,

@@ -27,6 +27,25 @@ export function safeColor(c: string): string {
   return /^#[0-9a-fA-F]{3,8}$/.test(c) ? c : "#888888";
 }
 
+/**
+ * Stand-in colours for a teammate who sent one somebody else already has: two fresh installs both
+ * send the stock blue. Neither the stock blue nor my own marker yellow is in here.
+ */
+export const DISTINCT_COLORS = ["#ff5252", "#4caf50", "#ff9800", "#e040fb", "#00e5ff", "#ff4081", "#8bc34a", "#b388ff"];
+
+function colorKey(c: string): string {
+  const s = safeColor(c).toLowerCase();
+  // #abc reads as #aabbcc, so both spellings count as the same colour.
+  return s.length === 4 ? "#" + s[1] + s[1] + s[2] + s[2] + s[3] + s[3] : s;
+}
+
+/** The sent colour when nobody else has it, else the first spare one from DISTINCT_COLORS; the sent one again when all are taken. */
+export function distinctColor(sent: string, taken: Iterable<string>): string {
+  const used = new Set(Array.from(taken, colorKey));
+  if (!used.has(colorKey(sent))) return sent;
+  return DISTINCT_COLORS.find((c) => !used.has(colorKey(c))) ?? sent;
+}
+
 /** The colour a teammate is drawn in on my screen: my override for their name first, then what they sent. */
 export function mateColor(name: string, sent: string, overrides: Record<string, string>): string {
   return safeColor(overrides[name] ?? sent);

@@ -36,7 +36,7 @@
   }
   .tick { position: absolute; bottom: 0; width: 1px; height: 4px; background: #39414d; }
   .tick.major { height: 8px; }
-  .num { position: absolute; top: 3px; transform: translateX(-50%); font-size: 10px; color: var(--muted); }
+  .num { position: absolute; top: 7px; transform: translateX(-50%); font-size: 10px; color: var(--muted); }
   .line { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; margin-left: -1px; background: var(--fg); }
   .pill {
     position: absolute; top: 2px; left: 50%; transform: translateX(-50%);

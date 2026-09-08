@@ -303,9 +303,9 @@
     g.clearLayers();
     for (const st of Object.values(all)) {
       if (st.map !== d.key) continue;
-      // A teammate's stroke takes the colour I picked for them, like their marker.
-      const by = st.from ? mates[st.from]?.name : undefined;
-      const color = by ? mateColor(by, st.color, colors) : safeColor(st.color);
+      // A teammate's stroke takes the colour they are shown in, like their marker.
+      const mate = st.from ? mates[st.from] : undefined;
+      const color = mate ? mateColor(mate.name, mate.color, colors) : safeColor(st.color);
       L.polyline(
         st.points.map(([x, z]) => toLatLng(x, z)),
         { pane: "drawings", color, weight: 3, opacity: 0.9, lineCap: "round", lineJoin: "round", interactive: false },
@@ -506,9 +506,10 @@
     g.clearLayers();
     for (const p of Object.values(pins)) {
       if (p.map !== d.key) continue;
-      const placedBy = p.from ? (mates[p.from]?.name ?? null) : null;
-      // A teammate's shared marker takes the colour I picked for them, like their position marker.
-      const shown = placedBy && colors[placedBy] ? { ...p, color: safeColor(colors[placedBy]) } : p;
+      const mate = p.from ? mates[p.from] : undefined;
+      const placedBy = mate?.name ?? null;
+      // A teammate's shared marker takes the colour they are shown in, like their position marker.
+      const shown = mate ? { ...p, color: mateColor(mate.name, mate.color, colors) } : p;
       const marker = L.marker(toLatLng(p.x, p.z), { icon: pinIcon(shown), pane: "pins" });
       if (p.label) marker.bindTooltip(esc(p.label), { permanent: true, direction: "top", className: "tt-label", pane: "pins", interactive: false });
       marker.bindPopup(() => pinPopup(p, placedBy, () => onRemovePin(p.id)));

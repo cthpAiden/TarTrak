@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Squad
+- Two teammates who send the same colour (two fresh installs both send the stock blue) are now told apart: the later joiner is shown in a spare colour, the first free one of red, green, orange, purple, cyan, pink, lime and lavender. This is per screen: everyone keeps sending the colour they picked, and my own picks in the squad list still win. The stand-in follows the teammate across a reconnect and their shared markers and strokes wear it too; it goes away once they pick a colour nobody has.
+
+### Overlay
+- The compass numbers sit 4 px lower, closer to their tick marks.
+
 ### Data
 - Patch 1.1.5.0 (2026-09-08, the Lighthouse rework): the bundled tarkov.dev snapshot is regenerated from the files tarkov.dev rebuilt after the patch. Lighthouse's map card now lists the Rogues at the chalets and Glukhar at the water treatment plant; Icebreaker's access key is the Sudak-Tudak marine repair kit; renamed items (the face masks that lost their armour) carry their new names.
 - tarkov.dev files the chalet Rogues under a new mob id it neither translates nor pictures; the app reads that id as the Rogue mob, so the card says "Rogue" with the Rogue portrait instead of "exUsecFree".

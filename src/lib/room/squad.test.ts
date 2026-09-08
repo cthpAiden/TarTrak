@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { floorTag, mateColor, mateLabel, safeColor, squadRows } from "./squad";
+import { DISTINCT_COLORS, distinctColor, floorTag, mateColor, mateLabel, safeColor, squadRows } from "./squad";
 import type { Teammate } from "../state/app.svelte";
 
 function mate(over: Partial<Teammate>): Teammate {
@@ -135,5 +135,26 @@ describe("safeColor", () => {
     expect(safeColor("#3aa0ff")).toBe("#3aa0ff");
     expect(safeColor("red")).toBe("#888888");
     expect(safeColor("#fff; background: url(x)")).toBe("#888888");
+  });
+});
+
+describe("distinctColor", () => {
+  it("keeps a colour nobody else has", () => {
+    expect(distinctColor("#3aa0ff", ["#ff5252", "#4caf50"])).toBe("#3aa0ff");
+    expect(distinctColor("#3aa0ff", [])).toBe("#3aa0ff");
+  });
+
+  it("hands out the first spare stand-in when the sent colour is taken, however it is spelled", () => {
+    expect(distinctColor("#3aa0ff", ["#3aa0ff"])).toBe(DISTINCT_COLORS[0]);
+    expect(distinctColor("#3AA0FF", ["#3aa0ff"])).toBe(DISTINCT_COLORS[0]);
+    expect(distinctColor("#fff", ["#ffffff", DISTINCT_COLORS[0]])).toBe(DISTINCT_COLORS[1]);
+  });
+
+  it("falls back to the sent colour once every stand-in is taken", () => {
+    expect(distinctColor("#3aa0ff", ["#3aa0ff", ...DISTINCT_COLORS])).toBe("#3aa0ff");
+  });
+
+  it("treats every unsafe colour as the same grey", () => {
+    expect(distinctColor("red", ["blue"])).toBe(DISTINCT_COLORS[0]);
   });
 });
