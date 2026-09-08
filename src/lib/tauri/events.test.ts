@@ -74,6 +74,23 @@ describe("handleLogLine", () => {
     expect(s.currentMap).toBe("factory");
   });
 
+  it("remembers when the raid started, and forgets it when the map changes", () => {
+    const s = new AppState();
+    s.setMap("factory", "log");
+    handleLogLine("2026-09-04 04:56:12.284|1.1.0.1.46911|Info|application|GameStarted:215.23(215.23) real:236.94(236.94) diff:21.71", s);
+    expect(s.raidStartedAt).toBe(new Date(2026, 8, 4, 4, 56, 12, 284).getTime());
+    handleLogLine(loc("Lighthouse"), s);
+    expect(s.raidStartedAt).toBeNull();
+  });
+
+  it("keeps the raid start when the log repeats the same map", () => {
+    const s = new AppState();
+    handleLogLine(loc("Lighthouse"), s);
+    handleLogLine("2026-09-04 04:56:12.284|1.1.0.1.46911|Info|application|GameStarted:215.23(215.23) real:236.94(236.94) diff:21.71", s);
+    handleLogLine(loc("Lighthouse"), s);
+    expect(s.raidStartedAt).not.toBeNull();
+  });
+
   it("uses the scene preset as an early hint", () => {
     const s = new AppState();
     handleLogLine(

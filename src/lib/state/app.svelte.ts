@@ -54,6 +54,8 @@ export class AppState {
   ownUpdatedAt = $state(0);
   currentMap = $state<string | null>(null);
   mapSource = $state<MapSource | null>(null);
+  /** Epoch ms of the log's GameStarted line for the current raid; null before one or after a map change. */
+  raidStartedAt = $state<number | null>(null);
   teammates = $state<Record<string, Teammate>>({});
   pins = $state<Record<string, Pin>>({});
   drawings = $state<Record<string, Drawing>>({});

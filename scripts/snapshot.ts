@@ -72,6 +72,8 @@ for (const m of data.maps) {
   const restored = m.extracts.filter((e) => !upstream.has(e.name)).map((e) => e.name);
   const known = new Set(curated.map((e) => e.name));
   const dropped = spots.filter((s) => s.map === m.normalizedName && !known.has(s.name)).map((s) => `${s.name}${evidence(s)}`);
+  const pinned = curated.filter((e) => e.pinned).map((e) => `${e.name}${upstream.has(e.name) ? "" : " (upstream no longer lists it: unpin?)"}`);
+  if (pinned.length > 0) console.log(`${m.normalizedName}: pinned in data/extracts.json, the file's spot wins: ${pinned.join(", ")}`);
   if (restored.length > 0) console.log(`${m.normalizedName}: restored from data/extracts.json: ${restored.join(", ")}`);
   if (dropped.length > 0) console.log(`${m.normalizedName}: upstream lists, left off as data/extracts.json does not know them:\n  ${dropped.join("\n  ")}`);
 }

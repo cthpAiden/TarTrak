@@ -232,4 +232,20 @@ describe("data snapshot", () => {
     const labs = maps.find((m) => m.normalizedName === "factory")!;
     expect(labs.transits?.find((t) => t.conditions)?.conditions).toMatch(/keycard/);
   });
+
+  // Patch 1.1.5.0 (2026-09-08) took the landmines off Lighthouse; tarkov.dev still lists them.
+  it("draws no minefields on Lighthouse, still does on Woods", () => {
+    const types = (key: string) => (maps.find((m) => m.normalizedName === key)!.hazards ?? []).map((h) => h.hazardType);
+    expect(types("lighthouse")).not.toContain("minefield");
+    expect(types("lighthouse")).toContain("sniper");
+    expect(types("woods")).toContain("minefield");
+  });
+
+  it("draws Lighthouse's Mountain Pass at its pinned post-rework spot", () => {
+    const lh = maps.find((m) => m.normalizedName === "lighthouse")!;
+    const mp = lh.extracts.filter((e) => e.name === "Mountain Pass");
+    expect(mp).toHaveLength(1);
+    expect(mp[0].position).toEqual({ x: -182, y: 41.89, z: -71 });
+    expect(mp[0]).not.toHaveProperty("pinned");
+  });
 });

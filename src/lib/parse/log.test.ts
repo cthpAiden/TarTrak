@@ -17,10 +17,14 @@ describe("parseLogLine", () => {
     expect(parseLogLine(line)).toEqual({ kind: "location", name: "TarkovStreets" });
   });
 
-  it("detects GameStarted", () => {
+  it("detects GameStarted and carries the line's local timestamp as epoch ms", () => {
     const line =
       "2026-09-04 04:56:12.284|1.1.0.1.46911|Info|application|GameStarted:215.23(215.23) real:236.94(236.94) diff:21.71";
-    expect(parseLogLine(line)).toEqual({ kind: "gameStarted" });
+    expect(parseLogLine(line)).toEqual({ kind: "gameStarted", at: new Date(2026, 8, 4, 4, 56, 12, 284).getTime() });
+  });
+
+  it("drops a GameStarted line whose timestamp cannot be read", () => {
+    expect(parseLogLine("garbage|GameStarted:1(1) real:2(2) diff:1")).toBeNull();
   });
 
   it("returns null for unrelated lines", () => {
@@ -34,6 +38,8 @@ describe("parseLogLine", () => {
     expect(kinds.indexOf("preset")).toBeGreaterThanOrEqual(0);
     expect(kinds.indexOf("location")).toBeGreaterThan(kinds.indexOf("preset"));
     expect(kinds.indexOf("gameStarted")).toBeGreaterThan(kinds.indexOf("location"));
+    const started = events.find((e) => e!.kind === "gameStarted") as { at: number };
+    expect(started.at).toBeGreaterThan(0);
     expect(events.find((e) => e!.kind === "location")).toEqual({ kind: "location", name: "Lighthouse" });
   });
 });

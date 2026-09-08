@@ -8,20 +8,24 @@
 import extracts from "../../../data/extracts.json" with { type: "json" };
 import type { MapExtract } from "./types";
 
+/** A curated entry; `pinned` makes the file's spot win over upstream's (a patch moved it, upstream lags). */
+export type CuratedExtract = MapExtract & { pinned?: true };
 /** Extracts by map normalizedName; a map absent from the file takes tarkov.dev's list as it comes. */
-export type CuratedExtracts = Record<string, MapExtract[]>;
+export type CuratedExtracts = Record<string, CuratedExtract[]>;
 export const CURATED_EXTRACTS = extracts as unknown as CuratedExtracts;
 
 /**
  * The curated names, each as upstream lists it when it does (so a spot that moved or an extract
- * opened to Scavs shows without touching the file), else as the file has it. An upstream name the
+ * opened to Scavs shows without touching the file), else as the file has it. A pinned name is the
+ * exception: the file's entry replaces every upstream entry of that name. An upstream name the
  * file does not know is left off: that is how the misfiled extracts of September 2026 looked.
  * Without a curated list, upstream stands as it is.
  */
-export function mergeExtracts(upstream: MapExtract[], curated: MapExtract[] | undefined): MapExtract[] {
+export function mergeExtracts(upstream: MapExtract[], curated: CuratedExtract[] | undefined): MapExtract[] {
   if (!curated?.length) return upstream;
   const known = new Set(curated.map((e) => e.name));
-  const kept = upstream.filter((e) => known.has(e.name));
+  const pinned = new Set(curated.filter((e) => e.pinned).map((e) => e.name));
+  const kept = upstream.filter((e) => known.has(e.name) && !pinned.has(e.name));
   const listed = new Set(kept.map((e) => e.name));
-  return [...kept, ...curated.filter((e) => !listed.has(e.name))];
+  return [...kept, ...curated.filter((e) => !listed.has(e.name)).map(({ pinned: _pinned, ...e }) => e)];
 }

@@ -19,12 +19,16 @@ export function handleLogLine(line: string, state: AppState = app): void {
   if (ev.kind === "gameStarted") {
     // A new raid, possibly on the same map as the last one: the old marker would sit at last raid's spot.
     state.clearOwnPosition();
+    state.raidStartedAt = ev.at;
     return;
   }
   const key = resolveMapKey(ev.name);
   if (key) {
-    // A raid on a new map makes the last screenshot's position meaningless there.
-    if (state.currentMap !== null && state.currentMap !== key) state.clearOwnPosition();
+    // A raid on a new map makes the last screenshot's position meaningless there, and its clock too.
+    if (state.currentMap !== null && state.currentMap !== key) {
+      state.clearOwnPosition();
+      state.raidStartedAt = null;
+    }
     state.setMap(key, "log");
   } else if (ev.kind === "location" && !warnedMaps.has(ev.name)) {
     warnedMaps.add(ev.name);

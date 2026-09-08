@@ -22,6 +22,8 @@ export interface Settings {
   lineLengthM: number;
   /** Pan the map to my marker on every screenshot. */
   followMe: boolean;
+  /** Overlay pill with the time left in the raid, counted from the log's GameStarted line. */
+  raidTimer: boolean;
   /** Hide quests, in the list and on the map, whose prerequisite quests are not done yet. */
   questsAvailableOnly: boolean;
   layerFilters: Record<string, boolean>;
@@ -58,6 +60,7 @@ export const DEFAULT_SETTINGS: Settings = {
   lastRoom: "",
   lineLengthM: 125,
   followMe: true,
+  raidTimer: true,
   questsAvailableOnly: false,
   layerFilters: {},
   todoQuests: {},
@@ -82,6 +85,7 @@ const SHAPE: Record<keyof Settings, Kind> = {
   lastRoom: "string",
   lineLengthM: "number",
   followMe: "boolean",
+  raidTimer: "boolean",
   questsAvailableOnly: "boolean",
   layerFilters: "record",
   todoQuests: "record",

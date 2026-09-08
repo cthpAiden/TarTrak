@@ -15,6 +15,12 @@ describe("mergeExtracts", () => {
     expect(merged).toEqual([ex("Railway Exfil", "pmc", 1), ex("Railway Exfil", "scav", 2)]);
   });
 
+  it("replaces upstream's entries of a pinned name with the file's, pinned flag stripped", () => {
+    const pinned = { ...ex("Mountain Pass", "pmc", 3), pinned: true as const };
+    const merged = mergeExtracts([ex("Mountain Pass", "pmc", 1), ex("Mountain Pass", "scav", 2), ex("Gate 3")], [pinned, ex("Gate 3")]);
+    expect(merged).toEqual([ex("Gate 3"), ex("Mountain Pass", "pmc", 3)]);
+  });
+
   it("leaves off an upstream name the file does not know", () => {
     const merged = mergeExtracts([ex("UN Roadblock"), ex("Mira Ave (Flare)")], [ex("Mira Ave (Flare)", "pmc", 9)]);
     expect(merged).toEqual([ex("Mira Ave (Flare)")]);
@@ -89,5 +95,14 @@ describe("data/extracts.json", () => {
     for (const n of ["UN Roadblock", "Scav Bunker", "Pinewood Basement (Co-Op)"]) expect(names("ground-zero").join()).not.toContain(n);
     for (const n of ["Scav Checkpoint", "Basement Entrance"]) expect(names("streets-of-tarkov").join()).not.toContain(n);
     expect(names("factory").join()).not.toContain("Gate 2");
+  });
+
+  // Patch 1.1.5.0 (2026-09-08) moved it north of Pikes Peak Resort; tarkov.dev still lists the old spot.
+  it("pins Lighthouse's Mountain Pass at its post-rework spot so it wins over upstream", () => {
+    const mp = CURATED_EXTRACTS.lighthouse.find((e) => e.name === "Mountain Pass")!;
+    expect(mp.pinned).toBe(true);
+    expect(mp.position).toEqual({ x: -182, y: 41.89, z: -71 });
+    expect(mp.outline).toHaveLength(4);
+    expect(CURATED_EXTRACTS.lighthouse.filter((e) => e.pinned)).toHaveLength(1);
   });
 });

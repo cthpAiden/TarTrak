@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.4 - 2026-09-09
+
+### Overlay
+- A raid timer sits in the map's bottom-left corner in overlay mode: the time left in the raid as mm:ss, counted from the moment the game log says the raid started, against the map's raid length from tarkov.dev. It is a small pill like the teammate-distance one and lets clicks through. It shows 00:00 for a minute after the raid ends, then goes away. Settings > Raid timer turns it off. PMC raids only: a Scav raid joins mid-raid, the log carries no remaining time, so it would read too high.
+
+### Data
+- Patch 1.1.5.0 moved Lighthouse's Mountain Pass extract north of Pikes Peak Resort; tarkov.dev still lists the old spot. `data/extracts.json` now pins it at the new one (`pinned: true`: the file's spot wins over upstream's for that name; `npm run snapshot` reports pinned names). The spot is read off a screenshot of the map, give or take a few metres.
+- Lighthouse's minefields are gone: the patch removed the landmines, tarkov.dev still lists them, so the app drops that map's minefield hazards. Other maps keep theirs.
+
 ## 0.7.3 - 2026-09-09
 
 ### Squad

@@ -311,13 +311,17 @@ function toMap(
     if (keyImage) lock.keyImage = keyImage;
     return lock;
   });
+  // Patch 1.1.5.0 (2026-09-08) took the landmines off Lighthouse; tarkov.dev still lists them.
+  const noMinefields = str(m.normalizedName) === "lighthouse";
   const hazards: MapHazard[] = [
-    ...list(m.hazards).map((h) => ({
-      hazardType: str(h.hazardType),
-      name: tr(mapsEn, str(h.name)),
-      position: pos(h.position),
-      ...footprint(h),
-    })),
+    ...list(m.hazards)
+      .filter((h) => !(noMinefields && str(h.hazardType) === "minefield"))
+      .map((h) => ({
+        hazardType: str(h.hazardType),
+        name: tr(mapsEn, str(h.name)),
+        position: pos(h.position),
+        ...footprint(h),
+      })),
     // Artillery zones are a separate map field on tarkov.dev; its map draws them as "Mortar" hazards.
     ...list(dict(m.artillery).zones).map((z) => ({
       hazardType: "mortar",

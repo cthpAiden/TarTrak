@@ -106,6 +106,14 @@
         placeholder="F6"
       />
 
+      <label for="set-raid-timer" title="Overlay pill with the time left in the raid, counted from the moment the log says the raid started. PMC raids only: a Scav raid joins late and reads too high.">Raid timer</label>
+      <input
+        id="set-raid-timer"
+        type="checkbox"
+        checked={settings.raidTimer}
+        onchange={(e) => onChange({ raidTimer: e.currentTarget.checked })}
+      />
+
       <label for="set-line">Heading line (m, max 125)</label>
       <input
         id="set-line"

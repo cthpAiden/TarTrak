@@ -26,6 +26,11 @@ No memory reading, no injection, no hooks, no keystrokes sent to the game, no ac
 
 Markers never disappear; they dim slowly after 30 s and settle at 35% after 5 minutes.
 
+**Raid timer.** In overlay mode a small pill in the map's bottom-left corner counts down the time left in the
+raid (mm:ss), from the moment the game log says the raid started against the map's raid length. It lets clicks
+through, shows 00:00 for a minute after the end, and Settings > Raid timer turns it off. PMC raids only: a Scav
+raid joins mid-raid and the log does not say how much time is left, so it would read too high.
+
 **Your own markers.** Right-click anywhere on the map, type a label if you want one, and pick **Marker for
 me** (only this app shows it) or **Shared marker** (everyone in your squad room sees it, in your colour).
 Click a marker for its details and a Remove button; anyone in the room can remove a shared marker. Shared

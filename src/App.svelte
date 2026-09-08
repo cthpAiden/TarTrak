@@ -30,6 +30,7 @@
   import MapPicker from "./lib/map/MapPicker.svelte";
   import CompassTape from "./lib/map/CompassTape.svelte";
   import MateReadout from "./lib/map/MateReadout.svelte";
+  import { raidTimeLeft } from "./lib/map/raidTimer";
   import { bearingDeg, type CompassTarget } from "./lib/map/compass";
   import { mateColor } from "./lib/room/squad";
   import Toasts from "./lib/ui/Toasts.svelte";
@@ -99,6 +100,15 @@
   });
   // tarkov.dev's entry for the map on screen: raid length, player count, bosses.
   const mapInfo = $derived(def && app.questData ? (app.questData.maps.find((m) => m.normalizedName === def.key) ?? null) : null);
+  // The raid clock ticks once a second, only while the overlay shows it and a raid start is known.
+  let now = $state(Date.now());
+  $effect(() => {
+    if (!overlay || app.raidStartedAt === null) return;
+    now = Date.now();
+    const id = setInterval(() => (now = Date.now()), 1000);
+    return () => clearInterval(id);
+  });
+  const raidLeft = $derived(settings?.raidTimer === false ? null : raidTimeLeft(app.raidStartedAt, mapInfo?.raidDuration, now));
   const routeDistance = $derived(routePoint && app.ownPos ? distanceM(app.ownPos, routePoint) : null);
   // Teammates drawn on my map, the map view's filter, for the overlay's compass and distance pill.
   const overlayMates = $derived.by(() => {
@@ -486,6 +496,9 @@
       {/if}
       {#if overlay && readoutMates.length > 0}
         <MateReadout mates={readoutMates} />
+      {/if}
+      {#if overlay && raidLeft}
+        <div class="raid-pill" role="timer" aria-label="Time left in raid">{raidLeft}</div>
       {/if}
       {#if def}
         <MapView
