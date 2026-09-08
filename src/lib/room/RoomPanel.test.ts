@@ -3,13 +3,14 @@ import { flushSync, mount, unmount } from "svelte";
 import RoomPanel from "./RoomPanel.svelte";
 import { room } from "./controller.svelte";
 import { app } from "../state/app.svelte";
-import { DEFAULT_SETTINGS } from "../settings/store";
+import { DEFAULT_SETTINGS, type Settings } from "../settings/store";
+import { DISTINCT_COLORS } from "./squad";
 
-function open() {
+function open(settings: Partial<Settings> = {}) {
   const target = document.body.appendChild(document.createElement("div"));
   const panel = mount(RoomPanel, {
     target,
-    props: { settings: { ...DEFAULT_SETTINGS }, onSettingsChange: () => {}, onFocus: () => {} },
+    props: { settings: { ...DEFAULT_SETTINGS, ...settings }, onSettingsChange: () => {}, onFocus: () => {} },
   });
   flushSync();
   return { target, panel };
@@ -68,6 +69,28 @@ describe("RoomPanel code row", () => {
     await tick();
     expect(toast).toHaveBeenCalledWith("Copy failed: select the code and press Ctrl+C");
     expect(copyButton(target)!.textContent!.trim()).toBe("Copy");
+    void unmount(panel);
+  });
+});
+
+describe("RoomPanel identity", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  function colorInput(target: HTMLElement): HTMLInputElement {
+    return target.querySelector('label input[type="color"]')!;
+  }
+
+  it("offers a fresh install one of the stand-in colours instead of the stock blue", () => {
+    const { target, panel } = open();
+    expect(DISTINCT_COLORS).toContain(colorInput(target).value);
+    void unmount(panel);
+  });
+
+  it("keeps a colour the user picked", () => {
+    const { target, panel } = open({ color: "#123456" });
+    expect(colorInput(target).value).toBe("#123456");
     void unmount(panel);
   });
 });

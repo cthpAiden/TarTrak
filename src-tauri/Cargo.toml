@@ -1,6 +1,6 @@
 [package]
 name = "tartrak"
-version = "0.7.2"
+version = "0.7.3"
 description = "Escape from Tarkov map, team positions and quest markers"
 edition = "2021"
 license = "MIT"

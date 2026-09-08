@@ -1,9 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.7.3 - 2026-09-09
 
 ### Squad
-- Two teammates who send the same colour (two fresh installs both send the stock blue) are now told apart: the later joiner is shown in a spare colour, the first free one of red, green, orange, purple, cyan, pink, lime and lavender. This is per screen: everyone keeps sending the colour they picked, and my own picks in the squad list still win. The stand-in follows the teammate across a reconnect and their shared markers and strokes wear it too; it goes away once they pick a colour nobody has.
+- Two teammates who send the same colour (two fresh installs both send the stock blue) are now told apart: the later joiner is shown in a spare colour, the first free one of red, green, orange, purple, cyan, pink, lime and lavender. This is per screen: everyone keeps sending the colour they picked, and my own picks in the squad list still win. A fresh install is offered one of those colours in the Room tab instead of the stock blue, the way the stock name gets a random suffix. The stand-in follows the teammate across a reconnect and their shared markers and strokes wear it too; it goes away once they pick a colour nobody has.
 
 ### Overlay
 - The compass numbers sit 4 px lower, closer to their tick marks.

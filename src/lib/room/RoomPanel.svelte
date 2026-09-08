@@ -2,7 +2,7 @@
   import { onMount, untrack } from "svelte";
   import { room } from "./controller.svelte";
   import { generateRoomCode, isValidRoomCode } from "./protocol";
-  import { floorTag, mateLabel, safeColor, squadRows, type SquadRow } from "./squad";
+  import { DISTINCT_COLORS, floorTag, mateLabel, safeColor, squadRows, type SquadRow } from "./squad";
   import { app } from "../state/app.svelte";
   import { getMapDef, floorForHeight } from "../map/mapsData";
   import { DEFAULT_SETTINGS, type Settings } from "../settings/store";
@@ -21,10 +21,14 @@
   let code = $state(untrack(() => settings.lastRoom));
   // The stock name gets a random suffix so two fresh installs do not both show up as "PMC".
   let name = $state(untrack(() => (settings.name === DEFAULT_SETTINGS.name ? suggestName() : settings.name)));
-  let color = $state(untrack(() => settings.color));
+  // Likewise the stock colour: two fresh installs would otherwise both send the same blue.
+  let color = $state(untrack(() => (settings.color === DEFAULT_SETTINGS.color ? suggestColor() : settings.color)));
 
   function suggestName(): string {
     return `${DEFAULT_SETTINGS.name}-${Math.floor(Math.random() * 900 + 100)}`;
+  }
+  function suggestColor(): string {
+    return DISTINCT_COLORS[Math.floor(Math.random() * DISTINCT_COLORS.length)];
   }
 
   const codeOk = $derived(isValidRoomCode(code.toUpperCase()));
