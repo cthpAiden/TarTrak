@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.1 - 2026-09-09
+
+### Fixed
+- The mark-here key was blind while the game was in front: it only worked right after an Alt+Tab. Cause: the game runs elevated (its launcher asks for administrator rights), and Windows hides an elevated window's key state from apps that are not, so the poller read "up" the whole time. TarTrak now asks for administrator rights when it starts, the same level as the game, and the key is seen in raid. Nothing else changed: still no hook, no input sent, nothing touching the game process.
+
 ## 0.8.0 - 2026-09-09
 
 ### Map

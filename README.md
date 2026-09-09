@@ -11,6 +11,10 @@ TarTrak never touches the game process. It only:
 - reads the game's **text log** to learn which map you loaded;
 - reads whether your chosen **mark-here key** is down (the same Windows call push-to-talk apps make; no keyboard hook, nothing sent to the game).
 
+TarTrak asks for administrator rights when it starts. The game runs elevated (its launcher asks for the same),
+and Windows hides an elevated window's key state from apps that are not, so the mark-here key would only
+work after an Alt+Tab. Same level as the game, nothing more.
+
 No memory reading, no injection, no hooks, no keystrokes sent to the game, no accounts, no telemetry.
 
 ## Use

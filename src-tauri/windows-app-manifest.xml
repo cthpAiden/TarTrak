@@ -1,0 +1,28 @@
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <!-- Tauri's default dependency: the dialog plugin needs Common Controls v6. -->
+  <dependency>
+    <dependentAssembly>
+      <assemblyIdentity
+        type="win32"
+        name="Microsoft.Windows.Common-Controls"
+        version="6.0.0.0"
+        processorArchitecture="*"
+        publicKeyToken="6595b64144ccf1df"
+        language="*"
+      />
+    </dependentAssembly>
+  </dependency>
+  <!--
+    The game runs elevated (its launcher asks for administrator rights), and Windows hides an elevated
+    window's key state from processes that are not (UIPI): GetAsyncKeyState returns 0 while the game
+    is in front, so the mark-here key would only ever be seen during an Alt+Tab. Running at the same
+    level is the only way through short of a UIAccess signature.
+  -->
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+    <security>
+      <requestedPrivileges>
+        <requestedExecutionLevel level="requireAdministrator" uiAccess="false" />
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+</assembly>

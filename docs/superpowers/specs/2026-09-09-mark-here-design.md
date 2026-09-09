@@ -34,6 +34,13 @@ ends when a generation counter moves on, so a restart never leaves two pollers. 
 other targets the command is a no-op. No hook, no injected input: the same call push-to-talk apps
 make. Read as a single sentence into the README's ban-safety section.
 
+**Elevation (0.8.1).** The game runs elevated (the BSG launcher requests administrator rights) and
+UIPI makes `GetAsyncKeyState` return 0 to a lower-integrity process while an elevated window is in
+front; low-level hooks and Raw Input are blocked the same way, only a UIAccess signature (trusted CA
+certificate, Program Files install) gets through. So the app's Windows manifest
+(`src-tauri/windows-app-manifest.xml`, wired in `build.rs`) requests `requireAdministrator`: a UAC
+prompt at every start, the same one the launcher shows.
+
 **Pairing (TS, `src/lib/tauri/markHere.ts`).** `MarkPairer` remembers the last unused key press and
 the last unused screenshot position. A screenshot arriving within 2 s after a press, or a press
 within 2 s after a screenshot, marks that screenshot's position. Each press marks at most one
