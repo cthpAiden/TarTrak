@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.0 - 2026-09-09
+
+### Overlay
+- **Hide hotkey.** `F7` hides the whole window; pressing it again brings it back where it was. Nothing else changes: the overlay keeps its position, opacity and mode, the map keeps tracking you, and the squad connection stays open, so a hidden overlay is not a disconnected one. Rebind or unbind it in Settings > Hide hotkey, like the overlay and opacity keys; leaving it empty turns it off.
+
 ## 0.8.3 - 2026-09-09
 
 ### Fixed

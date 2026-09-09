@@ -67,6 +67,14 @@ describe("SettingsPanel hotkeys", () => {
     expect(invalid).toEqual(["Invalid hotkey: ctrl+"]);
     void unmount(panel);
   });
+
+  it("rebinds the hide hotkey", () => {
+    const { target, panel, changes, invalid } = open();
+    blurWith(target, "set-hk-hide", "ctrl+h");
+    expect(invalid).toEqual([]);
+    expect(changes).toEqual([{ hotkeyHide: "ctrl+h" }]);
+    void unmount(panel);
+  });
 });
 
 describe("SettingsPanel relay URL", () => {

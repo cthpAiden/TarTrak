@@ -18,8 +18,10 @@ pub fn run() {
         .plugin(
             tauri_plugin_window_state::Builder::default()
                 // Decorations follow overlay mode, which is not persisted: restoring them would
-                // relaunch frameless without the rest of overlay mode.
-                .with_state_flags(StateFlags::all() - StateFlags::DECORATIONS)
+                // relaunch frameless without the rest of overlay mode. Visibility follows the hide
+                // hotkey: quitting while hidden would otherwise relaunch to an invisible window
+                // that looks like a failed start.
+                .with_state_flags(StateFlags::all() - StateFlags::DECORATIONS - StateFlags::VISIBLE)
                 .build(),
         )
         .manage(watcher::WatcherState::default())

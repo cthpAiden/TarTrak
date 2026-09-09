@@ -9,6 +9,8 @@
     "core:window:allow-set-always-on-top",
     "core:window:allow-set-skip-taskbar",
     "core:window:allow-start-dragging",
+    "core:window:allow-hide",
+    "core:window:allow-show",
     "store:default",
     "dialog:default",
     "process:default",

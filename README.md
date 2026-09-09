@@ -25,7 +25,8 @@ No memory reading, no injection, no hooks, no keystrokes sent to the game, no ac
 4. Team: one player presses **Create**, shares the 6-character code; others enter it and press **Join**.
    Positions travel through the project relay (`wss://tartrak-relay.aidenmileshp.workers.dev`); you can
    point Settings > Relay URL at your own Worker instead (see [Relay](#relay)).
-5. Hotkeys: `F5` overlay mode, `F6` opacity, `Alt+drag` moves the overlay. Rebind in Settings. The square
+5. Hotkeys: `F5` overlay mode, `F6` opacity, `F7` hides the window until you press it again (for looting
+   with the overlay in the way), `Alt+drag` moves the overlay. Rebind in Settings. The square
    button in the map's top-left corner also switches between the full window and the map-only overlay; the
    crosshair next to it toggles **follow me**, which recentres the map on your marker after every screenshot.
 

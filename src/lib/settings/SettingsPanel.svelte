@@ -25,7 +25,7 @@
   } = $props();
 
   /** An unparseable hotkey would be stored and the key would then silently stop working. */
-  function commitHotkey(which: "hotkeyOverlay" | "hotkeyOpacity", raw: string) {
+  function commitHotkey(which: "hotkeyOverlay" | "hotkeyOpacity" | "hotkeyHide", raw: string) {
     const text = raw.trim();
     // Empty is the way to unbind a key, so only a non-empty string can be invalid.
     if (text !== "" && normalizeHotkey(text) === null) {
@@ -46,6 +46,7 @@
   }
   let overlayKey = $state(untrack(() => settings.hotkeyOverlay));
   let opacityKey = $state(untrack(() => settings.hotkeyOpacity));
+  let hideKey = $state(untrack(() => settings.hotkeyHide));
   let lineLen = $state(untrack(() => settings.lineLengthM));
 
   /** While true, the next key or mouse button pressed anywhere becomes the mark-here key. */
@@ -181,6 +182,14 @@
         bind:value={opacityKey}
         onblur={() => commitHotkey("hotkeyOpacity", opacityKey)}
         placeholder="F6"
+      />
+
+      <label for="set-hk-hide" title="Hides the whole window, so it is out of the way while you loot. The same key brings it back. Empty unbinds it.">Hide hotkey</label>
+      <input
+        id="set-hk-hide"
+        bind:value={hideKey}
+        onblur={() => commitHotkey("hotkeyHide", hideKey)}
+        placeholder="F7"
       />
 
       <label for="set-mark-key" title="Hold this key and press the game's screenshot key: a private marker drops where you stand. Nothing happens on either key alone. Backspace turns it off.">Mark-here key</label>

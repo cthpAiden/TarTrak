@@ -8,7 +8,7 @@ vi.mock("@tauri-apps/plugin-global-shortcut", () => ({
   isRegistered: vi.fn(),
 }));
 
-const handlers = { toggleOverlay() {}, cycleOpacity() {} };
+const handlers = { toggleOverlay() {}, cycleOpacity() {}, toggleHidden() {} };
 
 describe("nextOpacity", () => {
   it("cycles 100 -> 70 -> 40 -> 100 and resets unknown values", () => {
@@ -44,8 +44,31 @@ describe("registerHotkeys", () => {
   });
 
   it("rejects two hotkeys that normalize to the same key", async () => {
-    await expect(registerHotkeys("F5", "f5", handlers)).rejects.toThrow(/must differ/);
+    await expect(registerHotkeys("F5", "f5", "F7", handlers)).rejects.toThrow(/must differ/);
     expect(register).not.toHaveBeenCalled();
+  });
+
+  it("rejects a hide hotkey that collides with an earlier one", async () => {
+    await expect(registerHotkeys("F5", "F6", "f6", handlers)).rejects.toThrow(/must differ/);
+    expect(register).not.toHaveBeenCalled();
+  });
+
+  it("runs the hide handler when its key is pressed", async () => {
+    const fired: string[] = [];
+    const spies = {
+      toggleOverlay: () => fired.push("overlay"),
+      cycleOpacity: () => fired.push("opacity"),
+      toggleHidden: () => fired.push("hidden"),
+    };
+    const bound = new Map<string, (e: { state: string }) => void>();
+    vi.mocked(register).mockImplementation(async (k, fn) => {
+      live.add(k as string);
+      bound.set(k as string, fn as (e: { state: string }) => void);
+    });
+    await registerHotkeys("F5", "F6", "F7", spies);
+    bound.get("F7")!({ state: "Released" });
+    bound.get("F7")!({ state: "Pressed" });
+    expect(fired).toEqual(["hidden"]);
   });
 
   it("leaves nothing registered when a later key fails", async () => {
@@ -53,20 +76,20 @@ describe("registerHotkeys", () => {
       if (k === "F6") throw new Error("taken");
       live.add(k as string);
     });
-    await expect(registerHotkeys("F5", "F6", handlers)).rejects.toThrow("taken");
+    await expect(registerHotkeys("F5", "F6", "F7", handlers)).rejects.toThrow("taken");
     expect([...live]).toEqual([]);
   });
 
   it("treats an empty binding as unbound and registers only the other", async () => {
-    const unhook = await registerHotkeys("", "F6", handlers);
+    const unhook = await registerHotkeys("", "F6", "", handlers);
     expect([...live]).toEqual(["F6"]);
     await unhook();
     expect([...live]).toEqual([]);
   });
 
   it("unhooks every registered key, and does nothing on a second call", async () => {
-    const unhook = await registerHotkeys("F5", "F6", handlers);
-    expect([...live]).toEqual(["F5", "F6"]);
+    const unhook = await registerHotkeys("F5", "F6", "F7", handlers);
+    expect([...live]).toEqual(["F5", "F6", "F7"]);
     await unhook();
     expect([...live]).toEqual([]);
     vi.mocked(unregister).mockClear();

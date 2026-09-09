@@ -62,6 +62,13 @@ export function applyOpacity(percent: number): void {
   document.documentElement.style.opacity = String(percent / 100);
 }
 
+/** Hides the window from the screen. Only the hide hotkey brings it back, so it stays registered. */
+export async function setHidden(on: boolean): Promise<void> {
+  const w = getCurrentWindow();
+  if (on) await w.hide();
+  else await w.show();
+}
+
 /** Alt + left mouse anywhere drags the window, which is the only way to move it with no title bar. */
 export function installAltDrag(): () => void {
   const onDown = (e: MouseEvent) => {
@@ -80,14 +87,21 @@ export function installAltDrag(): () => void {
 export async function registerHotkeys(
   overlayKey: string,
   opacityKey: string,
-  handlers: { toggleOverlay(): void; cycleOpacity(): void },
+  hideKey: string,
+  handlers: { toggleOverlay(): void; cycleOpacity(): void; toggleHidden(): void },
 ): Promise<() => Promise<void>> {
-  const ov = normalizeHotkey(overlayKey);
-  const op = normalizeHotkey(opacityKey);
-  if (ov && op && ov === op) throw new Error("Overlay and opacity hotkeys must differ");
+  const bound: [string | null, () => void][] = [
+    [normalizeHotkey(overlayKey), handlers.toggleOverlay],
+    [normalizeHotkey(opacityKey), handlers.cycleOpacity],
+    [normalizeHotkey(hideKey), handlers.toggleHidden],
+  ];
   const keys: [string, () => void][] = [];
-  if (ov) keys.push([ov, handlers.toggleOverlay]);
-  if (op) keys.push([op, handlers.cycleOpacity]);
+  for (const [k, fn] of bound) {
+    if (!k) continue;
+    // Two actions on one key would leave whichever registered second in sole charge of it.
+    if (keys.some(([taken]) => taken === k)) throw new Error("Hotkeys must differ");
+    keys.push([k, fn]);
+  }
 
   // Only keys that actually took are unhooked, so a failure part-way through cannot leak one.
   const registered: string[] = [];

@@ -17,6 +17,8 @@ export interface Settings {
   faction: Faction;
   hotkeyOverlay: string;
   hotkeyOpacity: string;
+  /** Hides the window outright, for looting with the overlay in the way. Empty unbinds it. */
+  hotkeyHide: string;
   /** Windows virtual-key code of the mark-here key; 0 turns it off. */
   markKeyVk: number;
   lastMap: string | null;
@@ -59,6 +61,7 @@ export const DEFAULT_SETTINGS: Settings = {
   faction: "any",
   hotkeyOverlay: "F5",
   hotkeyOpacity: "F6",
+  hotkeyHide: "F7",
   markKeyVk: DEFAULT_MARK_KEY_VK,
   lastMap: null,
   lastRoom: "",
@@ -85,6 +88,7 @@ const SHAPE: Record<keyof Settings, Kind> = {
   faction: "string",
   hotkeyOverlay: "string",
   hotkeyOpacity: "string",
+  hotkeyHide: "string",
   markKeyVk: "number",
   lastMap: "string?",
   lastRoom: "string",

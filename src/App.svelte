@@ -4,7 +4,7 @@
   import { app, type Drawing, type Pin } from "./lib/state/app.svelte";
   import { newPinId, PRIVATE_PIN_COLOR } from "./lib/map/pins";
   import { startEventBridge } from "./lib/tauri/events";
-  import { setOverlay, applyOpacity, nextOpacity, installAltDrag, registerHotkeys } from "./lib/tauri/window";
+  import { setOverlay, setHidden, applyOpacity, nextOpacity, installAltDrag, registerHotkeys } from "./lib/tauri/window";
   import { detectDirs, startScreenshotWatcher, startLogTail, startMarkKey, type DetectedDirs } from "./lib/tauri/commands";
   import { MarkPairer } from "./lib/tauri/markHere";
   import { DEFAULT_SHOT_KEY_VK, markKeyLabel } from "./lib/settings/markKey";
@@ -62,6 +62,7 @@
   let mapView = $state<ReturnType<typeof MapView>>();
   let overlay = $state(false);
   let opacity = $state(100);
+  let hidden = $state(false);
   let unhookHotkeys: (() => Promise<void>) | null = null;
   let stopQuestRetry: (() => void) | null = null;
 
@@ -163,6 +164,17 @@
     applyOpacity(opacity);
   }
 
+  /** The window vanishes, for looting with the overlay in the way; the same key brings it back. */
+  async function toggleHidden() {
+    const next = !hidden;
+    try {
+      await setHidden(next);
+      hidden = next;
+    } catch (e) {
+      app.toast(`Could not hide the window: ${e}`);
+    }
+  }
+
   /** Registering can fail when another app already owns the key, which must not break startup. */
   async function armHotkeys(s: Settings) {
     // Dropped before the await so a failure below can never leave a stale unhook behind.
@@ -170,7 +182,11 @@
     unhookHotkeys = null;
     try {
       if (previous) await previous();
-      unhookHotkeys = await registerHotkeys(s.hotkeyOverlay, s.hotkeyOpacity, { toggleOverlay, cycleOpacity });
+      unhookHotkeys = await registerHotkeys(s.hotkeyOverlay, s.hotkeyOpacity, s.hotkeyHide, {
+        toggleOverlay,
+        cycleOpacity,
+        toggleHidden,
+      });
     } catch (e) {
       app.toast(`Could not register hotkeys: ${e}`);
     }
@@ -245,7 +261,11 @@
     if (patch.relayUrl !== undefined && patch.relayUrl !== before.relayUrl && room.code) {
       room.join(room.code, after.name, after.color, after.relayUrl);
     }
-    if (after.hotkeyOverlay !== before.hotkeyOverlay || after.hotkeyOpacity !== before.hotkeyOpacity) {
+    if (
+      after.hotkeyOverlay !== before.hotkeyOverlay ||
+      after.hotkeyOpacity !== before.hotkeyOpacity ||
+      after.hotkeyHide !== before.hotkeyHide
+    ) {
       await armHotkeys(after);
     }
     if (after.gameMode !== before.gameMode) loadQuests(after.gameMode);
