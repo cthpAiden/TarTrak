@@ -124,6 +124,15 @@ describe("mergeSettings", () => {
     expect(mergeSettings({ lastRoom: "ABC1234" }).lastRoom).toBe("");
     expect(mergeSettings({ lastRoom: "AB C12" }).lastRoom).toBe("");
   });
+
+  it("keeps a mark key that is a byte, 0 for off, and resets anything else to Left Alt", () => {
+    expect(mergeSettings({ markKeyVk: 0x76 }).markKeyVk).toBe(0x76);
+    expect(mergeSettings({ markKeyVk: 0 }).markKeyVk).toBe(0);
+    expect(mergeSettings({ markKeyVk: 256 }).markKeyVk).toBe(0xa4);
+    expect(mergeSettings({ markKeyVk: -1 }).markKeyVk).toBe(0xa4);
+    expect(mergeSettings({ markKeyVk: 1.5 }).markKeyVk).toBe(0xa4);
+    expect(mergeSettings({ markKeyVk: "F7" }).markKeyVk).toBe(0xa4);
+  });
 });
 
 describe("loadSettings", () => {

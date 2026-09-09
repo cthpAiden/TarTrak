@@ -10,6 +10,15 @@ describe("handleScreenshot", () => {
     expect(s.ownUpdatedAt).toBeGreaterThan(0);
   });
 
+  it("hands the parsed position to the hook, not for menu screenshots", () => {
+    const s = new AppState();
+    const seen: number[] = [];
+    handleScreenshot("2026-09-04[04-56]_-230.88, 3.59, -375.83_-0.02798, -0.17807, 0.00669, -0.98360_0.64 (0).png", s, (p) => seen.push(p.x));
+    handleScreenshot("2026-09-04[01-12]_7.92 (0).png", s, (p) => seen.push(p.x));
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toBeCloseTo(-230.88);
+  });
+
   it("ignores menu screenshots and keeps the previous position", () => {
     const s = new AppState();
     s.setOwnPosition({ x: 1, y: 2, z: 3, yaw: 4 }, 1000);

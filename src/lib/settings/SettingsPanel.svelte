@@ -3,6 +3,7 @@
   import { normalizeHotkey } from "../tauri/window";
   import { DEFAULT_RELAY_URL, FACTIONS, FACTION_LABELS, type Faction, type Settings } from "./store";
   import { GAME_MODES, GAME_MODE_LABELS, type GameMode } from "../quests/jsonSource";
+  import { MARK_KEY_OFF, markKeyFromButton, markKeyFromCode, markKeyLabel } from "./markKey";
   import { openUrl } from "@tauri-apps/plugin-opener";
   import { version } from "../../../package.json";
 
@@ -44,7 +45,73 @@
   let overlayKey = $state(untrack(() => settings.hotkeyOverlay));
   let opacityKey = $state(untrack(() => settings.hotkeyOpacity));
   let lineLen = $state(untrack(() => settings.lineLengthM));
+
+  /** While true, the next key or mouse button pressed anywhere becomes the mark-here key. */
+  let capturing = $state(false);
+
+  function captureKey(e: KeyboardEvent) {
+    if (!capturing) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.repeat) return;
+    if (e.code === "Escape") {
+      capturing = false;
+      return;
+    }
+    if (e.code === "Backspace" || e.code === "Delete") {
+      capturing = false;
+      onChange({ markKeyVk: MARK_KEY_OFF });
+      return;
+    }
+    const key = markKeyFromCode(e.code);
+    if (!key) {
+      onInvalid?.(e.code === "PrintScreen" ? "PrintScreen would mark every screenshot; pick another key" : `Cannot bind ${e.code || "that key"}`);
+      return;
+    }
+    capturing = false;
+    onChange({ markKeyVk: key.vk });
+  }
+
+  /** The mouse button just bound, whose mouseup and auxclick still have to be swallowed. */
+  let boundButton = -1;
+
+  function captureButton(e: MouseEvent) {
+    if (!capturing) return;
+    // The capture button's own click toggles the capture; its mousedown must not end it first.
+    if ((e.target as Element | null)?.closest?.("#set-mark-key")) return;
+    const key = markKeyFromButton(e.button);
+    // A left or right click on anything else just ends the capture.
+    if (!key) {
+      capturing = false;
+      if (e.button === 2) e.preventDefault();
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    boundButton = e.button;
+    capturing = false;
+    onChange({ markKeyVk: key.vk });
+  }
+
+  /** The webview would otherwise treat the side button just bound as browser back or forward. */
+  function swallowButton(e: MouseEvent) {
+    if (e.button !== boundButton) return;
+    e.preventDefault();
+    if (e.type === "auxclick") boundButton = -1;
+  }
+
+  function swallowContextMenu(e: Event) {
+    if (capturing) e.preventDefault();
+  }
 </script>
+
+<svelte:window
+  onkeydown={captureKey}
+  onmousedown={captureButton}
+  onmouseup={swallowButton}
+  onauxclick={swallowButton}
+  oncontextmenu={swallowContextMenu}
+/>
 
 <section class="panel">
   <h2>Settings</h2>
@@ -106,6 +173,17 @@
         placeholder="F6"
       />
 
+      <label for="set-mark-key" title="Hold this key while taking a screenshot (or press it within 2 s of one) to drop a private marker at that spot. Backspace turns it off. Alt+drag followed by a screenshot marks too.">Mark-here key</label>
+      <button
+        id="set-mark-key"
+        type="button"
+        class="capture"
+        class:capturing
+        onclick={() => (capturing = !capturing)}
+      >
+        {capturing ? "Press a key…" : markKeyLabel(settings.markKeyVk)}
+      </button>
+
       <label for="set-raid-timer" title="Overlay pill with the time left in the raid, counted from the moment the log says the raid started. PMC raids only: a Scav raid joins late and reads too high.">Raid timer</label>
       <input
         id="set-raid-timer"
@@ -148,6 +226,8 @@
   .dir code { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
   input, select { background: #2a2f38; color: var(--fg); border: 1px solid #3a4048; padding: 3px 6px; min-width: 0; }
   input[type="checkbox"] { justify-self: start; }
+  .capture { background: #2a2f38; color: var(--fg); border: 1px solid #3a4048; padding: 3px 6px; text-align: left; cursor: pointer; }
+  .capture.capturing { border-color: var(--accent); color: var(--accent); }
   .small { font-size: 11px; }
   a { color: var(--accent); }
 </style>

@@ -8,7 +8,8 @@ heading, your teammates' positions via a shared room code, and quest markers. MI
 TarTrak never touches the game process. It only:
 
 - reads the **filenames** of screenshots the game writes (they contain your coordinates and camera rotation), then deletes that PNG (optional; only screenshots named with coordinates are deleted, menu screenshots stay);
-- reads the game's **text log** to learn which map you loaded.
+- reads the game's **text log** to learn which map you loaded;
+- reads whether your chosen **mark-here key** is down (the same Windows call push-to-talk apps make; no keyboard hook, nothing sent to the game).
 
 No memory reading, no injection, no hooks, no keystrokes sent to the game, no accounts, no telemetry.
 
@@ -25,6 +26,12 @@ No memory reading, no injection, no hooks, no keystrokes sent to the game, no ac
    crosshair next to it toggles **follow me**, which recentres the map on your marker after every screenshot.
 
 Markers never disappear; they dim slowly after 30 s and settle at 35% after 5 minutes.
+
+**Mark here.** Hold the mark-here key (Left Alt by default) while you take a screenshot and a private
+marker labelled with the time drops where you stand, on top of the usual dot move. The key and the
+screenshot can also come within 2 s of each other in either order. Settings > Mark-here key rebinds it
+to any key or a middle or side mouse button (Backspace turns it off). Ctrl does not work: the game ignores its screenshot
+key while Ctrl is held.
 
 **Raid timer.** In overlay mode a small pill in the map's bottom-right corner (next to the teammate-distance pill) counts down the time left in the
 raid (mm:ss), from the moment the game log says the raid started against the map's raid length. It lets clicks

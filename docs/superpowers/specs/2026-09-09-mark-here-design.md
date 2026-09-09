@@ -20,7 +20,8 @@ back for it later) there is no time for that. The user wants one key press that 
 **Mark key.** New setting `markKeyVk: number`, a Windows virtual-key code, default `0xA4` (Left Alt),
 `0` = off. Settings gets a row "Mark-here key" with a button showing the key's name. Clicking it
 puts the button into capture ("Press a key…"): the next key or mouse button pressed becomes the mark
-key, Escape cancels, Backspace or Delete turns it off. Modifiers on their own (Alt, Ctrl, Shift, left
+key, Escape, a second click on the button or a left or right click elsewhere cancels, Backspace or
+Delete turns it off. Modifiers on their own (Alt, Ctrl, Shift, left
 or right), function keys, letters, digits, punctuation, navigation keys, numpad and mouse buttons 3-5
 are accepted. PrintScreen is refused (it would mark every screenshot); keys the table does not know
 are refused with a toast. The name table lives in `src/lib/settings/markKey.ts` (browser `code` ->
@@ -28,7 +29,7 @@ VK code + label) and is the only place that knows about VK codes on the TS side.
 
 **Poller (Rust, `src-tauri/src/markkey.rs`).** Command `start_mark_key(vk)` replaces any running
 poller: a thread reads `GetAsyncKeyState(vk)` every 10 ms and emits the Tauri event `markkey` on each
-down-edge (high bit goes from clear to set). `vk == 0` only stops. `stop_mark_key` stops. The thread
+down-edge (high bit goes from clear to set). `vk == 0` only stops; there is no separate stop command. The thread
 ends when a generation counter moves on, so a restart never leaves two pollers. Windows only; on
 other targets the command is a no-op. No hook, no injected input: the same call push-to-talk apps
 make. Read as a single sentence into the README's ban-safety section.
@@ -55,7 +56,7 @@ screenshot. Told in the Settings tooltip.
 - `src-tauri/src/markkey.rs` (new), `lib.rs` (register command and state), `Cargo.toml`
   (`windows-sys` with `Win32_UI_Input_KeyboardAndMouse`).
 - `src/lib/settings/markKey.ts` (+ test): key table, `keyFromEvent`, `markKeyLabel`.
-- `src/lib/settings/store.ts`: `markKeyVk`, clamp to an integer 0..255.
+- `src/lib/settings/store.ts`: `markKeyVk`; anything but an integer 0..255 resets to the default.
 - `src/lib/settings/SettingsPanel.svelte` (+ test): capture button.
 - `src/lib/tauri/markHere.ts` (+ test): `MarkPairer`.
 - `src/lib/tauri/events.ts` (+ test), `commands.ts`, `App.svelte`.

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0 - 2026-09-09
+
+### Map
+- Mark here: hold the mark-here key (Left Alt by default) while taking a screenshot and a private marker labelled "Marked HH:MM" drops where you stand, with a "Marked" toast; the dot still moves as usual. The key press and the screenshot pair up when they come within 2 s of each other, in either order, and each press marks one screenshot at most. Settings > Mark-here key rebinds it by pressing any key or a middle or side mouse button (Backspace turns it off, Escape cancels); PrintScreen is refused since it would mark every screenshot. Ctrl is no use: the game ignores its screenshot key while Ctrl is held.
+- Ban-safety: the app reads whether that one key is down with the Windows call push-to-talk apps use (`GetAsyncKeyState`, every 10 ms). No keyboard hook, nothing sent to the game, nothing touches the game process. README says so.
+
 ## 0.7.5 - 2026-09-09
 
 ### Overlay

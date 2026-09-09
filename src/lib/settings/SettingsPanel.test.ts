@@ -89,3 +89,99 @@ describe("SettingsPanel relay URL", () => {
     unmount(panel);
   });
 });
+
+describe("SettingsPanel mark-here key", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  function key(code: string) {
+    window.dispatchEvent(new KeyboardEvent("keydown", { code, bubbles: true, cancelable: true }));
+    flushSync();
+  }
+
+  /** A real click: mousedown reaches the window handler first, then the button's click. */
+  function clickCapture(btn: HTMLButtonElement) {
+    btn.dispatchEvent(new MouseEvent("mousedown", { button: 0, bubbles: true, cancelable: true }));
+    btn.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    flushSync();
+  }
+
+  it("shows the stored key and captures the next key pressed", () => {
+    const { target, panel, changes } = open();
+    const btn = target.querySelector<HTMLButtonElement>("#set-mark-key")!;
+    expect(btn.textContent?.trim()).toBe("Left Alt");
+    clickCapture(btn);
+    expect(btn.textContent?.trim()).toBe("Press a key…");
+    key("F7");
+    expect(changes).toEqual([{ markKeyVk: 0x76 }]);
+    // The prop did not change in this harness, so the button falls back to the stored key.
+    expect(btn.textContent?.trim()).toBe("Left Alt");
+    void unmount(panel);
+  });
+
+  it("ignores keys while not capturing", () => {
+    const { panel, changes } = open();
+    key("F7");
+    expect(changes).toEqual([]);
+    void unmount(panel);
+  });
+
+  it("Escape cancels, Backspace turns the key off", () => {
+    const { target, panel, changes } = open();
+    const btn = target.querySelector<HTMLButtonElement>("#set-mark-key")!;
+    clickCapture(btn);
+    key("Escape");
+    expect(changes).toEqual([]);
+    expect(btn.textContent?.trim()).toBe("Left Alt");
+    clickCapture(btn);
+    key("Backspace");
+    expect(changes).toEqual([{ markKeyVk: 0 }]);
+    void unmount(panel);
+  });
+
+  it("refuses PrintScreen and keeps capturing", () => {
+    const { target, panel, changes, invalid } = open();
+    const btn = target.querySelector<HTMLButtonElement>("#set-mark-key")!;
+    clickCapture(btn);
+    key("PrintScreen");
+    expect(changes).toEqual([]);
+    expect(invalid).toEqual(["PrintScreen would mark every screenshot; pick another key"]);
+    expect(btn.textContent?.trim()).toBe("Press a key…");
+    void unmount(panel);
+  });
+
+  it("takes a side mouse button", () => {
+    const { target, panel, changes } = open();
+    const btn = target.querySelector<HTMLButtonElement>("#set-mark-key")!;
+    clickCapture(btn);
+    const down = new MouseEvent("mousedown", { button: 3, bubbles: true, cancelable: true });
+    window.dispatchEvent(down);
+    flushSync();
+    expect(changes).toEqual([{ markKeyVk: 0x05 }]);
+    expect(down.defaultPrevented).toBe(true);
+    // The webview's back navigation fires on the release, after the capture has already ended.
+    const up = new MouseEvent("mouseup", { button: 3, bubbles: true, cancelable: true });
+    const aux = new MouseEvent("auxclick", { button: 3, bubbles: true, cancelable: true });
+    window.dispatchEvent(up);
+    window.dispatchEvent(aux);
+    expect(up.defaultPrevented).toBe(true);
+    expect(aux.defaultPrevented).toBe(true);
+    void unmount(panel);
+  });
+
+  it("a second click on the button cancels, a click elsewhere ends the capture", () => {
+    const { target, panel, changes } = open();
+    const btn = target.querySelector<HTMLButtonElement>("#set-mark-key")!;
+    clickCapture(btn);
+    expect(btn.textContent?.trim()).toBe("Press a key…");
+    clickCapture(btn);
+    expect(btn.textContent?.trim()).toBe("Left Alt");
+    clickCapture(btn);
+    window.dispatchEvent(new MouseEvent("mousedown", { button: 0, bubbles: true, cancelable: true }));
+    flushSync();
+    expect(btn.textContent?.trim()).toBe("Left Alt");
+    expect(changes).toEqual([]);
+    void unmount(panel);
+  });
+});

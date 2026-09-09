@@ -1,13 +1,14 @@
 import { listen } from "@tauri-apps/api/event";
-import { parseScreenshotName } from "../parse/screenshot";
+import { parseScreenshotName, type Position } from "../parse/screenshot";
 import { parseLogLine } from "../parse/log";
 import { resolveMapKey } from "../parse/mapNames";
 import { app, type AppState } from "../state/app.svelte";
 
-export function handleScreenshot(name: string, state: AppState = app): void {
+export function handleScreenshot(name: string, state: AppState = app, onPosition?: (p: Position) => void): void {
   const pos = parseScreenshotName(name);
   if (!pos) return; // menu screenshots and unrelated PNGs are silently ignored
   state.setOwnPosition(pos);
+  onPosition?.(pos);
 }
 
 /** The tail replays the whole log at startup, so an unknown map is reported once, not per line. */
@@ -36,11 +37,20 @@ export function handleLogLine(line: string, state: AppState = app): void {
   }
 }
 
-export async function startEventBridge(): Promise<() => void> {
-  const unShot = await listen<string>("screenshot", (e) => handleScreenshot(e.payload));
+export interface BridgeHooks {
+  /** Every position a screenshot yields, after the map has it. */
+  onPosition?: (p: Position) => void;
+  /** The mark-here key went down (Rust poller). */
+  onMarkKey?: () => void;
+}
+
+export async function startEventBridge(hooks: BridgeHooks = {}): Promise<() => void> {
+  const unShot = await listen<string>("screenshot", (e) => handleScreenshot(e.payload, app, hooks.onPosition));
   const unLog = await listen<string>("logline", (e) => handleLogLine(e.payload));
+  const unMark = await listen<void>("markkey", () => hooks.onMarkKey?.());
   return () => {
     unShot();
     unLog();
+    unMark();
   };
 }

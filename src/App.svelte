@@ -5,7 +5,9 @@
   import { newPinId, PRIVATE_PIN_COLOR } from "./lib/map/pins";
   import { startEventBridge } from "./lib/tauri/events";
   import { setOverlay, applyOpacity, nextOpacity, installAltDrag, registerHotkeys } from "./lib/tauri/window";
-  import { detectDirs, startScreenshotWatcher, startLogTail, type DetectedDirs } from "./lib/tauri/commands";
+  import { detectDirs, startScreenshotWatcher, startLogTail, startMarkKey, type DetectedDirs } from "./lib/tauri/commands";
+  import { MarkPairer } from "./lib/tauri/markHere";
+  import type { Position } from "./lib/parse/screenshot";
   import { checkForUpdate } from "./lib/tauri/updater";
   import { retryUntil } from "./lib/tauri/retry";
   import { getMapDef, floorForHeight, visibleOnFloor } from "./lib/map/mapsData";
@@ -173,6 +175,26 @@
     }
   }
 
+  /** Mark-here: the screenshot paired with the mark key becomes a private pin where I stood. */
+  const markPairer = new MarkPairer((p) => markHere(p));
+
+  function markHere(p: Position) {
+    if (!def) return;
+    const t = new Date();
+    const hhmm = `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
+    placePin({ x: p.x, z: p.z, label: `Marked ${hhmm}`, shared: false });
+    app.toast("Marked");
+  }
+
+  /** The poller runs in Rust; a failure to start it must not break startup. */
+  async function armMarkKey(vk: number) {
+    try {
+      await startMarkKey(vk);
+    } catch (e) {
+      app.toast(`Could not watch the mark-here key: ${e}`);
+    }
+  }
+
   function patchSettings(patch: Partial<Settings>) {
     if (!settings) return;
     settings = { ...settings, ...patch };
@@ -226,6 +248,7 @@
       await armHotkeys(after);
     }
     if (after.gameMode !== before.gameMode) loadQuests(after.gameMode);
+    if (after.markKeyVk !== before.markKeyVk) await armMarkKey(after.markKeyVk);
   }
 
   async function pickDir(kind: "screenshots" | "logs") {
@@ -269,12 +292,13 @@
     const stopDrag = installAltDrag();
     // Each phase is isolated: a failure in one must not stop the others from starting.
     (async () => {
-      stop = await startEventBridge();
+      stop = await startEventBridge({ onPosition: (p) => markPairer.screenshot(p), onMarkKey: () => markPairer.press() });
 
       const s = await loadSettings();
       settings = s;
       if (s.lastMap && !app.currentMap) app.setMap(s.lastMap, "manual");
       await armHotkeys(s);
+      await armMarkKey(s.markKeyVk);
 
       try {
         app.setDone(await loadDone());

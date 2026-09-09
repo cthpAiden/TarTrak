@@ -1,5 +1,6 @@
 mod detect;
 mod logtail;
+mod markkey;
 mod watcher;
 
 use tauri_plugin_window_state::StateFlags;
@@ -23,12 +24,14 @@ pub fn run() {
         )
         .manage(watcher::WatcherState::default())
         .manage(logtail::TailState::default())
+        .manage(markkey::MarkKeyState::default())
         .invoke_handler(tauri::generate_handler![
             watcher::start_screenshot_watcher,
             watcher::stop_screenshot_watcher,
             logtail::start_log_tail_cmd,
             logtail::stop_log_tail_cmd,
             detect::detect_dirs,
+            markkey::start_mark_key,
         ])
         .run(tauri::generate_context!())
         .expect("error while running TarTrak");
