@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.2 - 2026-09-09
+
+### Fixed
+- Mark here fired on the mark key alone or on a plain screenshot: any Alt press and any screenshot within 2 s of each other, in either order, counted. Now it is a real chord. Settings gains **Screenshot key** (PrintScreen unless you changed it in the game's controls), and a marker drops only when that key goes down while the mark-here key is held. Either key on its own does nothing; the screenshot itself still moves your dot as before. The chord waits for the game's screenshot file for 2 s and marks one screenshot at most.
+
 ## 0.8.1 - 2026-09-09
 
 ### Fixed

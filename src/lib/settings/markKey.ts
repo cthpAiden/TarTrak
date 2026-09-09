@@ -10,6 +10,9 @@ export interface MarkKey {
 /** Left Alt: the game still takes a screenshot with it held, unlike Ctrl. */
 export const DEFAULT_MARK_KEY_VK = 0xa4;
 export const MARK_KEY_OFF = 0;
+/** PrintScreen: the game's stock screenshot key. */
+export const DEFAULT_SHOT_KEY_VK = 0x2c;
+export const PRINT_SCREEN_VK = DEFAULT_SHOT_KEY_VK;
 
 const BY_CODE: Record<string, MarkKey> = {
   AltLeft: { vk: 0xa4, label: "Left Alt" },
@@ -51,6 +54,7 @@ const BY_CODE: Record<string, MarkKey> = {
   NumpadDecimal: { vk: 0x6e, label: "Numpad ." },
   NumpadDivide: { vk: 0x6f, label: "Numpad /" },
   NumpadEnter: { vk: 0x0d, label: "Enter" },
+  PrintScreen: { vk: 0x2c, label: "PrintScreen" },
 };
 for (let i = 1; i <= 24; i++) BY_CODE[`F${i}`] = { vk: 0x70 + i - 1, label: `F${i}` };
 for (let i = 0; i < 26; i++) {
@@ -74,7 +78,7 @@ for (const k of [...Object.values(BY_CODE), ...Object.values(BY_BUTTON)]) {
   if (!BY_VK.has(k.vk)) BY_VK.set(k.vk, k.label);
 }
 
-/** The key a capture should record, or null for one the table does not know (PrintScreen included). */
+/** The key a capture should record, or null for one the table does not know. */
 export function markKeyFromCode(code: string): MarkKey | null {
   return BY_CODE[code] ?? null;
 }

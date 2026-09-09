@@ -12,18 +12,18 @@ function pairer() {
 }
 
 describe("MarkPairer", () => {
-  it("marks a screenshot within the window after a press", () => {
+  it("marks a screenshot within the window after a chord", () => {
     const { p, marks } = pairer();
     p.press(1000);
     p.screenshot(P1, 2500);
     expect(marks).toEqual([P1]);
   });
 
-  it("marks the last screenshot when the press comes within the window after it", () => {
+  it("never marks a screenshot that came before the chord", () => {
     const { p, marks } = pairer();
     p.screenshot(P1, 1000);
-    p.press(2900);
-    expect(marks).toEqual([P1]);
+    p.press(1100);
+    expect(marks).toEqual([]);
   });
 
   it("ignores a screenshot outside the window", () => {
@@ -31,11 +31,9 @@ describe("MarkPairer", () => {
     p.press(1000);
     p.screenshot(P1, 3001);
     expect(marks).toEqual([]);
-    p.press(6000);
-    expect(marks).toEqual([]);
   });
 
-  it("one press marks one screenshot only", () => {
+  it("one chord marks one screenshot only", () => {
     const { p, marks } = pairer();
     p.press(1000);
     p.screenshot(P1, 1200);
@@ -43,23 +41,7 @@ describe("MarkPairer", () => {
     expect(marks).toEqual([P1]);
   });
 
-  it("one screenshot is marked once, however many presses follow", () => {
-    const { p, marks } = pairer();
-    p.screenshot(P1, 1000);
-    p.press(1100);
-    p.press(1200);
-    expect(marks).toEqual([P1]);
-  });
-
-  it("a press that already marked does not also arm the next screenshot", () => {
-    const { p, marks } = pairer();
-    p.screenshot(P1, 1000);
-    p.press(1100);
-    p.screenshot(P2, 1200);
-    expect(marks).toEqual([P1]);
-  });
-
-  it("a later press replaces an expired one", () => {
+  it("a later chord replaces an expired one", () => {
     const { p, marks } = pairer();
     p.press(1000);
     p.press(5000);

@@ -1,6 +1,7 @@
-//! Mark-here key poller. Reads the state of one key with `GetAsyncKeyState` every 10 ms and emits
-//! `markkey` on each down-edge. No keyboard hook is installed and no input is ever sent: this is
-//! the same call push-to-talk apps make, and it never touches the game process.
+//! Mark-here chord poller. Reads the state of the mark key and the game's screenshot key with
+//! `GetAsyncKeyState` every 10 ms and emits `markkey` when the screenshot key goes down while the
+//! mark key is held. Either key alone does nothing. No keyboard hook is installed and no input is
+//! ever sent: this is the same call push-to-talk apps make, and it never touches the game process.
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
@@ -42,25 +43,52 @@ impl Edge {
     }
 }
 
-/// Start polling `vk`, replacing any running poller. `vk == 0` only stops; there is no separate
-/// stop command. Windows only: elsewhere the command stops and returns.
+/// The chord: fires on the screenshot key's down-edge while the mark key is down.
+pub struct Chord {
+    shot: Edge,
+}
+
+impl Chord {
+    pub fn new() -> Self {
+        Chord { shot: Edge::new() }
+    }
+
+    pub fn tick(&mut self, mark_down: bool, shot_down: bool) -> bool {
+        // The edge is tracked whether or not the mark key is held, so a screenshot taken without
+        // it, then held down, cannot fire when the mark key is pressed later.
+        let edge = self.shot.pressed(shot_down);
+        edge && mark_down
+    }
+}
+
+/// Start polling the mark key `vk` and the screenshot key `shot_vk`, replacing any running
+/// poller. `vk == 0` only stops; there is no separate stop command. Windows only: elsewhere the
+/// command stops and returns.
 #[tauri::command]
-pub fn start_mark_key(app: AppHandle, state: State<'_, MarkKeyState>, vk: u32) -> Result<(), String> {
+pub fn start_mark_key(
+    app: AppHandle,
+    state: State<'_, MarkKeyState>,
+    vk: u32,
+    shot_vk: u32,
+) -> Result<(), String> {
     let _serial = state.1.lock().map_err(|e| e.to_string())?;
     let generation = state.0.fetch_add(1, Ordering::SeqCst) + 1;
-    if vk == 0 || vk > 0xff {
-        return if vk == 0 { Ok(()) } else { Err(format!("not a virtual-key code: {vk}")) };
+    if vk == 0 {
+        return Ok(());
+    }
+    if vk > 0xff || shot_vk == 0 || shot_vk > 0xff || shot_vk == vk {
+        return Err(format!("not a usable key pair: mark {vk}, screenshot {shot_vk}"));
     }
     if !cfg!(windows) {
         let _ = &app;
         return Ok(());
     }
-    let vk = vk as u16;
+    let (vk, shot_vk) = (vk as u16, shot_vk as u16);
     let counter = Arc::clone(&state.0);
     std::thread::spawn(move || {
-        let mut edge = Edge::new();
+        let mut chord = Chord::new();
         while counter.load(Ordering::SeqCst) == generation {
-            if edge.pressed(key_down(vk)) {
+            if chord.tick(key_down(vk), key_down(shot_vk)) {
                 let _ = app.emit("markkey", ());
             }
             std::thread::sleep(POLL);
@@ -72,6 +100,19 @@ pub fn start_mark_key(app: AppHandle, state: State<'_, MarkKeyState>, vk: u32) -
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn chord_fires_only_on_shot_edge_while_mark_held() {
+        let mut c = Chord::new();
+        assert!(!c.tick(true, false)); // mark alone
+        assert!(c.tick(true, true)); // shot goes down while held
+        assert!(!c.tick(true, true)); // still held: no repeat
+        assert!(!c.tick(false, false));
+        assert!(!c.tick(false, true)); // shot alone
+        assert!(!c.tick(true, true)); // mark pressed after the shot: no fire
+        assert!(!c.tick(true, false));
+        assert!(c.tick(true, true)); // a fresh shot press while held
+    }
 
     #[test]
     fn edge_fires_once_per_press() {

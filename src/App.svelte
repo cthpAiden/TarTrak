@@ -187,9 +187,9 @@
   }
 
   /** The poller runs in Rust; a failure to start it must not break startup. */
-  async function armMarkKey(vk: number) {
+  async function armMarkKey(vk: number, shotVk: number) {
     try {
-      await startMarkKey(vk);
+      await startMarkKey(vk, shotVk);
     } catch (e) {
       app.toast(`Could not watch the mark-here key: ${e}`);
     }
@@ -248,7 +248,7 @@
       await armHotkeys(after);
     }
     if (after.gameMode !== before.gameMode) loadQuests(after.gameMode);
-    if (after.markKeyVk !== before.markKeyVk) await armMarkKey(after.markKeyVk);
+    if (after.markKeyVk !== before.markKeyVk || after.shotKeyVk !== before.shotKeyVk) await armMarkKey(after.markKeyVk, after.shotKeyVk);
   }
 
   async function pickDir(kind: "screenshots" | "logs") {
@@ -298,7 +298,7 @@
       settings = s;
       if (s.lastMap && !app.currentMap) app.setMap(s.lastMap, "manual");
       await armHotkeys(s);
-      await armMarkKey(s.markKeyVk);
+      await armMarkKey(s.markKeyVk, s.shotKeyVk);
 
       try {
         app.setDone(await loadDone());

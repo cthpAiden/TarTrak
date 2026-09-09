@@ -33,4 +33,5 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: src-tauri }
-      - run: cargo test --manifest-path src-tauri/Cargo.toml
+      # --lib: the bin carries a requireAdministrator manifest, so its (empty) test harness cannot start unelevated.
+      - run: cargo test --lib --manifest-path src-tauri/Cargo.toml

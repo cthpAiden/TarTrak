@@ -114,7 +114,7 @@ Hard requirements from the user:
   - Defaults taken without asking (override if wrong): screenshot dir and log dir auto-detected,
     both overridable in settings; manual map picker as fallback when log detection fails;
     teammates shown only when on same map; display name + color persisted locally; MIT license;
-    tests: vitest (TS) + cargo test (Rust); CI: GitHub Actions builds release exe.
+    tests: vitest (TS) + cargo test --lib (Rust; the bin needs elevation since 0.8.1); CI: GitHub Actions builds release exe.
 
 ## Scope
 

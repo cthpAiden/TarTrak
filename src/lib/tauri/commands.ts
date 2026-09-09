@@ -11,5 +11,5 @@ export const startScreenshotWatcher = (dir: string, del: boolean) =>
 export const stopScreenshotWatcher = () => invoke<void>("stop_screenshot_watcher");
 export const startLogTail = (logsRoot: string) => invoke<void>("start_log_tail_cmd", { logsRoot });
 export const stopLogTail = () => invoke<void>("stop_log_tail_cmd");
-/** vk 0 stops the poller. */
-export const startMarkKey = (vk: number) => invoke<void>("start_mark_key", { vk });
+/** Mark fires when `shotVk` goes down while `vk` is held; vk 0 stops the poller. */
+export const startMarkKey = (vk: number, shotVk: number) => invoke<void>("start_mark_key", { vk, shotVk });
