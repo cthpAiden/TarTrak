@@ -494,11 +494,15 @@
           {room.status === "connecting" ? "Squad: connecting…" : "Squad: reconnecting…"}
         </div>
       {/if}
-      {#if overlay && readoutMates.length > 0}
-        <MateReadout mates={readoutMates} />
-      {/if}
-      {#if overlay && raidLeft}
-        <div class="raid-pill" role="timer" aria-label="Time left in raid">{raidLeft}</div>
+      {#if overlay && (readoutMates.length > 0 || raidLeft)}
+        <div class="corner-pills">
+          {#if readoutMates.length > 0}
+            <MateReadout mates={readoutMates} />
+          {/if}
+          {#if raidLeft}
+            <div class="raid-pill" role="timer" aria-label="Time left in raid">{raidLeft}</div>
+          {/if}
+        </div>
       {/if}
       {#if def}
         <MapView

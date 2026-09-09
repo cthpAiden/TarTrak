@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.5 - 2026-09-09
+
+### Overlay
+- The raid timer moved from the map's bottom-left corner to the bottom-right, at the very corner, with the teammate-distance pill to its left when a squad is on. Both pills still let clicks through.
+
 ## 0.7.4 - 2026-09-09
 
 ### Overlay

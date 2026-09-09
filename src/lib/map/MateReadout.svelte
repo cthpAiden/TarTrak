@@ -8,7 +8,7 @@
   } = $props();
 </script>
 
-<!-- Each teammate's distance in their colour: a pill in the map's bottom-right corner. -->
+<!-- Each teammate's distance in their colour: a pill in the map's bottom-right row (App's .corner-pills places it). -->
 <div class="readout">
   {#each mates as m (m.id)}
     <span class="mate" style="color: {safeColor(m.color)}" title={m.name}><span class="dot"></span>{m.distanceM ?? "?"}</span>
@@ -17,7 +17,6 @@
 
 <style>
   .readout {
-    position: absolute; right: 8px; bottom: 8px; z-index: 1000;
     display: flex; align-items: center; gap: 10px;
     height: 26px; padding: 0 10px; box-sizing: border-box; white-space: nowrap;
     background: rgba(30, 35, 43, 0.75); border: 1px solid #3a4048; border-radius: 3px;

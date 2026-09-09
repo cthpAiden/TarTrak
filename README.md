@@ -26,7 +26,7 @@ No memory reading, no injection, no hooks, no keystrokes sent to the game, no ac
 
 Markers never disappear; they dim slowly after 30 s and settle at 35% after 5 minutes.
 
-**Raid timer.** In overlay mode a small pill in the map's bottom-left corner counts down the time left in the
+**Raid timer.** In overlay mode a small pill in the map's bottom-right corner (next to the teammate-distance pill) counts down the time left in the
 raid (mm:ss), from the moment the game log says the raid started against the map's raid length. It lets clicks
 through, shows 00:00 for a minute after the end, and Settings > Raid timer turns it off. PMC raids only: a Scav
 raid joins mid-raid and the log does not say how much time is left, so it would read too high.
