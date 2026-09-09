@@ -31,7 +31,7 @@ const data: QuestData = {
   ],
 };
 
-function open(faction: "any" | "usec" | "bear" = "any") {
+function open(faction: "any" | "usec" | "bear" = "any", showSquadTodo = true) {
   const target = document.body.appendChild(document.createElement("div"));
   const panel = mount(QuestPanel, {
     target,
@@ -46,6 +46,8 @@ function open(faction: "any" | "usec" | "bear" = "any") {
       onTodoChange: () => {},
       shareTodo: false,
       onShareTodo: () => {},
+      showSquadTodo,
+      onShowSquadTodo: () => {},
       faction,
     },
   });
@@ -64,6 +66,19 @@ describe("QuestPanel", () => {
   });
   afterEach(() => {
     document.body.innerHTML = "";
+  });
+
+  it("lists a teammate's shared quests only while squad quests are on", () => {
+    app.upsertTeammate({ id: "aaaaaaaa", name: "Bob", color: "#fff", map: null, x: 0, y: 0, z: 0, yaw: 0, ts: 0, receivedAt: 0 });
+    app.squadTodos = { aaaaaaaa: ["t1"] };
+    const on = open();
+    expect(text(on.target)).toContain("Bob's to-do");
+    void unmount(on.panel);
+    document.body.innerHTML = "";
+    const off = open("any", false);
+    expect(text(off.target)).not.toContain("Bob's to-do");
+    void unmount(off.panel);
+    app.clearTeammates();
   });
 
   it("hides the other faction's quests once a faction is picked, and badges them", () => {

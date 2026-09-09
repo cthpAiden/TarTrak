@@ -59,6 +59,7 @@ offers undo (also Ctrl+Z) and clear-all, which wipes the map for the whole room.
 are on (type to search, "all maps" widens it). Tick a quest there to put it on your to-do; only to-do quests draw
 markers, and the checkbox on a to-do entry marks it done.
 "Share with squad" sends the list to your room, so teammates see those markers too and can copy quests over.
+"See squad's quests" (on by default) shows what teammates share; turn it off to keep the map to your own quests.
 
 **Squad.** Every player marker has a heading line (length adjustable in Settings). While you are in a room, the Squad tab lists your teammates: distance to you when they are on
 your map, otherwise the map they are on, plus how long ago they last reported. Click a row to center on them.

@@ -36,6 +36,8 @@ export interface Settings {
   todoQuests: Record<string, true>;
   /** Send my to-do list to the squad room. */
   shareTodo: boolean;
+  /** Show what teammates share: their to-do list in the panel and its markers on the map. */
+  showSquadTodo: boolean;
   /** Colours I picked for teammates, by name. Only this screen: they still send their own colour. */
   mateColors: Record<string, string>;
 }
@@ -72,6 +74,7 @@ export const DEFAULT_SETTINGS: Settings = {
   layerFilters: {},
   todoQuests: {},
   shareTodo: false,
+  showSquadTodo: true,
   mateColors: {},
 };
 
@@ -99,6 +102,7 @@ const SHAPE: Record<keyof Settings, Kind> = {
   layerFilters: "record",
   todoQuests: "record",
   shareTodo: "boolean",
+  showSquadTodo: "boolean",
   mateColors: "record",
 };
 

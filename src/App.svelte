@@ -69,10 +69,12 @@
   const def = $derived(app.currentMap ? (getMapDef(app.currentMap) ?? null) : null);
   const layerFilters = $derived(settings?.layerFilters ?? {});
   const todoQuests = $derived(settings?.todoQuests ?? {});
-  // Mine plus what teammates share: a quest on either list has its markers on the map.
+  // Mine plus what teammates share, unless squad quests are switched off: a quest on either list has its markers on the map.
   const trackedQuests = $derived.by(() => {
     const ids = new Set(Object.keys(todoQuests));
-    for (const list of Object.values(app.squadTodos)) for (const id of list) ids.add(id);
+    if (settings?.showSquadTodo !== false) {
+      for (const list of Object.values(app.squadTodos)) for (const id of list) ids.add(id);
+    }
     return ids;
   });
   const allQuestMarkers = $derived(app.questData ? extractQuestMarkers(app.questData) : []);
@@ -621,6 +623,8 @@
               onTodoChange={(t) => patchSettings({ todoQuests: t })}
               shareTodo={settings.shareTodo}
               onShareTodo={(on) => patchSettings({ shareTodo: on })}
+              showSquadTodo={settings.showSquadTodo}
+              onShowSquadTodo={(on) => patchSettings({ showSquadTodo: on })}
               faction={settings.faction}
             />
           {:else}

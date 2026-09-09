@@ -22,6 +22,8 @@
     onTodoChange,
     shareTodo,
     onShareTodo,
+    showSquadTodo,
+    onShowSquadTodo,
     faction = "any",
   }: {
     markers: QuestMarker[];
@@ -38,6 +40,9 @@
     /** Send my to-do list to the squad room, so teammates see those markers too. */
     shareTodo: boolean;
     onShareTodo: (on: boolean) => void;
+    /** Show teammates' shared lists here and their markers on the map; off keeps the map to my own quests. */
+    showSquadTodo: boolean;
+    onShowSquadTodo: (on: boolean) => void;
   } = $props();
 
   let search = $state("");
@@ -93,6 +98,7 @@
   /** What teammates share, minus what is already on my list; a list whose owner is gone is not shown. */
   const squad = $derived.by(() => {
     const out: { id: string; name: string; tasks: { t: QuestTask; count: number }[] }[] = [];
+    if (!showSquadTodo) return out;
     for (const [id, ids] of Object.entries(app.squadTodos)) {
       const name = app.teammates[id]?.name;
       if (!name) continue;
@@ -179,9 +185,14 @@
 
   <div class="head">
     <h3>To-do <span class="cnt">{mine.length}</span></h3>
-    <label class="share" title="Teammates in your room see your to-do quests' markers on their map, and you see theirs">
-      <input type="checkbox" checked={shareTodo} onchange={(e) => onShareTodo(e.currentTarget.checked)} /> share with squad
-    </label>
+    <div class="opts">
+      <label class="share" title="Teammates in your room see your to-do quests' markers on their map">
+        <input type="checkbox" checked={shareTodo} onchange={(e) => onShareTodo(e.currentTarget.checked)} /> share with squad
+      </label>
+      <label class="share" title="Show what teammates share: their to-do lists here and their markers on the map. Off keeps the map to your own quests">
+        <input type="checkbox" checked={showSquadTodo} onchange={(e) => onShowSquadTodo(e.currentTarget.checked)} /> see squad's quests
+      </label>
+    </div>
   </div>
   {#if mine.length === 0 && squad.length === 0}
     <p class="muted small">Nothing yet. Tick a quest below to put it on your to-do and on the map.</p>
@@ -297,6 +308,7 @@
   h3.find { margin-top: 8px; padding-top: 8px; border-top: 1px solid #2a2f38; }
   h4 { margin: 6px 0 0; font-size: 12px; color: var(--muted); font-weight: 500; }
   .head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .opts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px 10px; }
   .share { display: flex; align-items: center; gap: 4px; font-size: 12px; white-space: nowrap; }
   .cnt { color: var(--muted); font-size: 11px; font-weight: normal; }
   .row { display: flex; gap: 6px; align-items: center; font-size: 12px; }

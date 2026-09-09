@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Quests
+- **See squad's quests.** A checkbox next to "share with squad" in the Quests tab. Off, teammates' shared to-do lists leave the panel and their markers leave the map, so the map shows only your own quests; on (the default) is what the app did before. It does not stop your own list from being shared.
+
 ## 0.9.0 - 2026-09-09
 
 ### Overlay
