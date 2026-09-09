@@ -134,12 +134,6 @@ describe("mergeSettings", () => {
     expect(mergeSettings({ markKeyVk: "F7" }).markKeyVk).toBe(0xa4);
   });
 
-  it("keeps a screenshot key that is a byte above zero, resets anything else to PrintScreen", () => {
-    expect(mergeSettings({ shotKeyVk: 0x56 }).shotKeyVk).toBe(0x56);
-    expect(mergeSettings({ shotKeyVk: 0 }).shotKeyVk).toBe(0x2c);
-    expect(mergeSettings({ shotKeyVk: 256 }).shotKeyVk).toBe(0x2c);
-    expect(mergeSettings({ shotKeyVk: "V" }).shotKeyVk).toBe(0x2c);
-  });
 });
 
 describe("loadSettings", () => {

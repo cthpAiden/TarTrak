@@ -2,6 +2,7 @@ import { listen } from "@tauri-apps/api/event";
 import { parseScreenshotName, type Position } from "../parse/screenshot";
 import { parseLogLine } from "../parse/log";
 import { resolveMapKey } from "../parse/mapNames";
+import { shotKeyFromBinding } from "../settings/markKey";
 import { app, type AppState } from "../state/app.svelte";
 
 export function handleScreenshot(name: string, state: AppState = app, onPosition?: (p: Position) => void): void {
@@ -17,6 +18,15 @@ const warnedMaps = new Set<string>();
 export function handleLogLine(line: string, state: AppState = app): void {
   const ev = parseLogLine(line);
   if (!ev) return;
+  if (ev.kind === "screenshotKey") {
+    const vk = shotKeyFromBinding(ev.keys);
+    if (vk !== null) state.shotKeyVk = vk;
+    else if (!warnedMaps.has("shot:" + ev.keys.join("+"))) {
+      warnedMaps.add("shot:" + ev.keys.join("+"));
+      state.toast(`Screenshot key in the game log not understood: ${ev.keys.join("+") || "none"}. Mark here assumes PrintScreen.`);
+    }
+    return;
+  }
   if (ev.kind === "gameStarted") {
     // A new raid, possibly on the same map as the last one: the old marker would sit at last raid's spot.
     state.clearOwnPosition();

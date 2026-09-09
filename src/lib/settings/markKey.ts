@@ -87,6 +87,84 @@ export function markKeyFromButton(button: number): MarkKey | null {
   return BY_BUTTON[button] ?? null;
 }
 
+/** Unity KeyCode names the game logs its bindings with, for the keys the code table above does not cover. */
+const UNITY_SPECIAL: Record<string, number> = {
+  Print: 0x2c,
+  Space: 0x20,
+  Tab: 0x09,
+  CapsLock: 0x14,
+  Return: 0x0d,
+  KeypadEnter: 0x0d,
+  Backspace: 0x08,
+  Escape: 0x1b,
+  Insert: 0x2d,
+  Home: 0x24,
+  End: 0x23,
+  PageUp: 0x21,
+  PageDown: 0x22,
+  Delete: 0x2e,
+  UpArrow: 0x26,
+  DownArrow: 0x28,
+  LeftArrow: 0x25,
+  RightArrow: 0x27,
+  ScrollLock: 0x91,
+  Numlock: 0x90,
+  Pause: 0x13,
+  LeftAlt: 0xa4,
+  RightAlt: 0xa5,
+  LeftControl: 0xa2,
+  RightControl: 0xa3,
+  LeftShift: 0xa0,
+  RightShift: 0xa1,
+  BackQuote: 0xc0,
+  Minus: 0xbd,
+  Equals: 0xbb,
+  LeftBracket: 0xdb,
+  RightBracket: 0xdd,
+  Backslash: 0xdc,
+  Semicolon: 0xba,
+  Quote: 0xde,
+  Comma: 0xbc,
+  Period: 0xbe,
+  Slash: 0xbf,
+  KeypadPeriod: 0x6e,
+  KeypadDivide: 0x6f,
+  KeypadMultiply: 0x6a,
+  KeypadMinus: 0x6d,
+  KeypadPlus: 0x6b,
+  Mouse0: 0x01,
+  Mouse1: 0x02,
+  Mouse2: 0x04,
+  Mouse3: 0x05,
+  Mouse4: 0x06,
+};
+
+/** Windows virtual-key code for a Unity KeyCode name, or null for one the table does not know. */
+export function unityKeyToVk(name: string): number | null {
+  if (name in UNITY_SPECIAL) return UNITY_SPECIAL[name];
+  let m = /^([A-Z])$/.exec(name);
+  if (m) return 0x41 + m[1].charCodeAt(0) - 65;
+  m = /^Alpha([0-9])$/.exec(name);
+  if (m) return 0x30 + Number(m[1]);
+  m = /^Keypad([0-9])$/.exec(name);
+  if (m) return 0x60 + Number(m[1]);
+  m = /^F([1-9]|1[0-9]|2[0-4])$/.exec(name);
+  if (m) return 0x70 + Number(m[1]) - 1;
+  return null;
+}
+
+const MODIFIER_VKS = new Set([0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0x10, 0x11, 0x12]);
+
+/**
+ * The key to watch for a screenshot binding the game logged: the first key in it that is not a
+ * modifier (so a binding like Ctrl+F12 watches F12), or null when the list is empty or unknown.
+ */
+export function shotKeyFromBinding(keys: string[]): number | null {
+  const vks = keys.map(unityKeyToVk);
+  if (vks.some((v) => v === null)) return null;
+  return (vks as number[]).find((v) => !MODIFIER_VKS.has(v)) ?? null;
+}
+
 export function markKeyLabel(vk: number): string {
   if (vk === MARK_KEY_OFF) return "Off";
   return BY_VK.get(vk) ?? `Key 0x${vk.toString(16).toUpperCase()}`;

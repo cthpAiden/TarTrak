@@ -55,6 +55,19 @@ describe("handleLogLine", () => {
     expect(s.toasts.map((t) => t.text)).toEqual(["Unknown map in log: SomeNewMap. Pick it manually."]);
   });
 
+  it("takes the screenshot key from the settings dump and toasts once on one it cannot read", () => {
+    const s = new AppState();
+    expect(s.shotKeyVk).toBeNull();
+    handleLogLine('x "keyName":"MakeScreenshot","variants":[{"keyCode":["V"]},{"keyCode":[]}] y', s);
+    expect(s.shotKeyVk).toBe(0x56);
+    handleLogLine('"keyName":"MakeScreenshot","variants":[{"keyCode":["Joystick1Button3"]},{"keyCode":[]}]', s);
+    handleLogLine('"keyName":"MakeScreenshot","variants":[{"keyCode":["Joystick1Button3"]},{"keyCode":[]}]', s);
+    expect(s.shotKeyVk).toBe(0x56);
+    expect(s.toasts.map((t) => t.text)).toEqual([
+      "Screenshot key in the game log not understood: Joystick1Button3. Mark here assumes PrintScreen.",
+    ]);
+  });
+
   it("drops the old position when the log moves to another map, keeps it on the same map", () => {
     const s = new AppState();
     s.setMap("woods", "log");

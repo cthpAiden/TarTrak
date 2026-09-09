@@ -7,6 +7,7 @@
   import { setOverlay, applyOpacity, nextOpacity, installAltDrag, registerHotkeys } from "./lib/tauri/window";
   import { detectDirs, startScreenshotWatcher, startLogTail, startMarkKey, type DetectedDirs } from "./lib/tauri/commands";
   import { MarkPairer } from "./lib/tauri/markHere";
+  import { DEFAULT_SHOT_KEY_VK, markKeyLabel } from "./lib/settings/markKey";
   import type { Position } from "./lib/parse/screenshot";
   import { checkForUpdate } from "./lib/tauri/updater";
   import { retryUntil } from "./lib/tauri/retry";
@@ -248,7 +249,6 @@
       await armHotkeys(after);
     }
     if (after.gameMode !== before.gameMode) loadQuests(after.gameMode);
-    if (after.markKeyVk !== before.markKeyVk || after.shotKeyVk !== before.shotKeyVk) await armMarkKey(after.markKeyVk, after.shotKeyVk);
   }
 
   async function pickDir(kind: "screenshots" | "logs") {
@@ -298,7 +298,6 @@
       settings = s;
       if (s.lastMap && !app.currentMap) app.setMap(s.lastMap, "manual");
       await armHotkeys(s);
-      await armMarkKey(s.markKeyVk, s.shotKeyVk);
 
       try {
         app.setDone(await loadDone());
@@ -350,6 +349,15 @@
   $effect(() => {
     const p = app.ownPos;
     if (p) room.onOwnPosition(app.currentMap, p);
+  });
+
+  // The chord poller follows the mark key setting and the screenshot key the game log reports;
+  // before the log says, it assumes the game's stock PrintScreen.
+  $effect(() => {
+    const vk = settings?.markKeyVk;
+    const shot = app.shotKeyVk ?? DEFAULT_SHOT_KEY_VK;
+    if (vk === undefined) return;
+    void armMarkKey(vk, shot);
   });
 
   function placePin(p: { x: number; z: number; label: string; shared: boolean }) {
@@ -600,6 +608,7 @@
               {settings}
               onChange={applySettings}
               onPickDir={pickDir}
+              shotKey={app.shotKeyVk === null ? "PrintScreen (game log not read yet)" : `${markKeyLabel(app.shotKeyVk)} (from the game log)`}
               onInvalid={(m) => app.toast(m)}
               onCheckUpdate={() => checkForUpdate((m) => app.toast(m), { manual: true }).catch((e) => app.toast(`Update failed: ${e}`))}
             />

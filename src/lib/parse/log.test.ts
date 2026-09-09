@@ -32,6 +32,17 @@ describe("parseLogLine", () => {
     expect(parseLogLine("")).toBeNull();
   });
 
+  it("reads the screenshot binding out of the control-settings dump", () => {
+    const line =
+      '{"InvertedXAxis":false,"keyBindings":[{"keyName":"OpticCalibrationSwitchDown","variants":[{"keyCode":["PageDown"],"axisName":""},{"keyCode":[]}],"pressType":"Press"},{"keyName":"MakeScreenshot","variants":[{"keyCode":["V"]},{"keyCode":[]}],"pressType":"Press"},{"keyName":"Recorder","variants":[{"keyCode":[]},{"keyCode":[]}],"pressType":"Release"}]}';
+    expect(parseLogLine(line)).toEqual({ kind: "screenshotKey", keys: ["V"] });
+    expect(parseLogLine('"keyName":"MakeScreenshot","variants":[{"keyCode":["LeftAlt","F12"]},{"keyCode":[]}]')).toEqual({
+      kind: "screenshotKey",
+      keys: ["LeftAlt", "F12"],
+    });
+    expect(parseLogLine('"keyName":"MakeScreenshot","variants":[{"keyCode":[]},{"keyCode":[]}]')).toEqual({ kind: "screenshotKey", keys: [] });
+  });
+
   it("finds preset, location and gameStarted in the real excerpt, in that order", () => {
     const events = excerpt.map(parseLogLine).filter((e) => e !== null);
     const kinds = events.map((e) => e!.kind);

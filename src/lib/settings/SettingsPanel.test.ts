@@ -146,37 +146,15 @@ describe("SettingsPanel mark-here key", () => {
     clickCapture(btn);
     key("PrintScreen");
     expect(changes).toEqual([]);
-    expect(invalid).toEqual(["PrintScreen is the screenshot key; pick another key to hold"]);
+    expect(invalid).toEqual(["PrintScreen is a screenshot key; pick another key to hold"]);
     expect(btn.textContent?.trim()).toBe("Press a key…");
     void unmount(panel);
   });
 
-  it("captures the screenshot key, PrintScreen on its release, and never turns it off", () => {
-    const { target, panel, changes } = open({ shotKeyVk: 0x56 });
-    const btn = target.querySelector<HTMLButtonElement>("#set-shot-key")!;
-    expect(btn.textContent?.trim()).toBe("V");
-    clickCapture(btn);
-    expect(btn.textContent?.trim()).toBe("Press a key…");
-    key("Backspace");
-    expect(changes).toEqual([]);
-    expect(btn.textContent?.trim()).toBe("V");
-    clickCapture(btn);
-    window.dispatchEvent(new KeyboardEvent("keyup", { code: "PrintScreen", bubbles: true, cancelable: true }));
-    flushSync();
-    expect(changes).toEqual([{ shotKeyVk: 0x2c }]);
-    void unmount(panel);
-  });
-
-  it("only one field captures at a time", () => {
-    const { target, panel, changes } = open();
-    const mark = target.querySelector<HTMLButtonElement>("#set-mark-key")!;
-    const shot = target.querySelector<HTMLButtonElement>("#set-shot-key")!;
-    clickCapture(mark);
-    clickCapture(shot);
-    expect(mark.textContent?.trim()).toBe("Left Alt");
-    expect(shot.textContent?.trim()).toBe("Press a key…");
-    key("KeyV");
-    expect(changes).toEqual([{ shotKeyVk: 0x56 }]);
+  it("shows the screenshot key the game log reported, read-only", () => {
+    const { target, panel } = open();
+    expect(target.querySelector("[data-testid=shot-key]")?.textContent?.trim()).toBe("PrintScreen");
+    expect(target.querySelector("#set-shot-key")).toBeNull();
     void unmount(panel);
   });
 

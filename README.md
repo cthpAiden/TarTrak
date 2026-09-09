@@ -34,8 +34,9 @@ Markers never disappear; they dim slowly after 30 s and settle at 35% after 5 mi
 **Mark here.** Hold the mark-here key (Left Alt by default) and press the game's screenshot key: a private
 marker labelled with the time drops where you stand, on top of the usual dot move. Either key alone does
 nothing. Settings > Mark-here key rebinds the held key to any key or a middle or side mouse button (Backspace
-turns it off); Settings > Screenshot key must match the game's screenshot binding (PrintScreen unless you
-changed it). Ctrl does not work as the held key: the game ignores its screenshot key while Ctrl is held.
+turns it off). The screenshot key is read from the game's log, where the game lists its control bindings
+at start, so a rebound screenshot key just works; Settings shows the key it read. Ctrl does not work as
+the held key: the game ignores its screenshot key while Ctrl is held.
 
 **Raid timer.** In overlay mode a small pill in the map's bottom-right corner (next to the teammate-distance pill) counts down the time left in the
 raid (mm:ss), from the moment the game log says the raid started against the map's raid length. It lets clicks

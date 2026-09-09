@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.3 - 2026-09-09
+
+### Fixed
+- The 0.8.2 "Screenshot key" setting was left at PrintScreen by anyone who rebinds the game's screenshot key, so the mark chord never fired. The setting is gone: the game writes its control bindings to its log at start, and TarTrak now reads the screenshot binding (`MakeScreenshot`) from there, at launch and whenever the game restarts. Settings shows the key it read. A binding it cannot read (a controller button) gets one toast and falls back to PrintScreen.
+
 ## 0.8.2 - 2026-09-09
 
 ### Fixed

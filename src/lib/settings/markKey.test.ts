@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { DEFAULT_MARK_KEY_VK, DEFAULT_SHOT_KEY_VK, markKeyFromButton, markKeyFromCode, markKeyLabel } from "./markKey";
+import { DEFAULT_MARK_KEY_VK, DEFAULT_SHOT_KEY_VK, markKeyFromButton, markKeyFromCode, markKeyLabel, shotKeyFromBinding, unityKeyToVk } from "./markKey";
 
 describe("mark key table", () => {
   it("knows modifiers on their own, function keys, letters and digits", () => {
@@ -23,6 +23,27 @@ describe("mark key table", () => {
     expect(markKeyFromButton(1)?.label).toBe("Middle Mouse");
     expect(markKeyFromButton(0)).toBeNull();
     expect(markKeyFromButton(2)).toBeNull();
+  });
+
+  it("maps the game's Unity key names to virtual-key codes", () => {
+    expect(unityKeyToVk("V")).toBe(0x56);
+    expect(unityKeyToVk("Print")).toBe(0x2c);
+    expect(unityKeyToVk("Alpha7")).toBe(0x37);
+    expect(unityKeyToVk("Keypad3")).toBe(0x63);
+    expect(unityKeyToVk("F12")).toBe(0x7b);
+    expect(unityKeyToVk("Mouse4")).toBe(0x06);
+    expect(unityKeyToVk("LeftControl")).toBe(0xa2);
+    expect(unityKeyToVk("Joystick1Button3")).toBeNull();
+    expect(unityKeyToVk("")).toBeNull();
+  });
+
+  it("picks the non-modifier key of a logged screenshot binding, null when empty or unknown", () => {
+    expect(shotKeyFromBinding(["V"])).toBe(0x56);
+    expect(shotKeyFromBinding(["LeftControl", "F12"])).toBe(0x7b);
+    expect(shotKeyFromBinding(["Print"])).toBe(0x2c);
+    expect(shotKeyFromBinding([])).toBeNull();
+    expect(shotKeyFromBinding(["LeftAlt"])).toBeNull();
+    expect(shotKeyFromBinding(["Joystick1Button3"])).toBeNull();
   });
 
   it("labels a stored code, Off for zero, hex for a code it does not know", () => {

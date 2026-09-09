@@ -34,10 +34,13 @@ ends when a generation counter moves on, so a restart never leaves two pollers. 
 other targets the command is a no-op. No hook, no injected input: the same call push-to-talk apps
 make. Read as a single sentence into the README's ban-safety section.
 
-**Chord (0.8.2).** The 2 s either-order pairing marked on a bare Alt (Alt+Tab, Alt+drag) or a bare
-screenshot after one, which the user rejected. Now the setting `shotKeyVk` (default PrintScreen 0x2C,
-never 0, captured like the mark key with PrintScreen taken on keyup because the webview gets no
-keydown for it) names the game's screenshot key, the Rust poller reads both keys and emits `markkey`
+**Chord (0.8.2, key source changed in 0.8.3).** The 2 s either-order pairing marked on a bare Alt
+(Alt+Tab, Alt+drag) or a bare screenshot after one, which the user rejected. The game's screenshot
+key comes from its log: at start the game dumps its control settings as one JSON line holding
+`"keyName":"MakeScreenshot","variants":[{"keyCode":["V"]},...]` (Unity KeyCode names);
+`parseLogLine` yields `screenshotKey`, `shotKeyFromBinding` maps it to a VK (first non-modifier key),
+`AppState.shotKeyVk` holds it (null until the log says, PrintScreen assumed) and Settings shows it
+read-only. The 0.8.2 `shotKeyVk` setting was dropped: left at PrintScreen it silenced the chord. the Rust poller reads both keys and emits `markkey`
 only on the screenshot key's down-edge while the mark key is down (`Chord::tick`), and `MarkPairer`
 marks only the next screenshot within 2 s after a chord, never a screenshot before it.
 

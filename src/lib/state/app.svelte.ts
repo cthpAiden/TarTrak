@@ -56,6 +56,8 @@ export class AppState {
   mapSource = $state<MapSource | null>(null);
   /** Epoch ms of the log's GameStarted line for the current raid; null before one or after a map change. */
   raidStartedAt = $state<number | null>(null);
+  /** The game's screenshot key as a virtual-key code, read from its log; null until the log says. */
+  shotKeyVk = $state<number | null>(null);
   teammates = $state<Record<string, Teammate>>({});
   pins = $state<Record<string, Pin>>({});
   drawings = $state<Record<string, Drawing>>({});

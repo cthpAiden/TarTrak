@@ -14,12 +14,14 @@
     openUrl(href).catch((err) => onInvalid?.(`Could not open ${href}: ${err}`));
   }
 
-  let { settings, onChange, onPickDir, onInvalid, onCheckUpdate }: {
+  let { settings, onChange, onPickDir, onInvalid, onCheckUpdate, shotKey = "PrintScreen" }: {
     settings: Settings;
     onChange: (patch: Partial<Settings>) => void;
     onPickDir: (kind: "screenshots" | "logs") => void;
     onInvalid?: (msg: string) => void;
     onCheckUpdate?: () => void;
+    /** The game's screenshot key as read from its log, for display. */
+    shotKey?: string;
   } = $props();
 
   /** An unparseable hotkey would be stored and the key would then silently stop working. */
@@ -46,13 +48,12 @@
   let opacityKey = $state(untrack(() => settings.hotkeyOpacity));
   let lineLen = $state(untrack(() => settings.lineLengthM));
 
-  /** Which key field is waiting for the next key or mouse button pressed anywhere, if any. */
-  let capturing = $state<"markKeyVk" | "shotKeyVk" | null>(null);
+  /** While true, the next key or mouse button pressed anywhere becomes the mark-here key. */
+  let capturing = $state(false);
 
   function bindKey(vk: number) {
-    const which = capturing!;
-    capturing = null;
-    onChange({ [which]: vk });
+    capturing = false;
+    onChange({ markKeyVk: vk });
   }
 
   function captureKey(e: KeyboardEvent) {
@@ -61,13 +62,11 @@
     e.stopPropagation();
     if (e.repeat) return;
     if (e.code === "Escape") {
-      capturing = null;
+      capturing = false;
       return;
     }
     if (e.code === "Backspace" || e.code === "Delete") {
-      // The screenshot key cannot be off: the mark fires on it.
-      if (capturing === "markKeyVk") bindKey(MARK_KEY_OFF);
-      else capturing = null;
+      bindKey(MARK_KEY_OFF);
       return;
     }
     const key = markKeyFromCode(e.code);
@@ -75,17 +74,14 @@
       onInvalid?.(`Cannot bind ${e.code || "that key"}`);
       return;
     }
-    if (capturing === "markKeyVk" && key.vk === PRINT_SCREEN_VK) {
-      onInvalid?.("PrintScreen is the screenshot key; pick another key to hold");
+    if (key.vk === PRINT_SCREEN_VK) {
+      onInvalid?.("PrintScreen is a screenshot key; pick another key to hold");
       return;
     }
     bindKey(key.vk);
   }
 
-  /** Windows hands PrintScreen to the webview on release only, so the capture listens for that too. */
-  function captureKeyUp(e: KeyboardEvent) {
-    if (capturing && e.code === "PrintScreen") captureKey(e);
-  }
+
 
   /** The mouse button just bound, whose mouseup and auxclick still have to be swallowed. */
   let boundButton = -1;
@@ -97,7 +93,7 @@
     const key = markKeyFromButton(e.button);
     // A left or right click on anything else just ends the capture.
     if (!key) {
-      capturing = null;
+      capturing = false;
       if (e.button === 2) e.preventDefault();
       return;
     }
@@ -121,7 +117,6 @@
 
 <svelte:window
   onkeydown={captureKey}
-  onkeyup={captureKeyUp}
   onmousedown={captureButton}
   onmouseup={swallowButton}
   onauxclick={swallowButton}
@@ -188,27 +183,19 @@
         placeholder="F6"
       />
 
-      <label for="set-mark-key" title="Hold this key and press the screenshot key: a private marker drops where you stand. Nothing happens on either key alone. Backspace turns it off.">Mark-here key</label>
+      <label for="set-mark-key" title="Hold this key and press the game's screenshot key: a private marker drops where you stand. Nothing happens on either key alone. Backspace turns it off.">Mark-here key</label>
       <button
         id="set-mark-key"
         type="button"
         class="capture"
-        class:capturing={capturing === "markKeyVk"}
-        onclick={() => (capturing = capturing === "markKeyVk" ? null : "markKeyVk")}
+        class:capturing
+        onclick={() => (capturing = !capturing)}
       >
-        {capturing === "markKeyVk" ? "Press a key…" : markKeyLabel(settings.markKeyVk)}
+        {capturing ? "Press a key…" : markKeyLabel(settings.markKeyVk)}
       </button>
 
-      <label for="set-shot-key" title="The key the game takes screenshots with: PrintScreen unless you changed it in the game's controls. The mark fires only on this key while the mark-here key is held.">Screenshot key</label>
-      <button
-        id="set-shot-key"
-        type="button"
-        class="capture"
-        class:capturing={capturing === "shotKeyVk"}
-        onclick={() => (capturing = capturing === "shotKeyVk" ? null : "shotKeyVk")}
-      >
-        {capturing === "shotKeyVk" ? "Press a key…" : markKeyLabel(settings.shotKeyVk)}
-      </button>
+      <span title="The key the game takes screenshots with, read from the game's log when it starts. Change it in the game's controls, not here.">Screenshot key</span>
+      <span class="small muted" data-testid="shot-key">{shotKey}</span>
 
       <label for="set-raid-timer" title="Overlay pill with the time left in the raid, counted from the moment the log says the raid started. PMC raids only: a Scav raid joins late and reads too high.">Raid timer</label>
       <input

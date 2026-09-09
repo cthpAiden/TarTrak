@@ -1,7 +1,7 @@
 import { load } from "@tauri-apps/plugin-store";
 import { FILTER_KEY_RE } from "../layers/filters";
 import { GAME_MODES, type GameMode } from "../quests/jsonSource";
-import { DEFAULT_MARK_KEY_VK, DEFAULT_SHOT_KEY_VK } from "./markKey";
+import { DEFAULT_MARK_KEY_VK } from "./markKey";
 
 export interface Settings {
   screenshotsDir: string | null;
@@ -19,8 +19,6 @@ export interface Settings {
   hotkeyOpacity: string;
   /** Windows virtual-key code of the mark-here key; 0 turns it off. */
   markKeyVk: number;
-  /** Windows virtual-key code of the game's screenshot key; the mark fires only on this key while the mark key is held. */
-  shotKeyVk: number;
   lastMap: string | null;
   lastRoom: string;
   /** Heading line length in metres, at most 50. */
@@ -62,7 +60,6 @@ export const DEFAULT_SETTINGS: Settings = {
   hotkeyOverlay: "F5",
   hotkeyOpacity: "F6",
   markKeyVk: DEFAULT_MARK_KEY_VK,
-  shotKeyVk: DEFAULT_SHOT_KEY_VK,
   lastMap: null,
   lastRoom: "",
   lineLengthM: 125,
@@ -89,7 +86,6 @@ const SHAPE: Record<keyof Settings, Kind> = {
   hotkeyOverlay: "string",
   hotkeyOpacity: "string",
   markKeyVk: "number",
-  shotKeyVk: "number",
   lastMap: "string?",
   lastRoom: "string",
   lineLengthM: "number",
@@ -155,7 +151,6 @@ export function mergeSettings(partial: unknown): Settings {
   out.lineLengthM = clamp(out.lineLengthM, 5, 125);
   out.playerLevel = clamp(out.playerLevel, 0, 79);
   if (!Number.isInteger(out.markKeyVk) || out.markKeyVk < 0 || out.markKeyVk > 255) out.markKeyVk = DEFAULT_MARK_KEY_VK;
-  if (!Number.isInteger(out.shotKeyVk) || out.shotKeyVk < 1 || out.shotKeyVk > 255) out.shotKeyVk = DEFAULT_SHOT_KEY_VK;
   if (!GAME_MODES.includes(out.gameMode)) out.gameMode = DEFAULT_SETTINGS.gameMode;
   if (!FACTIONS.includes(out.faction)) out.faction = DEFAULT_SETTINGS.faction;
   if (!ROOM_CODE_RE.test(out.lastRoom)) out.lastRoom = "";
