@@ -51,6 +51,11 @@ describe("loadMapDefs", () => {
     expect(gz.extents![0].bounds!.length).toBeGreaterThan(1);
   });
 
+  it("replaces tarkov.dev's Icebreaker transform with the isotropic fit", () => {
+    // Upstream's [2, 125, 3.5, 91] puts the ship's doors off their decks; see TRANSFORM_FIXES.
+    expect(getMapDef("icebreaker")?.transform).toEqual([1.95, 126, 1.95, 112]);
+  });
+
   it("excludes non-interactive projections", () => {
     const defs = loadMapDefs();
     expect(defs).toHaveLength(13);

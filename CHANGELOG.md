@@ -9,6 +9,7 @@
 - **Your marker wears your colour.** Your own position marker is drawn in the colour you picked in the Squad tab instead of a fixed yellow, and a colour or name change while in a room reaches every teammate at once (a fresh hello plus your last position) instead of waiting for a rejoin. A teammate who sends the same colour as yours is shown in a spare colour on your screen, like two teammates with the same colour already were.
 
 ### Fixed
+- **Icebreaker tracking.** Two bugs. The game log's `Icebreaker` location name was unknown, so the app never switched to that map by itself (the "Unknown map in log" toast) and stayed on the previous raid's map. And tarkov.dev's Icebreaker map transform is wrong: it stretches the ship's long axis 1.75x, which put your marker off the hull and 8 of the ship's 11 doors off their decks. TarTrak now uses its own fit for that map (every door on its deck, the game's spawn points on the hull).
 - **Only one TarTrak at a time.** Launching TarTrak while it is already running (typically after hiding it with F7 and forgetting) no longer starts a second copy that fights the first over the hotkeys and the log. The second launch exits at once; the running one toasts "An instance of TarTrak is already running" and comes back unhidden, unminimized and focused.
 
 ## 0.9.1 - 2026-09-09

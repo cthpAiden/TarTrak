@@ -81,6 +81,16 @@ interface RawGroup {
 let cache: MapDef[] | null = null;
 
 /**
+ * Transforms that replace tarkov.dev's. Icebreaker ships as [2, 125, 3.5, 91]: an anisotropic scale
+ * that puts 8 of its 11 doors off their deck and a fifth of its points off the tiles. The tiles are
+ * to scale (a 121 x 26 m hull, the class the ship is modelled on), so one scale serves both axes;
+ * this one is the fit that lands every door on its deck and nearly every spawn on the hull.
+ */
+const TRANSFORM_FIXES: Record<string, RawMap["transform"]> = {
+  icebreaker: [1.95, 126, 1.95, 112],
+};
+
+/**
  * tarkov.dev leaves some floor extents unbounded: Shoreline's "2nd Floor" is anything between -1 and
  * 2 m anywhere on the map, which would put a hillside at that height on the resort's 2nd floor.
  * data/floorBounds.json (scripts/floor-bounds.mjs) traces the floor drawings in the map SVG into
@@ -101,7 +111,7 @@ export function loadMapDefs(): MapDef[] {
       .map((m) => ({
         key: m.key,
         name: DISPLAY_NAMES[m.key] ?? m.key,
-        transform: m.transform,
+        transform: TRANSFORM_FIXES[m.key] ?? m.transform,
         coordinateRotation: m.coordinateRotation ?? 0,
         bounds: m.bounds,
         svgPath: m.svgPath,

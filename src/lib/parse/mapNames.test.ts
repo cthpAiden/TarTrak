@@ -19,6 +19,7 @@ describe("resolveMapKey", () => {
     ["Sandbox_high", "ground-zero"],
     ["Labyrinth", "the-labyrinth"],
     ["Terminal", "terminal"],
+    ["Icebreaker", "icebreaker"],
   ])("%s -> %s", (input, expected) => {
     expect(resolveMapKey(input)).toBe(expected);
   });

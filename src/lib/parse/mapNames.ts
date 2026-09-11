@@ -15,6 +15,7 @@ const MAP_KEYS: Record<string, string> = {
   sandbox_high: "ground-zero",
   labyrinth: "the-labyrinth",
   terminal: "terminal",
+  icebreaker: "icebreaker",
 };
 
 export function resolveMapKey(logName: string): string | null {
