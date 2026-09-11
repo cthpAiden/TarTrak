@@ -147,6 +147,29 @@ describe("RoomClient", () => {
     expect(JSON.parse(second.sent[1])).toMatchObject({ type: "pos", map: "customs", x: 7 });
   });
 
+  it("re-sends hello and the last position with the new identity", () => {
+    const { client } = make();
+    client.connect();
+    const ws = FakeWs.instances[0];
+    ws.open();
+    client.sendPosition("customs", { x: 7, y: 0, z: 0, yaw: 0 });
+    vi.advanceTimersByTime(500);
+    ws.sent.length = 0;
+    client.setIdentity("Ann", "#0f0");
+    expect(ws.sent.map((s) => JSON.parse(s).type)).toEqual(["hello", "pos"]);
+    expect(JSON.parse(ws.sent[0])).toEqual({ type: "hello", name: "Ann", color: "#0f0" });
+    expect(JSON.parse(ws.sent[1])).toMatchObject({ type: "pos", name: "Ann", color: "#0f0", x: 7 });
+  });
+
+  it("sends a new identity in the hello of the next connection when the socket is down", () => {
+    const { client } = make();
+    client.setIdentity("Ann", "#0f0");
+    client.connect();
+    const ws = FakeWs.instances[0];
+    ws.open();
+    expect(JSON.parse(ws.sent[0])).toEqual({ type: "hello", name: "Ann", color: "#0f0" });
+  });
+
   it("reconnects with doubling backoff capped at 30 s and stops after close()", () => {
     const { client, statuses } = make();
     client.connect();

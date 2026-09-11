@@ -586,6 +586,7 @@
           route={routePoint ? { x: routePoint.x, z: routePoint.z, name: routePoint.name } : null}
           {drawMode}
           drawColor={settings?.color ?? DEFAULT_SETTINGS.color}
+          ownColor={settings?.color ?? DEFAULT_SETTINGS.color}
           onDraw={addDrawing}
           onUndoDraw={undoDrawing}
           onClearDraw={clearDrawings}

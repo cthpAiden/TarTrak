@@ -41,6 +41,7 @@
     route,
     drawMode,
     drawColor,
+    ownColor,
     onDraw,
     onUndoDraw,
     onClearDraw,
@@ -68,6 +69,8 @@
     /** While on, a left drag draws a stroke instead of panning. */
     drawMode: boolean;
     drawColor: string;
+    /** My own marker's colour: the one I picked, the same one the room sees me in. */
+    ownColor: string;
     /** A finished stroke as game-coordinate [x, z] pairs, at least two. */
     onDraw: (points: [number, number][]) => void;
     onUndoDraw: () => void;
@@ -77,7 +80,6 @@
   // Before the first marker exists: 2D transforms keep the renderer from giving every marker a layer.
   installFlatMarkers();
 
-  const OWN_COLOR = "#f0b429";
   const ROUTE_COLOR = "#f0b429";
   /** A drag adds a point every few pixels; finer only bloats the stroke without changing its look. */
   const DRAW_MIN_PX = 3;
@@ -355,13 +357,15 @@
     const t = now;
     const m = map;
     const len = lineLengthM;
+    const color = safeColor(ownColor);
     if (!m) return;
     if (!p) {
       own?.remove();
       own = null;
       return;
     }
-    if (!own) own = new PositionMarker(m, { color: OWN_COLOR, radius: 6, lineLengthM: len, pane: OWN_PANE });
+    if (!own) own = new PositionMarker(m, { color, radius: 6, lineLengthM: len, pane: OWN_PANE });
+    own.setColor(color);
     own.update(p.x, p.z, p.yaw);
     own.setOpacity(opacityFor(t - updatedAt));
   });

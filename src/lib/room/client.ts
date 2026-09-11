@@ -118,11 +118,33 @@ export class RoomClient {
     this.flush();
   }
 
+  /**
+   * A name or colour picked while in a room. The hello tells the room who I am now; the last position
+   * goes again with it, because a teammate who already lists me reads their colour off my pos.
+   */
+  setIdentity(name: string, color: string): void {
+    this.opts.name = name;
+    this.opts.color = color;
+    if (!this.ws || this.ws.readyState !== WS_OPEN) return;
+    this.sendHello(this.ws);
+    if (!this.lastPos) return;
+    // Built with the old identity, so it is rebuilt rather than resent as it stands.
+    this.lastPos = { ...this.lastPos, name, color };
+    this.pending = this.lastPos;
+    this.flush();
+  }
+
   /** Sent at once, unthrottled; false while the socket is down so the caller can say so. */
   send(msg: ActionMsg): boolean {
     if (!this.ws || this.ws.readyState !== WS_OPEN) return false;
     this.ws.send(JSON.stringify(msg));
     return true;
+  }
+
+  private sendHello(ws: WebSocketLike): void {
+    const hello: HelloMsg = { type: "hello", name: this.opts.name, color: this.opts.color };
+    if (this.opts.version) hello.version = this.opts.version;
+    ws.send(JSON.stringify(hello));
   }
 
   private now(): number {
@@ -214,9 +236,7 @@ export class RoomClient {
       this.backoff = BACKOFF_MIN_MS;
       this.setStatus("open");
       this.startHeartbeat(ws);
-      const hello: HelloMsg = { type: "hello", name: this.opts.name, color: this.opts.color };
-      if (this.opts.version) hello.version = this.opts.version;
-      ws.send(JSON.stringify(hello));
+      this.sendHello(ws);
       // The reconnect got a fresh relay id, so the room only knows the new us once we say where
       // we are; waiting for the next screenshot would leave a gap in everyone else's map.
       this.pending ??= this.lastPos;

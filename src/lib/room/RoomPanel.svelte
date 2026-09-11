@@ -94,6 +94,8 @@
   /** The code is persisted only on join, so a half-typed one is never stored. */
   function persistIdentity() {
     onSettingsChange({ name, color });
+    // Storing it alone would leave the room seeing the old one until I rejoin.
+    if (room.code) room.setIdentity(name, color);
   }
   function create() {
     code = generateRoomCode();

@@ -28,6 +28,10 @@ class FakeClient implements RoomClientLike {
   sendPosition(map: string | null, p: Position) {
     this.sent.push({ map, p });
   }
+  identity: { name: string; color: string } | null = null;
+  setIdentity(name: string, color: string) {
+    this.identity = { name, color };
+  }
   open = true;
   sentPins: unknown[] = [];
   send(msg: unknown) {
@@ -377,6 +381,32 @@ describe("RoomController", () => {
     expect(app.teammates.cccccccc.color).toBe(DISTINCT_COLORS[0]);
     client.onMessage(pos("cccccccc", "Bob", "#0f0"));
     expect(app.teammates.cccccccc.color).toBe("#0f0");
+  });
+
+  it("shows a teammate who sends my own colour in a spare one", () => {
+    const { client } = makeController();
+    client.onMessage(pos("aaaaaaaa", "Ann", "#fff"));
+    expect(app.teammates.aaaaaaaa.color).toBe(DISTINCT_COLORS[0]);
+  });
+
+  it("tells the room about a new colour and moves a teammate off it", () => {
+    const { room: controller, client } = makeController();
+    client.onMessage(pos("aaaaaaaa", "Ann", "#0f0"));
+    expect(app.teammates.aaaaaaaa.color).toBe("#0f0");
+    controller.setIdentity("Me", "#0f0");
+    expect(client.identity).toEqual({ name: "Me", color: "#0f0" });
+    client.onMessage(pos("aaaaaaaa", "Ann", "#0f0"));
+    expect(app.teammates.aaaaaaaa.color).toBe(DISTINCT_COLORS[0]);
+  });
+
+  it("recolours a teammate who sends a second hello", () => {
+    const { client } = makeController();
+    client.onMessage(hello("aaaaaaaa", "Ann"));
+    expect(app.teammates.aaaaaaaa.color).toBe("#f00");
+    client.onMessage({ type: "hello", id: "aaaaaaaa", name: "Ann", color: "#0f0", version: APP_VERSION });
+    expect(app.teammates.aaaaaaaa.color).toBe("#0f0");
+    // Still the one joining toast: a recolour is not an arrival.
+    expect(app.toasts.map((t) => t.text)).toEqual(["Ann joined the room"]);
   });
 
   it("starts the colour bookkeeping afresh on each join", () => {

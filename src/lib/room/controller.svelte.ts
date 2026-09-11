@@ -11,6 +11,7 @@ export interface RoomClientLike {
   close(): void;
   sendPosition(map: string | null, p: Position): void;
   send(msg: ActionMsg): boolean;
+  setIdentity(name: string, color: string): void;
 }
 
 export class RoomController {
@@ -19,6 +20,8 @@ export class RoomController {
   private client: RoomClientLike | null = null;
   /** The name I joined with; a message carrying it is my own stale socket, never a teammate. */
   private name = "";
+  /** The colour my own marker is drawn in: a teammate who sends it needs a stand-in. */
+  private color = "";
   private errorToasted = false;
   private wasOpen = false;
   private outageToasted = false;
@@ -43,6 +46,7 @@ export class RoomController {
     this.leave();
     this.code = code.toUpperCase();
     this.name = name;
+    this.color = color;
     this.errorToasted = false;
     this.wasOpen = false;
     this.outageToasted = false;
@@ -79,6 +83,15 @@ export class RoomController {
     this.client.connect();
     // Without this the room only learns where we are on our next screenshot.
     if (app.ownPos) this.client.sendPosition(app.currentMap, app.ownPos);
+  }
+
+  /** A name or colour picked while in a room: the room learns it now instead of on the next join. */
+  setIdentity(name: string, color: string): void {
+    this.name = name;
+    // My colour is one nobody else may be drawn in, so the stand-ins are worked out again.
+    if (color !== this.color) this.shownColors = new Map();
+    this.color = color;
+    this.client?.setIdentity(name, color);
   }
 
   leave(): void {
@@ -158,12 +171,13 @@ export class RoomController {
 
   /**
    * Two teammates who both send the stock colour would be told apart by nothing, so the later one
-   * is shown in a spare colour instead. Judged against the colours the others are shown in now.
+   * is shown in a spare colour instead. Judged against the colours the others are shown in now,
+   * plus my own: my marker wears the colour I picked, so a teammate sending it is just as ambiguous.
    */
   private shownColor(name: string, sent: string): string {
     const known = this.shownColors.get(name);
     if (known && known.sent === sent) return known.shown;
-    const taken = Object.values(app.teammates).filter((t) => t.name !== name).map((t) => t.color);
+    const taken = [this.color, ...Object.values(app.teammates).filter((t) => t.name !== name).map((t) => t.color)];
     const shown = distinctColor(sent, taken);
     this.shownColors.set(name, { sent, shown });
     return shown;
@@ -217,7 +231,12 @@ export class RoomController {
     this.dropGhost(m.id, m.name);
     const color = this.shownColor(m.name, m.color);
     if (m.type === "hello") {
-      if (app.teammates[m.id]) return;
+      const known = app.teammates[m.id];
+      // A second hello from a socket I already list is that person renaming or recolouring themselves.
+      if (known) {
+        if (known.name !== m.name || known.color !== color) app.upsertTeammate({ ...known, name: m.name, color });
+        return;
+      }
       if (!rejoin) app.toast(`${m.name} joined the room`);
       // Listed at once, so a joiner who has not taken a screenshot yet still shows up as present.
       app.upsertTeammate({

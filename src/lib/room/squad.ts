@@ -29,7 +29,7 @@ export function safeColor(c: string): string {
 
 /**
  * Stand-in colours for a teammate who sent one somebody else already has: two fresh installs both
- * send the stock blue. Neither the stock blue nor my own marker yellow is in here.
+ * send the stock blue. The stock blue is not in here; my own colour is passed in as taken instead.
  */
 export const DISTINCT_COLORS = ["#ff5252", "#4caf50", "#ff9800", "#e040fb", "#00e5ff", "#ff4081", "#8bc34a", "#b388ff"];
 
