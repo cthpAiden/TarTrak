@@ -314,7 +314,15 @@
     const stopDrag = installAltDrag();
     // Each phase is isolated: a failure in one must not stop the others from starting.
     (async () => {
-      stop = await startEventBridge({ onPosition: (p) => markPairer.screenshot(p), onMarkKey: () => markPairer.press() });
+      stop = await startEventBridge({
+        onPosition: (p) => markPairer.screenshot(p),
+        onMarkKey: () => markPairer.press(),
+        // Rust already showed the window; the hide hotkey must not think it is still hidden.
+        onSecondInstance: () => {
+          hidden = false;
+          app.toast("An instance of TarTrak is already running");
+        },
+      });
 
       const s = await loadSettings();
       settings = s;

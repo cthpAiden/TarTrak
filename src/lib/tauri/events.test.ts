@@ -1,6 +1,11 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+import { listen } from "@tauri-apps/api/event";
 import { AppState } from "../state/app.svelte";
-import { handleScreenshot, handleLogLine } from "./events";
+import { handleScreenshot, handleLogLine, startEventBridge } from "./events";
+
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: vi.fn(),
+}));
 
 describe("handleScreenshot", () => {
   it("sets own position from a valid filename", () => {
@@ -126,5 +131,19 @@ describe("handleLogLine", () => {
     const s = new AppState();
     handleLogLine("2026-09-04 05:04:47.992|1.1.0.1.46911|Info|application|GC::Collect", s);
     expect(s.currentMap).toBeNull();
+  });
+});
+
+describe("startEventBridge", () => {
+  it("calls onSecondInstance when the second-instance event fires", async () => {
+    const handlers = new Map<string, (e: { payload: unknown }) => void>();
+    vi.mocked(listen).mockImplementation(async (event, handler) => {
+      handlers.set(event as string, handler as (e: { payload: unknown }) => void);
+      return () => {};
+    });
+    const onSecondInstance = vi.fn();
+    await startEventBridge({ onSecondInstance });
+    handlers.get("second-instance")!({ payload: undefined });
+    expect(onSecondInstance).toHaveBeenCalledOnce();
   });
 });

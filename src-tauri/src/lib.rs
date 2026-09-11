@@ -3,10 +3,21 @@ mod logtail;
 mod markkey;
 mod watcher;
 
+use tauri::{Emitter, Manager};
 use tauri_plugin_window_state::StateFlags;
 
 pub fn run() {
     tauri::Builder::default()
+        // Must be registered before other plugins per tauri-plugin-single-instance's docs.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            // A second launch is a request to see the window: bring the running one back.
+            if let Some(w) = app.get_webview_window("main") {
+                let _ = w.show();
+                let _ = w.unminimize();
+                let _ = w.set_focus();
+            }
+            let _ = app.emit("second-instance", ());
+        }))
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_http::init())

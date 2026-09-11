@@ -52,15 +52,19 @@ export interface BridgeHooks {
   onPosition?: (p: Position) => void;
   /** The mark-here key went down (Rust poller). */
   onMarkKey?: () => void;
+  /** A second instance was launched; the OS-level plugin already brought the window back. */
+  onSecondInstance?: () => void;
 }
 
 export async function startEventBridge(hooks: BridgeHooks = {}): Promise<() => void> {
   const unShot = await listen<string>("screenshot", (e) => handleScreenshot(e.payload, app, hooks.onPosition));
   const unLog = await listen<string>("logline", (e) => handleLogLine(e.payload));
   const unMark = await listen<void>("markkey", () => hooks.onMarkKey?.());
+  const unSecondInstance = await listen<void>("second-instance", () => hooks.onSecondInstance?.());
   return () => {
     unShot();
     unLog();
     unMark();
+    unSecondInstance();
   };
 }
