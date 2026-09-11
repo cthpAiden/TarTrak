@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.10.0 - 2026-09-12
 
 ### Overlay
 - **Bigger compass numbers.** The bearing labels on the compass tape are 14px bold white (were 10px muted) and the heading pill is 12px bold; the tape itself stays 34px high so nothing around it moves.
