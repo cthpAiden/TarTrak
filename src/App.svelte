@@ -41,6 +41,20 @@
 
   const DIR_RETRY_MS = 10_000;
   const QUEST_RETRY_MS = 300_000;
+  /** One sticky toast carries the update download's progress; a fresh line after it is taken down starts a new one. */
+  const updateUi = (() => {
+    let id: number | null = null;
+    return {
+      info: (m: string) => void app.toast(m),
+      progress: (m: string | null) => {
+        if (m === null) {
+          if (id !== null) app.dismissToast(id);
+          id = null;
+        } else if (id === null) id = app.toast(m, { sticky: true });
+        else app.updateToast(id, m);
+      },
+    };
+  })();
   const TABS = [
     { id: "filters", label: "Filters" },
     { id: "squad", label: "Squad" },
@@ -364,7 +378,7 @@
         }, DIR_RETRY_MS);
       }
 
-      checkForUpdate((m) => app.toast(m)).catch((e) => app.toast(`Update failed: ${e}`));
+      checkForUpdate(updateUi).catch((e) => app.toast(`Update failed: ${e}`));
     })().catch((e) => app.toast(`Startup error: ${e}`));
     return () => {
       disposed = true;
@@ -643,7 +657,7 @@
               onPickDir={pickDir}
               shotKey={app.shotKeyVk === null ? "PrintScreen (game log not read yet)" : `${markKeyLabel(app.shotKeyVk)} (from the game log)`}
               onInvalid={(m) => app.toast(m)}
-              onCheckUpdate={() => checkForUpdate((m) => app.toast(m), { manual: true }).catch((e) => app.toast(`Update failed: ${e}`))}
+              onCheckUpdate={() => checkForUpdate(updateUi, { manual: true }).catch((e) => app.toast(`Update failed: ${e}`))}
             />
           {/if}
         </div>

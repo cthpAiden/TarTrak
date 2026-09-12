@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.10.1 - 2026-09-13
+
+### Updater
+- **Download progress and timeouts.** The "Downloading" toast stays up and counts the percentage, then says "Installing" while the installer runs. The update check gives up after 30 s and the download after 10 minutes, with an "Update failed" toast, instead of hanging silently on a dead connection.
 
 ### Fixed
 - **Updates that never landed.** The in-app updater starts the installer and quits the app in the same instant, and on a slower PC the installer got to copying `TarTrak.exe` while the old process was still shutting down: NSIS's "file in use" box then sat behind the game, the update never landed, and Task Manager showed a "TarTrak" (the installer) idling at a few MB. The installer now waits for the old process to be gone, up to 15 s, before it copies anything.

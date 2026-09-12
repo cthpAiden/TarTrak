@@ -160,12 +160,20 @@ export class AppState {
     return mine.length > 0 ? mine[mine.length - 1] : null;
   }
 
-  toast(text: string): void {
+  /** A sticky toast stays until `dismissToast`; reword it with `updateToast` (download progress). */
+  toast(text: string, opts: { sticky?: boolean } = {}): number {
     const id = this.nextToastId++;
     this.toasts = [...this.toasts, { id, text }];
-    setTimeout(() => {
-      this.toasts = this.toasts.filter((t) => t.id !== id);
-    }, 6000);
+    if (!opts.sticky) setTimeout(() => this.dismissToast(id), 6000);
+    return id;
+  }
+
+  updateToast(id: number, text: string): void {
+    this.toasts = this.toasts.map((t) => (t.id === id ? { ...t, text } : t));
+  }
+
+  dismissToast(id: number): void {
+    this.toasts = this.toasts.filter((t) => t.id !== id);
   }
 }
 

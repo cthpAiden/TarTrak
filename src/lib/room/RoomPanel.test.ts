@@ -63,7 +63,7 @@ describe("RoomPanel code row", () => {
   it("toasts when the clipboard write fails", async () => {
     room.code = "ABC123";
     setClipboard(() => Promise.reject(new Error("denied")));
-    const toast = vi.spyOn(app, "toast").mockImplementation(() => {});
+    const toast = vi.spyOn(app, "toast").mockImplementation(() => 0);
     const { target, panel } = open();
     copyButton(target)!.click();
     await tick();
