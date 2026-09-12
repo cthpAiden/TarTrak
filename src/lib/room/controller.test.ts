@@ -104,8 +104,8 @@ describe("RoomController", () => {
     client.onMessage(pos("c", "Same"));
     const texts = app.toasts.map((t) => t.text).filter((t) => t.includes("runs"));
     expect(texts).toEqual([
-      `Old runs an older TarTrak, you run ${APP_VERSION}: shared markers and drawings need the same version`,
-      `Other runs TarTrak 0.0.1, you run ${APP_VERSION}: shared markers and drawings need the same version`,
+      `Old runs an older TarTrak, you run ${APP_VERSION}: markers and drawings still cross, newer features may not`,
+      `Other runs TarTrak 0.0.1, you run ${APP_VERSION}: markers and drawings still cross, newer features may not`,
     ]);
   });
 

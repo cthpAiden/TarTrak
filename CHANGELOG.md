@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+- **Updates that never landed.** The in-app updater starts the installer and quits the app in the same instant, and on a slower PC the installer got to copying `TarTrak.exe` while the old process was still shutting down: NSIS's "file in use" box then sat behind the game, the update never landed, and Task Manager showed a "TarTrak" (the installer) idling at a few MB. The installer now waits for the old process to be gone, up to 15 s, before it copies anything.
+- **No relaunch after an update.** Since 0.8.1 the app asks for administrator rights, and the installer's stock relaunch starts it with the desktop's ordinary token, which Windows refuses for such an exe; the app had to be opened by hand. The installer relaunches it itself at the right level. Both fixes live in the installer, so they take effect from the first update after this one.
+- **Version-mismatch toast** no longer says shared markers and drawings need the same version: they cross versions, only features added since may not reach the older build.
+
 ## 0.10.0 - 2026-09-12
 
 ### Overlay

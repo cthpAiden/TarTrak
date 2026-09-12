@@ -140,14 +140,14 @@ export class RoomController {
   }
 
   /**
-   * An older build drops message types it does not know, so a teammate on it never sees my markers or
-   * drawings and I never learn why. Said once per teammate; a client before 0.3.1 sends no version.
+   * Markers and drawings cross versions; only a message type added since is dropped by the older
+   * build, unseen. A heads-up, not a gate. Said once per teammate; a client before 0.3.1 sends no version.
    */
   private warnVersion(name: string, theirs: string | undefined): void {
     if (theirs === APP_VERSION || this.versionWarned.has(name)) return;
     this.versionWarned.add(name);
     const runs = theirs ? `TarTrak ${theirs}` : "an older TarTrak";
-    app.toast(`${name} runs ${runs}, you run ${APP_VERSION}: shared markers and drawings need the same version`);
+    app.toast(`${name} runs ${runs}, you run ${APP_VERSION}: markers and drawings still cross, newer features may not`);
   }
 
   /**
