@@ -159,8 +159,8 @@ describe("data snapshot", () => {
   it("draws quest item spawn points as well as objective zones, Lighthouse included", () => {
     const qm = extractQuestMarkers({ schemaVersion: 0, fetchedAt: 0, tasks, maps });
     const lighthouse = qm.filter((m) => m.mapKey === "lighthouse");
-    // tarkov.dev's map shows well over a hundred item spawn points on Lighthouse alone.
-    expect(lighthouse.filter((m) => m.itemName).length).toBeGreaterThan(50);
+    // After the patch 1.1.5.0 rework tarkov.dev lists 31 quest item spawn points on Lighthouse (120 before).
+    expect(lighthouse.filter((m) => m.itemName).length).toBeGreaterThan(20);
     expect(lighthouse.some((m) => m.category === "visit")).toBe(true);
     for (const m of qm.filter((m) => m.itemName)) expect(m.itemName, m.taskName).not.toMatch(/ Name$/);
   });
