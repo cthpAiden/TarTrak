@@ -40,7 +40,24 @@ export interface Settings {
   showSquadTodo: boolean;
   /** Colours I picked for teammates, by name. Only this screen: they still send their own colour. */
   mateColors: Record<string, string>;
+  /** The overlay's look: the round minimap with a compass bezel, or the rectangle with the compass tape. */
+  overlayShape: OverlayShape;
+  /** Round minimap only: north stays up, or the map turns so my heading points up. */
+  minimapRotation: MinimapRotation;
+  /** Round minimap only: diameter of the map disc in px; the window is sized to fit it. */
+  minimapSize: number;
+  /** Round minimap only: degree ticks, N/E/S/W and teammate markers on a ring around the map. */
+  compassBezel: boolean;
+  /** Round minimap only: tool buttons around the rim all the time; off shows them only under the mouse. */
+  rimTools: boolean;
 }
+
+export type OverlayShape = "circle" | "box";
+export const OVERLAY_SHAPES: readonly OverlayShape[] = ["circle", "box"];
+export type MinimapRotation = "north" | "heading";
+export const MINIMAP_ROTATIONS: readonly MinimapRotation[] = ["north", "heading"];
+export const MINIMAP_SIZE_MIN = 200;
+export const MINIMAP_SIZE_MAX = 480;
 
 export type Faction = "any" | "usec" | "bear";
 export const FACTIONS: readonly Faction[] = ["any", "usec", "bear"];
@@ -76,6 +93,11 @@ export const DEFAULT_SETTINGS: Settings = {
   shareTodo: false,
   showSquadTodo: true,
   mateColors: {},
+  overlayShape: "circle",
+  minimapRotation: "north",
+  minimapSize: 300,
+  compassBezel: true,
+  rimTools: true,
 };
 
 type Kind = "string" | "number" | "boolean" | "string?" | "record";
@@ -104,6 +126,11 @@ const SHAPE: Record<keyof Settings, Kind> = {
   shareTodo: "boolean",
   showSquadTodo: "boolean",
   mateColors: "record",
+  overlayShape: "string",
+  minimapRotation: "string",
+  minimapSize: "number",
+  compassBezel: "boolean",
+  rimTools: "boolean",
 };
 
 function accepts(kind: Kind, v: unknown): boolean {
@@ -162,6 +189,9 @@ export function mergeSettings(partial: unknown): Settings {
   if (!GAME_MODES.includes(out.gameMode)) out.gameMode = DEFAULT_SETTINGS.gameMode;
   if (!FACTIONS.includes(out.faction)) out.faction = DEFAULT_SETTINGS.faction;
   if (!ROOM_CODE_RE.test(out.lastRoom)) out.lastRoom = "";
+  if (!OVERLAY_SHAPES.includes(out.overlayShape)) out.overlayShape = DEFAULT_SETTINGS.overlayShape;
+  if (!MINIMAP_ROTATIONS.includes(out.minimapRotation)) out.minimapRotation = DEFAULT_SETTINGS.minimapRotation;
+  out.minimapSize = Math.round(clamp(out.minimapSize, MINIMAP_SIZE_MIN, MINIMAP_SIZE_MAX));
   out.layerFilters = cleanRecord<boolean>(
     out.layerFilters,
     MAX_FILTERS,

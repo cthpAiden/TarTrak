@@ -1,4 +1,5 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { LogicalSize, PhysicalPosition, PhysicalSize } from "@tauri-apps/api/dpi";
 import { register, unregister, isRegistered } from "@tauri-apps/plugin-global-shortcut";
 
 export const OPACITY_STEPS = [100, 70, 40] as const;
@@ -44,7 +45,7 @@ export function normalizeHotkey(s: string): string | null {
   return [...mods, key].join("+");
 }
 
-export async function setOverlay(on: boolean): Promise<void> {
+export async function setOverlay(on: boolean, shape: "circle" | "box" = "box"): Promise<void> {
   const w = getCurrentWindow();
   try {
     await w.setDecorations(!on);
@@ -56,6 +57,45 @@ export async function setOverlay(on: boolean): Promise<void> {
     throw e;
   }
   document.body.classList.toggle("overlay", on);
+  document.body.classList.toggle("circle", on && shape === "circle");
+}
+
+/** Where the window was and how big, in physical pixels, to put it back after the round minimap. */
+export interface WindowRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** Must match `minWidth`/`minHeight` in tauri.conf.json: the round minimap lifts the limit while it is up. */
+const MIN_WINDOW = { width: 420, height: 300 };
+
+export async function readWindowRect(): Promise<WindowRect> {
+  const w = getCurrentWindow();
+  const [pos, size] = await Promise.all([w.outerPosition(), w.innerSize()]);
+  return { x: pos.x, y: pos.y, width: size.width, height: size.height };
+}
+
+/**
+ * Shrinks the window around the round minimap. Its top-right corner stays put, so a window parked in the
+ * screen's top-right corner stays there; the rest of the old window would otherwise sit over the game.
+ */
+export async function fitWindowTo(width: number, height: number): Promise<void> {
+  const w = getCurrentWindow();
+  const [pos, outer, scale] = await Promise.all([w.outerPosition(), w.outerSize(), w.scaleFactor()]);
+  const right = pos.x + outer.width;
+  await w.setMinSize(null);
+  await w.setSize(new LogicalSize(width, height));
+  await w.setPosition(new PhysicalPosition(Math.round(right - width * scale), pos.y));
+}
+
+/** Puts the window back where and how big it was before the round minimap. */
+export async function restoreWindowRect(r: WindowRect): Promise<void> {
+  const w = getCurrentWindow();
+  await w.setMinSize(new LogicalSize(MIN_WINDOW.width, MIN_WINDOW.height));
+  await w.setSize(new PhysicalSize(r.width, r.height));
+  await w.setPosition(new PhysicalPosition(r.x, r.y));
 }
 
 export function applyOpacity(percent: number): void {

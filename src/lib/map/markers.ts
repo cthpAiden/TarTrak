@@ -1,6 +1,7 @@
 import L from "leaflet";
 import { toLatLng } from "./crs";
 import { esc } from "../quests/questLayer";
+import { upright } from "./labels";
 
 export interface MarkerStyle {
   color: string;
@@ -95,7 +96,7 @@ export class PositionMarker {
     }
     gradientDefs(map).appendChild(this.gradient);
     if (style.label) {
-      this.circle.bindTooltip(esc(style.label), {
+      this.circle.bindTooltip(upright(esc(style.label)), {
         permanent: true,
         direction: "top",
         offset: [0, -8],
@@ -151,7 +152,7 @@ export class PositionMarker {
   setLabel(text: string): void {
     if (text === this.label) return;
     this.label = text;
-    this.circle.getTooltip()?.setContent(esc(text));
+    this.circle.getTooltip()?.setContent(upright(esc(text)));
   }
 
   remove(): void {

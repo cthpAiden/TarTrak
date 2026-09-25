@@ -3,6 +3,7 @@ import L from "leaflet";
 import { OWN_PANE, PLAYER_PANE, PositionMarker } from "./markers";
 import { makeCrs, boundsOf, toLatLng } from "./crs";
 import { getMapDef } from "./mapsData";
+import { upright } from "./labels";
 
 function makeMap(): L.Map {
   const el = document.createElement("div");
@@ -137,7 +138,7 @@ describe("PositionMarker label", () => {
     const m = new PositionMarker(map, { color: "#fff", radius: 6, lineLengthM: 28, label: "<b>x</b>" });
     m.update(0, 0, 0);
     const tt = m.circle.getTooltip()!;
-    expect(tt.getContent()).toBe("&#60;b&#62;x&#60;/b&#62;");
+    expect(tt.getContent()).toBe(upright("&#60;b&#62;x&#60;/b&#62;"));
     m.remove();
   });
 
@@ -145,7 +146,7 @@ describe("PositionMarker label", () => {
     const map = makeMap();
     const m = new PositionMarker(map, { color: "#fff", radius: 6, lineLengthM: 28, label: "Bob" });
     m.setLabel("Bob [2F] <i>");
-    expect(m.circle.getTooltip()!.getContent()).toBe("Bob [2F] &#60;i&#62;");
+    expect(m.circle.getTooltip()!.getContent()).toBe(upright("Bob [2F] &#60;i&#62;"));
     const plain = new PositionMarker(map, { color: "#fff", radius: 6, lineLengthM: 28 });
     plain.setLabel("x");
     expect(plain.circle.getTooltip()).toBeUndefined();

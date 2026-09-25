@@ -129,7 +129,7 @@
 <style>
   .panel { padding: 10px; display: flex; flex-direction: column; gap: 6px; min-height: 0; height: 100%; box-sizing: border-box; }
   h2 { margin: 0 0 4px; font-size: 14px; }
-  input { background: #2a2f38; color: var(--fg); border: 1px solid #3a4048; padding: 3px 6px; }
+  input { background: var(--raised-2); color: var(--fg); border: 1px solid var(--line-2); padding: 3px 6px; }
   input[type="checkbox"] { padding: 0; }
   .search { width: 100%; box-sizing: border-box; }
   .finder { position: relative; }

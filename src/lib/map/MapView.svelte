@@ -16,18 +16,16 @@
   import type { MapPoint } from "../layers/points";
   import { PointMarkers } from "../layers/pointMarkers";
   import { installFlatMarkers } from "./flatMarkers";
-  import { labelDivIcon } from "./labels";
+  import { labelDivIcon, upright } from "./labels";
+  import { unrotate } from "./circle";
   import { watchSize } from "./resize";
   import { pinIcon, pinPopup } from "./pins";
   import { distanceM } from "./route";
   import { MAX_DRAW_POINTS } from "../room/protocol";
-  import Chevron from "../ui/Chevron.svelte";
 
   let {
     def,
-    pinnedFloor,
     activeFloor,
-    onFloorPinned,
     questMarkers,
     points,
     hitIds,
@@ -45,11 +43,11 @@
     onDraw,
     onUndoDraw,
     onClearDraw,
+    frame = null,
+    rotation = 0,
   }: {
     def: MapDef | null;
-    pinnedFloor: string | null;
     activeFloor: string | null;
-    onFloorPinned: (name: string | null) => void;
     questMarkers: QuestMarker[];
     points: MapPoint[];
     /** Points the item finder matched; drawn with a glow. */
@@ -75,6 +73,10 @@
     onDraw: (points: [number, number][]) => void;
     onUndoDraw: () => void;
     onClearDraw: () => void;
+    /** Round minimap: the map is a disc of this size at this spot in its parent; null fills the parent. */
+    frame?: { left: number; top: number; size: number } | null;
+    /** Degrees the map is turned anticlockwise on screen (my heading in heading-up mode), 0 for north-up. */
+    rotation?: number;
   } = $props();
 
   // Before the first marker exists: 2D transforms keep the renderer from giving every marker a layer.
@@ -121,8 +123,6 @@
   let now = $state(Date.now());
 
   const activeLayer = $derived(def?.layers.find((l) => l.name === activeFloor) ?? null);
-  /** Floors this map can draw: an SVG group when the base is the SVG, or tiles either way. */
-  const floorLayers = $derived(def ? def.layers.filter((l) => (l.svgLayer && def.svgPath) || l.tilePath) : []);
 
   function tileOptions(d: MapDef, pane?: string): L.TileLayerOptions {
     // Past the deepest tile level Leaflet scales the last one up rather than requesting blanks.
@@ -169,6 +169,15 @@
       zoomControl: false,
     });
     m.fitBounds(boundsOf(d));
+    // A turned map (heading-up minimap) is still laid out unturned; Leaflet reads the mouse against the
+    // turned element's bounding box, so a click would land on the wrong spot. Map the mouse back first.
+    const toContainerPoint = m.mouseEventToContainerPoint.bind(m);
+    m.mouseEventToContainerPoint = (e: MouseEvent) => {
+      if (rotation === 0) return toContainerPoint(e);
+      const rect = container.getBoundingClientRect();
+      const p = unrotate(e.clientX - (rect.left + rect.width / 2), e.clientY - (rect.top + rect.height / 2), rotation);
+      return L.point(container.clientWidth / 2 + p.x, container.clientHeight / 2 + p.y);
+    };
     // The SVG is the base when there is one, like tarkov.dev; tiles carry the maps drawn only that way.
     if (d.tilePath && !d.svgPath) baseTile = L.tileLayer(d.tilePath, tileOptions(d)).addTo(m);
     // Raster floors sit above the SVG base (overlay pane 400), under the zones (450).
@@ -230,9 +239,13 @@
     m.on("mouseout", finishStroke);
     m.on("contextmenu", (e: L.LeafletMouseEvent) => {
       pinLabel = "";
-      // Kept inside the map area, so a right-click near the right or bottom edge still shows the whole menu.
-      const px = Math.max(0, Math.min(e.containerPoint.x, container.clientWidth - PIN_MENU_W));
-      const py = Math.max(0, Math.min(e.containerPoint.y, container.clientHeight - PIN_MENU_H));
+      // Placed where the mouse is in the menu's own box (the map's parent), which a round or turned map
+      // does not share with Leaflet's container points. Kept inside it, so a right-click near the right or
+      // bottom edge still shows the whole menu.
+      const host = (container.offsetParent as HTMLElement | null) ?? container;
+      const r = host.getBoundingClientRect();
+      const px = Math.max(0, Math.min(e.originalEvent.clientX - r.left, host.clientWidth - PIN_MENU_W));
+      const py = Math.max(0, Math.min(e.originalEvent.clientY - r.top, host.clientHeight - PIN_MENU_H));
       pinMenu = { px, py, x: e.latlng.lng, z: e.latlng.lat };
     });
     if (!d.svgPath) {
@@ -253,7 +266,9 @@
 
   onMount(() => {
     const tick = setInterval(() => (now = Date.now()), 1000);
+    container.addEventListener("mousedown", onTurnedDown);
     return () => {
+      container.removeEventListener("mousedown", onTurnedDown);
       clearInterval(tick);
       destroy();
     };
@@ -285,15 +300,33 @@
     baseTile?.getContainer()?.classList.toggle("off-level", dimBase);
   });
 
-  // Draw mode takes the drag away from panning; the cursor says so.
+  // Draw mode takes the drag away from panning; the cursor says so. A turned map pans with its own
+  // drag below, since Leaflet's would move the map along the unturned axes.
   $effect(() => {
     const m = map;
     const on = drawMode;
+    const turned = rotation !== 0;
     if (!m) return;
-    if (on) m.dragging?.disable();
+    if (on || turned) m.dragging?.disable();
     else m.dragging?.enable();
     container.classList.toggle("drawing", on);
   });
+
+  /** Drag-to-pan on a turned map: each mouse step, turned back into the map's frame. */
+  let turnedDrag: { x: number; y: number } | null = null;
+  function onTurnedDown(e: MouseEvent) {
+    if (rotation === 0 || drawMode || e.button !== 0 || e.altKey) return;
+    turnedDrag = { x: e.clientX, y: e.clientY };
+  }
+  function onTurnedMove(e: MouseEvent) {
+    if (!turnedDrag || !map) return;
+    const d = unrotate(e.clientX - turnedDrag.x, e.clientY - turnedDrag.y, rotation);
+    turnedDrag = { x: e.clientX, y: e.clientY };
+    map.panBy([-d.x, -d.y], { animate: false });
+  }
+  function onTurnedUp() {
+    turnedDrag = null;
+  }
 
   $effect(() => {
     const all = app.drawings;
@@ -335,7 +368,7 @@
     routeLine = L.polyline([a, b], { pane: "drawings", color: ROUTE_COLOR, weight: 2, dashArray: "6 6", opacity: 0.9, interactive: false }).addTo(m);
     routeTip = L.tooltip({ permanent: true, direction: "top", className: "tt-label route-tip", pane: "pins", interactive: false, offset: [0, -4] })
       .setLatLng(L.latLng((a.lat + b.lat) / 2, (a.lng + b.lng) / 2))
-      .setContent(`${distanceM(p, r)} m to ${esc(r.name)}`)
+      .setContent(upright(`${distanceM(p, r)} m to ${esc(r.name)}`))
       .addTo(m);
   });
 
@@ -427,7 +460,7 @@
       // Off-floor markers sit under the current floor's so they never cover one.
       // Popup HTML is built when it opens; a string per marker would sit in memory unused.
       L.marker(toLatLng(m.x, m.z), { icon: questIcon(m), opacity: dim, zIndexOffset: on ? 0 : -1000 })
-        .bindTooltip(esc(m.taskName))
+        .bindTooltip(upright(esc(m.taskName)))
         .bindPopup(() => questPopupHtml(m, floorForHeight(d, m)))
         .addTo(g);
     }
@@ -455,17 +488,8 @@
     }
   });
 
-  let floorsOpen = $state(false);
-  let floorMenu: HTMLDivElement | undefined = $state();
-
-  function pickFloor(name: string | null) {
-    onFloorPinned(name);
-    floorsOpen = false;
-  }
-
-  // Clicking anywhere else closes the menus, like a native dropdown.
+  // Clicking anywhere else closes the menu, like a native dropdown.
   function onWindowPointerDown(e: PointerEvent) {
-    if (floorsOpen && floorMenu && !floorMenu.contains(e.target as Node)) floorsOpen = false;
     if (pinMenu && pinMenuEl && !pinMenuEl.contains(e.target as Node)) pinMenu = null;
   }
 
@@ -476,7 +500,6 @@
       return;
     }
     if (e.key !== "Escape") return;
-    floorsOpen = false;
     pinMenu = null;
   }
 
@@ -515,7 +538,7 @@
       // A teammate's shared marker takes the colour they are shown in, like their position marker.
       const shown = mate ? { ...p, color: mateColor(mate.name, mate.color, colors) } : p;
       const marker = L.marker(toLatLng(p.x, p.z), { icon: pinIcon(shown), pane: "pins" });
-      if (p.label) marker.bindTooltip(esc(p.label), { permanent: true, direction: "top", className: "tt-label", pane: "pins", interactive: false });
+      if (p.label) marker.bindTooltip(upright(esc(p.label)), { permanent: true, direction: "top", className: "tt-label", pane: "pins", interactive: false });
       marker.bindPopup(() => pinPopup(p, placedBy, () => onRemovePin(p.id)));
       marker.addTo(g);
     }
@@ -532,35 +555,32 @@
   export function fitMap() {
     if (map && def) map.fitBounds(boundsOf(def));
   }
+
+  export function zoomIn() {
+    map?.zoomIn();
+  }
+
+  export function zoomOut() {
+    map?.zoomOut();
+  }
 </script>
 
-<svelte:window onpointerdown={onWindowPointerDown} onkeydown={onWindowKeyDown} />
+<svelte:window onpointerdown={onWindowPointerDown} onkeydown={onWindowKeyDown} onmousemove={onTurnedMove} onmouseup={onTurnedUp} />
 
-<div class="map-root" bind:this={container} role="application" aria-label="map"></div>
-
-{#if def && floorLayers.length > 0}
-  <div class="floor-menu" bind:this={floorMenu}>
-    <button
-      class="floor-toggle"
-      class:open={floorsOpen}
-      aria-haspopup="listbox"
-      aria-expanded={floorsOpen}
-      title={pinnedFloor === null ? "Floor: auto" : `Floor: ${pinnedFloor || "Ground"}`}
-      onclick={() => (floorsOpen = !floorsOpen)}
-    >
-      Floors <Chevron open={floorsOpen} />
-    </button>
-    {#if floorsOpen}
-      <div class="floor-list" role="listbox" aria-label="Floors">
-        <button role="option" aria-selected={pinnedFloor === null} class:active={pinnedFloor === null} onclick={() => pickFloor(null)} title="Follow my height">Auto</button>
-        <button role="option" aria-selected={pinnedFloor === ""} class:active={pinnedFloor === ""} onclick={() => pickFloor("")}>Ground</button>
-        {#each floorLayers as layer (layer.name)}
-          <button role="option" aria-selected={pinnedFloor === layer.name} class:active={pinnedFloor === layer.name} onclick={() => pickFloor(layer.name)}>{layer.name}</button>
-        {/each}
-      </div>
-    {/if}
-  </div>
-{/if}
+<div
+  class="map-root"
+  class:circle={frame !== null}
+  class:rotated={rotation !== 0}
+  style:left={frame ? `${frame.left}px` : null}
+  style:top={frame ? `${frame.top}px` : null}
+  style:width={frame ? `${frame.size}px` : null}
+  style:height={frame ? `${frame.size}px` : null}
+  style:transform={rotation !== 0 ? `rotate(${-rotation}deg)` : null}
+  style:--counter="{rotation}deg"
+  bind:this={container}
+  role="application"
+  aria-label="map"
+></div>
 
 {#if pinMenu}
   <div

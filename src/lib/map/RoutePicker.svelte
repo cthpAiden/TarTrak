@@ -8,6 +8,7 @@
     distanceM,
     from,
     onSelect,
+    variant = "row",
   }: {
     groups: RouteGroup[];
     selectedId: string | null;
@@ -17,6 +18,8 @@
     /** My position; every extract in the list shows its distance from here. */
     from: { x: number; z: number } | null;
     onSelect: (id: string | null) => void;
+    /** Box overlay's button row, the window's vertical map toolbar, or a round button on the minimap's rim. */
+    variant?: "row" | "toolbar" | "rim";
   } = $props();
 
   let open = $state(false);
@@ -37,9 +40,9 @@
 
 <svelte:window onpointerdown={onWindowPointerDown} onkeydown={onWindowKeyDown} />
 
-<div class="route" bind:this={root}>
+<div class="route {variant}" bind:this={root}>
   <button
-    class="mode-btn route-btn"
+    class={variant === "row" ? "mode-btn route-btn" : variant === "toolbar" ? "tool-btn" : "rim-btn"}
     aria-pressed={selectedId !== null}
     aria-haspopup="menu"
     aria-expanded={open}
@@ -51,7 +54,7 @@
       <path d="M6.5 2.5H2.5v11h4" />
       <path d="M6 8h7.5M11 5.5L13.5 8 11 10.5" />
     </svg>
-    {#if selectedId !== null}
+    {#if selectedId !== null && variant === "row"}
       <span class="dist">{distanceM === null ? "no position" : `${distanceM} m`}</span>
     {/if}
   </button>
@@ -92,4 +95,8 @@
   .route-menu .m { color: var(--muted); margin-left: 6px; font-variant-numeric: tabular-nums; }
   .route-menu .clear { color: var(--muted); border-bottom: 1px solid #3a4048; border-radius: 0; margin-bottom: 2px; }
   :global(body.overlay) .route-menu { background: rgba(30, 35, 43, 0.9); }
+  /* The window's toolbar sits on the map's right edge: the list opens to its left. */
+  .toolbar .route-menu { top: 0; left: auto; right: calc(100% + 10px); }
+  /* The rim button is low on the minimap's left: the list opens upward, over the disc. */
+  .rim .route-menu { top: auto; bottom: calc(100% + 6px); left: 0; }
 </style>

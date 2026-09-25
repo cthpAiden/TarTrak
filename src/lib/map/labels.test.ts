@@ -14,7 +14,7 @@ describe("labelDivIcon", () => {
     const icon = labelDivIcon({ position: [0, 0], text: "<b>Big Red</b>", rotation: -90 });
     const html = icon.options.html as string;
     expect(html).toContain("&#60;b&#62;Big Red");
-    expect(html).toContain("rotate(-90deg)");
+    expect(html).toContain("rotate(calc(-90deg + var(--counter, 0deg)))");
     expect(icon.options.className).toBe("map-label");
   });
 });

@@ -200,3 +200,40 @@ describe("SettingsPanel mark-here key", () => {
     void unmount(panel);
   });
 });
+
+describe("SettingsPanel overlay", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  function radio(target: HTMLElement, text: string): HTMLButtonElement {
+    return [...target.querySelectorAll<HTMLButtonElement>('[role="radio"]')].find((b) => b.textContent?.trim() === text)!;
+  }
+
+  it("switches the overlay between the circle and the box", () => {
+    const { target, panel, changes } = open();
+    expect(radio(target, "Circle").getAttribute("aria-checked")).toBe("true");
+    radio(target, "Box").click();
+    flushSync();
+    expect(changes).toEqual([{ overlayShape: "box" }]);
+    void unmount(panel);
+  });
+
+  it("offers rotation, size, bezel and rim tools only for the circle", () => {
+    const circle = open();
+    expect(radio(circle.target, "Heading-up")).toBeDefined();
+    radio(circle.target, "Heading-up").click();
+    flushSync();
+    expect(circle.changes).toEqual([{ minimapRotation: "heading" }]);
+    expect(circle.target.querySelector("#set-size")).not.toBeNull();
+    void unmount(circle.panel);
+    document.body.innerHTML = "";
+
+    const box = open({ overlayShape: "box" });
+    expect(radio(box.target, "Heading-up")).toBeUndefined();
+    expect(box.target.querySelector("#set-size")).toBeNull();
+    expect(box.target.querySelector("#set-bezel")).toBeNull();
+    expect(box.target.querySelector("#set-raid-timer")).not.toBeNull();
+    void unmount(box.panel);
+  });
+});

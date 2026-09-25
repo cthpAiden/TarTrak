@@ -155,9 +155,14 @@ Decided:
   hide the overlay with F7 when looting, as today. No click-through mode.
 - Player marker stays dot + heading line (no view cone), as before.
 
-Still open (user has not picked yet):
-- Which UI direction (or mix, e.g. one board's layout with another's colours).
-- Which circle design.
+Picked (2026-09-25) and built on branch `claude/festive-sagan-d0knj9`, not yet released:
+- Full window: UI 02 (icon rail, 400 px panel, map toolbar on the right edge, status bar), with the
+  "FINAL" Settings board's sections.
+- Circle: Circle 02's look, Circle 09's tool buttons round the rim, and the raid timer and teammate
+  distances as chips on the lower right of the rim. North-up is the default; heading-up is the toggle.
+- Settings > Overlay shape switches between the new circle and the old box.
+- Needs checking on Windows: the window shrinking/restoring around the circle, click-through of the
+  transparent corners, and heading-up drag/right-click on a real map. Only a browser preview was seen.
 
 Notes for implementation:
 - `leaflet-rotate` (the usual Leaflet rotation plugin) is GPL-3.0 on npm; TarTrak is MIT, so write the
