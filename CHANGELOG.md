@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.12.0 - 2026-09-25
+
+### Overlay
+- **Resize the round minimap from the rim.** A button on the top right of the rim opens a size slider in the window's top-right corner: drag it and the map grows or shrinks as you go, press ✓ (or click anywhere else) and the window fits the new size. The range is now 160 to 640 px (was 200 to 480), here and in Settings. While the slider is open the window stays at its largest, so the slider holds still under the mouse.
+
+### Window
+- **Small window.** Below 720 px wide the panel takes the whole width and the map steps aside, so the map toolbar no longer covers the panel when the window is shrunk to one side of the screen to change settings.
+
 ## 0.11.1 - 2026-09-25
 
 ### Fixed

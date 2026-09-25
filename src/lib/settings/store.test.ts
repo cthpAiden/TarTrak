@@ -151,8 +151,8 @@ describe("mergeSettings", () => {
   });
 
   it("clamps the minimap size to [200, 480] whole pixels", () => {
-    expect(mergeSettings({ minimapSize: 50 }).minimapSize).toBe(200);
-    expect(mergeSettings({ minimapSize: 9000 }).minimapSize).toBe(480);
+    expect(mergeSettings({ minimapSize: 50 }).minimapSize).toBe(160);
+    expect(mergeSettings({ minimapSize: 9000 }).minimapSize).toBe(640);
     expect(mergeSettings({ minimapSize: 321.6 }).minimapSize).toBe(322);
   });
 });

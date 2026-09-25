@@ -56,8 +56,8 @@ export type OverlayShape = "circle" | "box";
 export const OVERLAY_SHAPES: readonly OverlayShape[] = ["circle", "box"];
 export type MinimapRotation = "north" | "heading";
 export const MINIMAP_ROTATIONS: readonly MinimapRotation[] = ["north", "heading"];
-export const MINIMAP_SIZE_MIN = 200;
-export const MINIMAP_SIZE_MAX = 480;
+export const MINIMAP_SIZE_MIN = 160;
+export const MINIMAP_SIZE_MAX = 640;
 
 export type Faction = "any" | "usec" | "bear";
 export const FACTIONS: readonly Faction[] = ["any", "usec", "bear"];

@@ -108,6 +108,12 @@ input[type="range"] { accent-color: var(--accent); }
 .side .panel h3 { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+/* A small window (kept to one side of the screen to change settings): the panel takes the whole width and the
+   map steps aside, so the map toolbar never lands on the panel. The overlay is exempt: it is all map. */
+@media (max-width: 720px) {
+  body:not(.overlay) .side { flex: 1; width: auto; min-width: 0; border-right: 0; }
+  body:not(.overlay) .main { display: none; }
+}
 .map { position: relative; flex: 1; min-height: 0; background: #20251d; }
 .empty { display: grid; place-items: center; height: 100%; color: var(--muted); }
 
@@ -200,6 +206,14 @@ body.circle .empty.round {
 }
 .rim-btn:hover { border-color: var(--accent); }
 .rim-btn[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+/* The size slider, in the window's top-right corner: that corner stays put while the window resizes. */
+.size-pop {
+  position: absolute; top: 8px; right: 8px; z-index: 1006; display: flex; align-items: center; gap: 8px; padding: 3px 3px 3px 12px;
+  background: rgba(15, 19, 24, 0.94); border: 1px solid rgba(255, 255, 255, 0.24); border-radius: 18px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); font-size: 12px; color: #eef1f4; white-space: nowrap;
+}
+.size-pop input { width: 130px; }
+.size-pop .mono { min-width: 24px; text-align: right; }
 .rim-at.zoom {
   width: 24px; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden;
   background: rgba(15, 19, 24, 0.94); border: 1px solid rgba(255, 255, 255, 0.24); border-radius: 12px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);

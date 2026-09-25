@@ -23,7 +23,15 @@
   import { checkForUpdate } from "./lib/tauri/updater";
   import { retryUntil } from "./lib/tauri/retry";
   import { getMapDef, floorForHeight, visibleOnFloor } from "./lib/map/mapsData";
-  import { DEFAULT_SETTINGS, loadSettings, saveSettings, type OverlayShape, type Settings } from "./lib/settings/store";
+  import {
+    DEFAULT_SETTINGS,
+    MINIMAP_SIZE_MAX,
+    MINIMAP_SIZE_MIN,
+    loadSettings,
+    saveSettings,
+    type OverlayShape,
+    type Settings,
+  } from "./lib/settings/store";
   import { room } from "./lib/room/controller.svelte";
   import RoomPanel from "./lib/room/RoomPanel.svelte";
   import SettingsPanel from "./lib/settings/SettingsPanel.svelte";
@@ -104,6 +112,11 @@
   let overlayShape = $state<OverlayShape>("box");
   /** The window's place and size before the round minimap shrank it, to put back when it comes down. */
   let savedRect: WindowRect | null = null;
+  /** The round minimap's size slider (the rim's top-right button): open, and the diameter while it is dragged. */
+  let sizeOpen = $state(false);
+  let sizeDraft = $state<number | null>(null);
+  let fitting = false;
+  let fitAgain = false;
   let winW = $state(window.innerWidth);
   let winH = $state(window.innerHeight);
   let opacity = $state(100);
@@ -186,7 +199,8 @@
 
   // Round minimap: the disc, its bezel and everything around its rim, placed in the shrunk window.
   const circle = $derived(overlay && overlayShape === "circle");
-  const ring = $derived(circle ? circleLayout(winW, winH, settings?.minimapSize ?? DEFAULT_SETTINGS.minimapSize) : null);
+  const minimapSize = $derived(sizeDraft ?? settings?.minimapSize ?? DEFAULT_SETTINGS.minimapSize);
+  const ring = $derived(circle ? circleLayout(winW, winH, minimapSize) : null);
   const headingUp = $derived((settings?.minimapRotation ?? DEFAULT_SETTINGS.minimapRotation) === "heading");
   // Heading-up turns the map under me; with no position yet there is no heading to turn to.
   const mapRotation = $derived(circle && headingUp && app.ownPos ? app.ownPos.yaw : 0);
@@ -215,6 +229,9 @@
     const next = !overlay;
     const s = settings ?? DEFAULT_SETTINGS;
     const shape = next ? s.overlayShape : overlayShape;
+    // An open size slider goes with the overlay; the window is sized below either way.
+    sizeOpen = false;
+    sizeDraft = null;
     try {
       // Read before the frame comes off, so the full window comes back exactly as it was.
       if (next && shape === "circle") savedRect = await readWindowRect();
@@ -241,6 +258,44 @@
     }
     // The map area just changed size and place; follow me puts me back in the middle of it.
     if (settings?.followMe ?? true) setTimeout(() => mapView?.centerOnMe(), 50);
+  }
+
+  /**
+   * Fits the window to the disc, one resize at a time; a size asked for meanwhile is fitted after it. While the
+   * size slider is open the window is as big as the largest disc, so nothing under the mouse moves as it drags.
+   */
+  async function fitToDisc() {
+    if (fitting) {
+      fitAgain = true;
+      return;
+    }
+    fitting = true;
+    try {
+      do {
+        fitAgain = false;
+        const size = circleWindowSize(sizeOpen ? MINIMAP_SIZE_MAX : minimapSize);
+        await fitWindowTo(size.width, size.height);
+      } while (fitAgain);
+    } catch (e) {
+      app.toast(`Could not resize the window: ${e}`);
+    } finally {
+      fitting = false;
+    }
+  }
+
+  function openSizer() {
+    sizeOpen = true;
+    void fitToDisc();
+  }
+
+  function closeSizer() {
+    if (!sizeOpen) return;
+    sizeOpen = false;
+    void fitToDisc();
+  }
+
+  function focusNow(node: HTMLElement) {
+    node.focus();
   }
 
   function cycleOpacity() {
@@ -888,6 +943,45 @@
               {/if}
             </button>
           </div>
+          <!-- Top right of the rim: the size button. Its slider takes the window's top-right corner, which stays put
+               while the window resizes, so the slider holds still under the mouse. -->
+          {#if sizeOpen}
+            <div
+              class="rim-tool size-pop"
+              onfocusout={(e) => {
+                if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null)) closeSizer();
+              }}
+            >
+              <input
+                type="range"
+                min={MINIMAP_SIZE_MIN}
+                max={MINIMAP_SIZE_MAX}
+                step="10"
+                value={minimapSize}
+                use:focusNow
+                oninput={(e) => (sizeDraft = Number(e.currentTarget.value))}
+                onchange={(e) => {
+                  patchSettings({ minimapSize: Number(e.currentTarget.value) });
+                  sizeDraft = null;
+                }}
+                aria-label="Minimap size"
+              />
+              <span class="mono">{minimapSize}</span>
+              <button type="button" class="rim-btn" onclick={closeSizer} title="Done" aria-label="Done">
+                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3.5 8.5l3 3 6-7" />
+                </svg>
+              </button>
+            </div>
+          {:else}
+            <div class="rim-tool rim-at" style={onRim(45, ring.ro + RIM_BUTTON_GAP)}>
+              <button type="button" class="rim-btn" onclick={openSizer} title="Minimap size" aria-label="Minimap size">
+                <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9.5 2.5h4v4M13.5 2.5L9 7M6.5 13.5h-4v-4M2.5 13.5L7 9" />
+                </svg>
+              </button>
+            </div>
+          {/if}
           <div class="rim-tool rim-at zoom" style={onRim(102, ring.ro - 4)}>
             <button type="button" onclick={() => mapView?.zoomIn()} aria-label="Zoom in" title="Zoom in">
               <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
