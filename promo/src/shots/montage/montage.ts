@@ -123,9 +123,13 @@ export function drawScale(frame: number): number {
 
 /** The frame's corner distance from the centre: an iris this big shows the whole frame. */
 const IRIS_OPEN = Math.hypot(960, 540) + 2;
-/** Iris radius round the frame centre: full frame at 585, `HANDOFF.iris.r` at 599. */
+/** The iris starts closing here, ahead of the camera's pull-out, so the corners go dark from ~584. */
+const IRIS_START = 580;
+/** Accelerating all the way (quadratic ease-in): each frame's step is bigger than the last, so it slams shut on the 600 downbeat. */
+const irisEase: Ease = (t) => t * t;
+/** Iris radius round the frame centre: the frame's corners at 580, `HANDOFF.iris.r` exactly at 599. */
 export function irisRadius(frame: number): number {
-  const t = easeInOutQuint(prog(frame, IRIS_FROM, IRIS_TO));
+  const t = irisEase(prog(frame, IRIS_START, IRIS_TO));
   return t >= 1 ? HANDOFF.iris.r : lerp(IRIS_OPEN, HANDOFF.iris.r, t);
 }
 

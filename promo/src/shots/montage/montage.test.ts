@@ -54,8 +54,23 @@ test("the draw cut ends exactly on the hand-off camera and circle", () => {
   assert.deepEqual(drawCam(599), CAM_IRIS);
   near(drawCam(570).zoom, 2.0);
   assert.equal(irisRadius(599), HANDOFF.iris.r);
-  assert.ok(irisRadius(585) >= Math.hypot(960, 540), "open at 585");
-  assert.ok(irisRadius(592) < irisRadius(588));
+});
+
+test("the iris opens at the frame corners at 580 and slams shut, fastest into 599", () => {
+  const corner = Math.hypot(960, 540);
+  // nothing clipped before and at 580
+  for (const f of [570, 579, 580]) assert.ok(irisRadius(f) >= corner && irisRadius(f) <= corner + 3, `frame ${f}: ${irisRadius(f)}`);
+  // strictly closing, and every frame's step bigger than the one before (accelerating)
+  let step = 0;
+  for (let f = 581; f <= 599; f++) {
+    const d = irisRadius(f - 1) - irisRadius(f);
+    assert.ok(d > step, `frame ${f}: step ${d} after ${step}`);
+    step = d;
+  }
+  // the corners are visibly eaten by 586 and it is clearly closing at 588
+  assert.ok(irisRadius(586) < corner - 40, `586: ${irisRadius(586)}`);
+  assert.ok(irisRadius(588) < 1000, `588: ${irisRadius(588)}`);
+  assert.equal(irisRadius(599), HANDOFF.iris.r);
 });
 
 test("the route camera looks up the route: tilt 35, turn 35, zoom 1.3 to 1.45", () => {
