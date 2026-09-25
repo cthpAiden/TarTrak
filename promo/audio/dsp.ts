@@ -198,7 +198,10 @@ export function reverb(src: Stereo, opts: { room?: number; damp?: number; wet?: 
 
 export const softClip = (x: number, drive = 1): number => Math.tanh(x * drive) / Math.tanh(drive);
 
-/** Peak limiter with 2 ms look-ahead and 80 ms release. In place. */
+/**
+ * Peak limiter with 2 ms look-ahead and 80 ms release. In place. The gain ramps down in a straight line
+ * across the look-ahead and reaches what a peak needs exactly at that peak, so it never steps.
+ */
 export function limit(st: Stereo, ceilingDb = -1): void {
   const ceil = dbToGain(ceilingDb), la = secToSamples(0.002), rel = Math.exp(-1 / secToSamples(0.08));
   const n = st.L.length;
@@ -209,8 +212,9 @@ export function limit(st: Stereo, ceilingDb = -1): void {
   }
   let g = 1;
   for (let i = 0; i < n; i++) {
+    // Lowest of the ramps from 1 (look-ahead samples before each peak) down to the gain that peak needs.
     let m = 1;
-    for (let k = 0; k <= la && i + k < n; k++) m = Math.min(m, need[i + k]);
+    for (let k = 0; k <= la && i + k < n; k++) m = Math.min(m, need[i + k] + ((1 - need[i + k]) * k) / la);
     g = m < g ? m : m - (m - g) * rel;
     st.L[i] *= g;
     st.R[i] *= g;

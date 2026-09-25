@@ -20,9 +20,9 @@ const barAt = (sec: number): number => Math.min(CHORDS.length - 1, Math.floor(se
 
 /**
  * Mix levels in dB, set by measurement (K-weighted 50 ms / 400 ms loudness per element). The muffled
- * bar-1 ticks need +21 dB: a 7.5 kHz-highpassed hat keeps almost nothing below 2 kHz.
+ * bar-1 ticks are clear while the pad fades in and sit under it from about 1 s.
  */
-const DB = { kick: -6, hat: 4, openHat: 0, clap: 3, bass: -8, padStart: -30, pad: -18, muffledTick: 21, master: -4.5 };
+const DB = { kick: -6, hat: 4, openHat: 0, clap: 3, bass: -8, padStart: -30, pad: -18, muffledTick: 2, master: -4.5 };
 /**
  * Per-kind trims in dB, on top of each cue's own gain, set by measurement: UI sounds clear the music in
  * their own octave band, impacts are the loudest moments. impactLite shares the impact trim (it is the
@@ -84,7 +84,7 @@ function renderBuses(): Buses {
   const kick = I.kick(), hat = I.hat(), openHat = I.hat(true), clap = I.clap();
 
   // Bar 1: muffled 8th ticks.
-  const muffled = biquad(I.hat(), "lowpass", 2000);
+  const muffled = I.muffledTick();
   for (let e = 0; e < 8; e++) mix(drums, muffled, (e * BEAT) / 2, dbToGain(DB.muffledTick));
 
   // Bars 2-6 (index 1-5): kick 4/4, bass 8ths, hats, claps.

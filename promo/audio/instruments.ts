@@ -60,6 +60,18 @@ export function hat(open = false): Float32Array {
 }
 
 /**
+ * Bar-1 pulse: the hat's short envelope on noise kept under ~2 kHz (three 1.6 kHz lowpasses), with a
+ * little low body on A2, the pad's root.
+ */
+export function muffledTick(): Float32Array {
+  let v = noise(0.07, 33);
+  for (let s = 0; s < 3; s++) v = biquad(v, "lowpass", 1600);
+  envAD(v, 0.001, 0.045);
+  add(v, envAD(osc("sine", noteHz("A2"), 0.07), 0.002, 0.06), 0, dbToGain(-24));
+  return fade(v, 0.0005);
+}
+
+/**
  * Reese bass note. `t0` is the note's start in the song: the oscillators run free across notes, so the
  * detuned saws keep drifting against each other instead of restarting in phase on every 8th.
  */
