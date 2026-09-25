@@ -19,9 +19,10 @@ stylized made-up map, "tactical-premium" tone.
 - **Remotion 4** (React + TypeScript), its own `package.json` in `promo/`; the app's root `tsconfig`,
   vitest and Vite never look there. All `@remotion/*` packages on one exact version. Remotion is free for
   individuals and companies up to 3 people.
-- Packages: `remotion`, `@remotion/cli`, `@remotion/google-fonts` (IBM Plex Sans, IBM Plex Sans Condensed,
-  IBM Plex Mono), `@remotion/noise` (contours, grain), `@remotion/paths` (stroke reveals),
-  `@remotion/motion-blur` (whip moves only).
+- Packages: `remotion`, `@remotion/cli`, `@remotion/bundler` + `@remotion/renderer` (fast stills),
+  `@remotion/google-fonts` (IBM Plex Sans, IBM Plex Sans Condensed, IBM Plex Mono), `@remotion/paths`
+  (stroke reveals), `@remotion/motion-blur` (whip moves only). Terrain and grain use seeded maths, no
+  noise package.
 - Rendering in CSS 3D + SVG inside Remotion's headless Chrome. No WebGL.
 - Audio: a Node 24 script (type-stripped `.ts`) synthesizes `public/score.wav` (48 kHz, stereo, 24-bit)
   sample by sample. No samples, no loops, no licences.
