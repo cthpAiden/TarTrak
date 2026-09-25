@@ -155,7 +155,7 @@ Decided:
   hide the overlay with F7 when looting, as today. No click-through mode.
 - Player marker stays dot + heading line (no view cone), as before.
 
-Picked (2026-09-25) and built on branch `claude/festive-sagan-d0knj9`, not yet released:
+Picked (2026-09-25) and built on branch `claude/festive-sagan-d0knj9`, released in 0.11.0:
 - Full window: UI 02 (icon rail, 400 px panel, map toolbar on the right edge, status bar), with the
   "FINAL" Settings board's sections.
 - Circle: Circle 02's look, Circle 09's tool buttons round the rim, and the raid timer and teammate

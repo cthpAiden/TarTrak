@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.11.0 - 2026-09-25
 
 ### Overlay
 - **Round minimap.** The overlay is now a circle for the top-right corner of the screen, with a compass bezel instead of the compass tape: degree ticks, N/E/S/W, teammates and the route as markers on the ring at their bearing, and a box with your heading. The window shrinks around the circle, keeping its top-right corner where it was, and goes back to its old size and place when you leave the overlay. Buttons round the lower left of the rim switch to the full window and toggle follow me, route, draw and the rotation; zoom sits on the right of the rim, the floor picker under it, and the raid timer and teammate distances step up the lower right of the rim. Only as many distance chips as fit are drawn; the rest fold into a "+N" chip that names them.
@@ -11,6 +11,9 @@
 - **New layout.** An icon rail on the left (Filters, Squad, Quests, Settings, plus the Overlay and opacity buttons) and a wider 400 px panel replace the tab row and the top bar. The map's tools stand in a toolbar on its right edge (overlay, follow me, route, draw, centre, fit, floor). A status bar along the bottom holds the map picker, your coordinates and heading, the squad room and the raid clock, which now also runs outside the overlay.
 - **Settings in sections:** Overlay, Hotkeys, Game, Folders and Squad relay, with switches for the on/off settings.
 - **New look:** IBM Plex Sans and Mono (bundled, nothing is fetched), rounded controls, and restyled checkboxes, inputs and buttons across the panels.
+
+### Data
+- **Lighthouse rework (patch 1.1.5.0), partly.** tarkov.dev caught up on quest item spots (moved or removed), spawns in the new zones and redrawn loose loot. The map, extracts, stationary guns and BTR route are unchanged upstream; Mountain Pass keeps its pinned spot.
 
 ## 0.10.1 - 2026-09-13
 
