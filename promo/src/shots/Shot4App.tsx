@@ -33,8 +33,9 @@ const Callouts = () => {
   // 74% out: on the line's visible dashes, the elbow below VEX's "132 m" pill, the box clear of GHOST's name
   const heading = worldToWin(headingPoint(0.74), frame);
   const gate = worldToWin(NORTH_GATE, frame);
-  // the clock's digits in the status bar's flex row (measured on the stills), mid-height of the 30 px bar
-  const clock = { x: 431, y: statusTop(frame) + 15 };
+  // just above the clock's digits, so the time stays readable (measured on the stills: the digits span
+  // x 400-435 and statusTop + 12..20 in window px)
+  const clock = { x: 418, y: statusTop(frame) + 7 };
   return (
     <div
       style={{
@@ -52,7 +53,8 @@ const Callouts = () => {
       {/* leftwards and long, so the box clears GHOST's name just below it */}
       <Callout anchor={at(heading)} label="Heading lines" at={CALLOUT_AT.heading} side="left" length={150} />
       <Callout anchor={at(gate)} label="Extracts & quests" at={CALLOUT_AT.extracts} side="left" length={60} />
-      <Callout anchor={at(clock)} label="Raid clock" at={CALLOUT_AT.clock} side="right" length={90} />
+      {/* the last one draws 2.5x faster, complete by f443, so it holds crisp before the push */}
+      <Callout anchor={at(clock)} label="Raid clock" at={CALLOUT_AT.clock} side="right" length={90} speed={2.5} />
     </div>
   );
 };

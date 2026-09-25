@@ -83,6 +83,8 @@ export const Rail = ({ x, height }: { x: number; height: number }) => {
   const selected = easeOutCubic(prog(frame, 365, 372));
   const dot = pop(frame, 368);
   const badge = pop(frame, 370);
+  // a soft edge while it slides over the map: none while the rail is still off-screen (f360 = shot 3's last frame)
+  const edge = 0.35 * (1 - prog(frame, 364, 376)) * clamp((x + RAIL_W) / RAIL_W);
   return (
     <nav
       style={{
@@ -98,8 +100,7 @@ export const Rail = ({ x, height }: { x: number; height: number }) => {
         padding: "12px 0 10px",
         background: RAIL_BG,
         borderRight: `1px solid ${C.raised2}`,
-        // a soft edge while it slides over the map
-        boxShadow: `6px 0 18px rgba(0, 0, 0, ${0.35 * (1 - prog(frame, 364, 376))})`,
+        boxShadow: edge > 0 ? `6px 0 18px rgba(0, 0, 0, ${edge})` : undefined,
       }}
     >
       <div

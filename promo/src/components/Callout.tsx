@@ -12,7 +12,8 @@ const BOX_H = 34;
 /**
  * A callout pointing at `anchor` (in its positioned parent's coordinates): at `at` an amber anchor dot
  * pops with a small ping; the elbow leader (45° up, then `length` px level, towards `side`) draws over
- * at+2..at+12; the label box wipes open at at+10 and its caps text types over at+12..at+20.
+ * at+2..at+12; the label box wipes open at at+10 and its caps text types over at+12..at+20. `speed`
+ * divides those leader, box and typing offsets (2 = done by at+10); the dot and ping keep their timing.
  */
 export const Callout = ({
   anchor,
@@ -20,23 +21,26 @@ export const Callout = ({
   at,
   side = "right",
   length = 140,
+  speed = 1,
 }: {
   anchor: { x: number; y: number };
   label: string;
   at: number;
   side?: "left" | "right";
   length?: number;
+  speed?: number;
 }) => {
   const frame = useCurrentFrame();
   if (frame < at) return null;
   const dir = side === "right" ? 1 : -1;
   const elbow = { x: anchor.x + dir * ELBOW, y: anchor.y - ELBOW };
   const end = { x: elbow.x + dir * length, y: elbow.y };
+  const t = (offset: number) => at + offset / speed;
   const pop = spring({ frame: frame - at, fps: 60, config: SPRING_POP });
-  const line = prog(frame, at + 2, at + 12, easeOutCubic);
-  const box = prog(frame, at + 10, at + 15, easeOutExpo);
+  const line = prog(frame, t(2), t(12), easeOutCubic);
+  const box = prog(frame, t(10), t(15), easeOutExpo);
   const text = label.toUpperCase();
-  const shown = typed(text, prog(frame, at + 12, at + 20));
+  const shown = typed(text, prog(frame, t(12), t(20)));
   const wipe = `calc(${(1 - box) * 100}% - ${24 * box}px)`;
   return (
     <>
