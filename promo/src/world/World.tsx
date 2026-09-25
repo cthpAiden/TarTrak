@@ -12,6 +12,7 @@ import {
 } from "./data.ts";
 import { CONTOUR_LEVELS, SUN, contourLines, heightAt, toneGrid } from "./terrain.ts";
 import { convexHull, extendEnds, offsetLine, sampleSmooth, smoothPath, stations } from "./geom.ts";
+import { markerScale, measurePills, measureText } from "./pills.ts";
 
 /** Which layers to draw (all default true except measures). `labels` = area names and grid numbers; me and my heading line always draw. */
 export type WorldShow = Partial<{ grid: boolean; labels: boolean; extracts: boolean; mates: boolean; measures: boolean; route: boolean; quests: boolean; pin: boolean; stroke: boolean }>;
@@ -387,9 +388,9 @@ const PinGlyph = () => (
 type Proj = { x: number; y: number; s: number };
 const inView = (p: Proj, w: number, h: number, pad = 240) => p.s > 0.05 && p.s < 6 && p.x > -pad && p.x < w + pad && p.y > -pad && p.y < h + pad;
 
-/** A screen-space anchor: children are laid out round (0, 0) and scaled by the perspective at that point. */
+/** A screen-space anchor: children are laid out round (0, 0) and scaled by the perspective at that point (pills.ts lays out with the same scale). */
 const At = ({ p, children, style }: { p: Proj; children: ReactNode; style?: CSSProperties }) => (
-  <div style={{ position: "absolute", left: 0, top: 0, transform: `translate(${p.x}px, ${p.y}px) scale(${clamp(p.s, 0.45, 1.35)})`, ...style }}>{children}</div>
+  <div style={{ position: "absolute", left: 0, top: 0, transform: `translate(${p.x}px, ${p.y}px) scale(${markerScale(p.s)})`, ...style }}>{children}</div>
 );
 
 // ---------------------------------------------------------------------------------------------
@@ -668,19 +669,17 @@ export const World = ({ cam, width, height, show, extrude = 1 }: WorldProps) => 
   }
 
   if (on.measures && frame >= 300) {
-    const me = P(ME);
-    for (const m of MATES) {
-      const p = P({ x: (ME.x + m.x) / 2, y: (ME.y + m.y) / 2 });
-      if (!inView(p, width, height)) continue;
-      // no room for a pill between two markers and their labels: leave the line alone
-      const there = P(m);
-      if (Math.hypot(there.x - me.x, there.y - me.y) < 140) continue;
-      const o = prog(frame, 304, 312);
+    // pills.ts keeps each pill on its line when there is room, else beside it, clear of dots, labels and each other
+    const o = prog(frame, 304, 312);
+    const count = easeOutCubic(prog(frame, 300, 330));
+    for (const pill of measurePills(cam, width, height)) {
+      const m = MATES.find((q) => q.id === pill.id)!;
+      if (pill.fade <= 0 || !inView({ ...pill, s: pill.k }, width, height)) continue;
       nodes.push(
-        <At key={`ms-${m.id}`} p={p}>
-          <div style={{ ...pillStyle, left: 0, top: 0, transform: "translate(-50%, -50%)", font: `500 12px ${MONO}`, padding: "2px 7px", opacity: o, display: "flex", alignItems: "center", gap: 6 }}>
+        <At key={`ms-${m.id}`} p={{ x: pill.x, y: pill.y, s: pill.k }}>
+          <div style={{ ...pillStyle, left: 0, top: 0, transform: "translate(-50%, -50%)", font: `500 12px ${MONO}`, padding: "2px 7px", opacity: o * pill.fade, display: "flex", alignItems: "center", gap: 6 }}>
             <span style={{ width: 6, height: 6, borderRadius: 3, background: m.color, display: "inline-block" }} />
-            {`${Math.round(m.metres * easeOutCubic(prog(frame, 300, 330)))} m`}
+            {measureText(Math.round(m.metres * count))}
           </div>
         </At>,
       );
