@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11.1 - 2026-09-25
+
+### Fixed
+- **Frame round the overlay.** Windows drew a thin white line and a shadow round the whole overlay window, a rectangle round the circle. The overlay turns the window's shadow off, so only the circle, its bezel and the rim buttons show.
+
 ## 0.11.0 - 2026-09-25
 
 ### Overlay

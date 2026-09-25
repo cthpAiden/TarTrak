@@ -49,11 +49,13 @@ export async function setOverlay(on: boolean, shape: "circle" | "box" = "box"): 
   const w = getCurrentWindow();
   try {
     await w.setDecorations(!on);
+    // Windows draws a 1px white border and a shadow round an undecorated window that keeps its shadow.
+    await w.setShadow(!on);
     await w.setAlwaysOnTop(on);
     await w.setSkipTaskbar(on);
   } catch (e) {
     // Half-applied is worse than not applied: undo best effort, then let the caller report it.
-    await Promise.allSettled([w.setDecorations(on), w.setAlwaysOnTop(!on), w.setSkipTaskbar(!on)]);
+    await Promise.allSettled([w.setDecorations(on), w.setShadow(on), w.setAlwaysOnTop(!on), w.setSkipTaskbar(!on)]);
     throw e;
   }
   document.body.classList.toggle("overlay", on);
