@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.12.1 - 2026-09-25
+
+### Fixed
+- **Heading-up faced backwards.** Heading-up turned the map by the raw game heading, but tarkov.dev draws some maps turned (Customs and Streets by 180°, others by 90° or 270°), so on those your heading line pointed down or sideways. The map now turns by where your heading line points on that map, so what you face is always straight up.
+
 ## 0.12.0 - 2026-09-25
 
 ### Overlay

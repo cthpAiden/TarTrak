@@ -31,6 +31,18 @@ export function toLatLng(x: number, z: number): L.LatLng {
   return L.latLng(z, x);
 }
 
+/**
+ * Where a game heading points on the drawn map, in degrees clockwise from screen-up. Yaw 0 faces +z
+ * (markers.ts), but a map's rotation and axes can turn that anywhere: on a 180° map it points down.
+ */
+export function screenBearing(def: MapDef, yaw: number): number {
+  const crs = makeCrs(def);
+  const rad = (yaw * Math.PI) / 180;
+  const from = crs.latLngToPoint(toLatLng(0, 0), 0);
+  const to = crs.latLngToPoint(toLatLng(Math.sin(rad), Math.cos(rad)), 0);
+  return (Math.atan2(to.x - from.x, from.y - to.y) * 180) / Math.PI;
+}
+
 export function boundsOf(def: MapDef): L.LatLngBounds {
   const [[x1, z1], [x2, z2]] = def.bounds;
   return L.latLngBounds([z1, x1], [z2, x2]);

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { makeCrs, toLatLng, boundsOf } from "./crs";
+import { makeCrs, toLatLng, boundsOf, screenBearing } from "./crs";
 import { getMapDef } from "./mapsData";
 
 describe("makeCrs", () => {
@@ -51,5 +51,30 @@ describe("makeCrs", () => {
     expect(b.getSouthWest().lng).toBe(-545);
     expect(b.getNorthEast().lat).toBe(725);
     expect(b.getNorthEast().lng).toBe(515);
+  });
+});
+
+describe("screenBearing", () => {
+  const norm = (d: number) => Math.round(((d % 360) + 360) % 360);
+
+  it("keeps the heading on a map drawn with +z up", () => {
+    const def = { ...getMapDef("customs")!, coordinateRotation: 0 };
+    expect(norm(screenBearing(def, 0))).toBe(0);
+    expect(norm(screenBearing(def, 90))).toBe(90);
+  });
+
+  it("turns it round on a map rotated 180 degrees (customs): facing +z points down the screen", () => {
+    const def = getMapDef("customs")!;
+    expect(norm(screenBearing(def, 0))).toBe(180);
+    expect(norm(screenBearing(def, 90))).toBe(270);
+  });
+
+  it("follows the map's own rotation (factory, 90 degrees)", () => {
+    const def = getMapDef("factory")!;
+    const crs = makeCrs(def);
+    const a = crs.latLngToPoint(toLatLng(0, 0), 0);
+    const b = crs.latLngToPoint(toLatLng(0, 1), 0);
+    const expected = (Math.atan2(b.x - a.x, a.y - b.y) * 180) / Math.PI;
+    expect(norm(screenBearing(def, 0))).toBe(norm(expected));
   });
 });

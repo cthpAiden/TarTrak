@@ -23,6 +23,7 @@
   import { checkForUpdate } from "./lib/tauri/updater";
   import { retryUntil } from "./lib/tauri/retry";
   import { getMapDef, floorForHeight, visibleOnFloor } from "./lib/map/mapsData";
+  import { screenBearing } from "./lib/map/crs";
   import {
     DEFAULT_SETTINGS,
     MINIMAP_SIZE_MAX,
@@ -202,8 +203,9 @@
   const minimapSize = $derived(sizeDraft ?? settings?.minimapSize ?? DEFAULT_SETTINGS.minimapSize);
   const ring = $derived(circle ? circleLayout(winW, winH, minimapSize) : null);
   const headingUp = $derived((settings?.minimapRotation ?? DEFAULT_SETTINGS.minimapRotation) === "heading");
-  // Heading-up turns the map under me; with no position yet there is no heading to turn to.
-  const mapRotation = $derived(circle && headingUp && app.ownPos ? app.ownPos.yaw : 0);
+  // Heading-up turns the map under me until my heading line points straight up; with no position yet there is
+  // no heading to turn to. The line's screen direction, not the raw yaw: some maps are drawn turned.
+  const mapRotation = $derived(circle && headingUp && app.ownPos && def ? screenBearing(def, app.ownPos.yaw) : 0);
   const chipSlots = $derived(ring ? chipAngles(ring.ro) : []);
   const chips = $derived(ring ? rimChips(raidLeft, readoutMates, chipSlots.length) : []);
   /** Inline position that centres an element `radius` from the disc centre at `deg` clockwise from 12 o'clock. */
