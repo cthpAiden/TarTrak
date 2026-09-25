@@ -87,6 +87,12 @@ describe("ringAngle", () => {
   it("falls back to the bearing before any heading is known", () => {
     expect(ringAngle(120, null, false)).toBe(120);
   });
+  it("turns a fixed ring by the map's own rotation, so bearings land where they are on the map", () => {
+    expect(ringAngle(56.5, 65, true, 180)).toBe(236.5);
+    expect(ringAngle(120, null, false, 90)).toBe(210);
+    // A turning ring is relative to my heading, whatever way the map is drawn.
+    expect(ringAngle(56.5, 65, false, 180)).toBeCloseTo(-8.5);
+  });
 });
 
 describe("angleGap", () => {

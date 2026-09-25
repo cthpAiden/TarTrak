@@ -53,7 +53,7 @@ export interface Settings {
 }
 
 export type OverlayShape = "circle" | "box";
-export const OVERLAY_SHAPES: readonly OverlayShape[] = ["circle", "box"];
+export const OVERLAY_SHAPES: readonly OverlayShape[] = ["box", "circle"];
 export type MinimapRotation = "north" | "heading";
 export const MINIMAP_ROTATIONS: readonly MinimapRotation[] = ["north", "heading"];
 export const MINIMAP_SIZE_MIN = 160;
@@ -93,7 +93,7 @@ export const DEFAULT_SETTINGS: Settings = {
   shareTodo: false,
   showSquadTodo: true,
   mateColors: {},
-  overlayShape: "circle",
+  overlayShape: "box",
   minimapRotation: "north",
   minimapSize: 300,
   compassBezel: true,

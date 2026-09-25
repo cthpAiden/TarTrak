@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.12.2 - 2026-09-25
+
+### Overlay
+- **Box is the default overlay again** for new installs, and comes first in Settings > Overlay shape. An install that already saved a shape keeps it; switch there.
+
+### Fixed
+- **North-up compass ring on turned maps.** The round minimap's ring always put bearing 0 at the top, but tarkov.dev draws some maps turned (Customs and Streets by 180°, others by 90° or 270°), so on those the heading box sat opposite (or across from) your heading line, and teammates and the route were marked on the wrong side of the ring. The ring now turns by the map's own rotation: the heading box sits where your heading line points, and teammates and the route sit where they are on the map. On a 180° map that puts N at the bottom of the ring.
+
 ## 0.12.1 - 2026-09-25
 
 ### Fixed

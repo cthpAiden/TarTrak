@@ -877,6 +877,7 @@
               r={ring.r}
               heading={app.ownPos?.yaw ?? null}
               northUp={!headingUp}
+              offset={def ? screenBearing(def, 0) : 0}
               targets={compassTargets}
               show={settings?.compassBezel ?? true}
             />

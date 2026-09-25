@@ -212,15 +212,15 @@ describe("SettingsPanel overlay", () => {
 
   it("switches the overlay between the circle and the box", () => {
     const { target, panel, changes } = open();
-    expect(radio(target, "Circle").getAttribute("aria-checked")).toBe("true");
-    radio(target, "Box").click();
+    expect(radio(target, "Box").getAttribute("aria-checked")).toBe("true");
+    radio(target, "Circle").click();
     flushSync();
-    expect(changes).toEqual([{ overlayShape: "box" }]);
+    expect(changes).toEqual([{ overlayShape: "circle" }]);
     void unmount(panel);
   });
 
   it("offers rotation, size, bezel and rim tools only for the circle", () => {
-    const circle = open();
+    const circle = open({ overlayShape: "circle" });
     expect(radio(circle.target, "Heading-up")).toBeDefined();
     radio(circle.target, "Heading-up").click();
     flushSync();
@@ -229,7 +229,7 @@ describe("SettingsPanel overlay", () => {
     void unmount(circle.panel);
     document.body.innerHTML = "";
 
-    const box = open({ overlayShape: "box" });
+    const box = open();
     expect(radio(box.target, "Heading-up")).toBeUndefined();
     expect(box.target.querySelector("#set-size")).toBeNull();
     expect(box.target.querySelector("#set-bezel")).toBeNull();

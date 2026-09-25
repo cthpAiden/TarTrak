@@ -9,6 +9,7 @@
     northUp,
     targets,
     show = true,
+    offset = 0,
   }: {
     /** Map disc radius; the ring sits around it. */
     r: number;
@@ -20,15 +21,17 @@
     targets: CompassTarget[];
     /** Off leaves a plain rim: no ticks, letters, markers or heading box. */
     show?: boolean;
+    /** Where bearing 0 points on this map's screen, clockwise from up: a fixed ring is turned by it to match the map. */
+    offset?: number;
   } = $props();
 
   const ro = $derived(r + RING);
   const c = $derived(ro);
   const size = $derived(2 * ro);
-  /** Ring turn: the tick rings rotate with the map in heading-up mode. */
-  const turn = $derived(northUp || heading === null ? 0 : -heading);
-  /** Where the heading box sits: at my heading on a fixed ring, or at 12 o'clock on a turning one. */
-  const boxAt = $derived(heading === null ? null : northUp ? heading : 0);
+  /** Ring turn: by the map's own turn on a fixed map, with my heading in heading-up mode. */
+  const turn = $derived(northUp || heading === null ? offset : -heading);
+  /** Where the heading box sits: where my heading line points on a fixed ring, or at 12 o'clock on a turning one. */
+  const boxAt = $derived(heading === null ? null : northUp ? heading + offset : 0);
   const labelR = $derived(r + 9);
   const LABELS = [
     { deg: 0, text: "N", letter: true },
@@ -47,11 +50,11 @@
   // A label the heading box would cover is left out rather than drawn half under it.
   const labels = $derived(
     LABELS.map((l) => {
-      const a = ringAngle(l.deg, heading, northUp);
+      const a = ringAngle(l.deg, heading, northUp, offset);
       return { ...l, a, ...polar(c, c, labelR, a) };
     }).filter((l) => boxAt === null || angleGap(l.a, boxAt) > 13),
   );
-  const marks = $derived(targets.map((t) => ({ ...t, a: ringAngle(t.bearing, heading, northUp) })));
+  const marks = $derived(targets.map((t) => ({ ...t, a: ringAngle(t.bearing, heading, northUp, offset) })));
   const box = $derived(boxAt === null ? null : polar(c, c, (r + ro) / 2, boxAt));
   const minorC = $derived(2 * Math.PI * (ro - 3));
   const majorC = $derived(2 * Math.PI * (ro - 5));

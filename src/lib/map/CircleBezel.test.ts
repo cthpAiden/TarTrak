@@ -7,7 +7,7 @@ import { RING } from "./circle";
 const R = 150;
 const C = R + RING;
 
-function open(props: { heading: number | null; northUp: boolean; targets?: CompassTarget[]; show?: boolean }) {
+function open(props: { heading: number | null; northUp: boolean; targets?: CompassTarget[]; show?: boolean; offset?: number }) {
   const target = document.body.appendChild(document.createElement("div"));
   const bezel = mount(CircleBezel, { target, props: { r: R, targets: [], ...props } });
   return { target, bezel };
@@ -35,6 +35,18 @@ describe("CircleBezel", () => {
     expect(label(target, "60")).toBeUndefined();
     expect(label(target, "120")).toBeDefined();
     expect(target.querySelector("g.mark.mate")!.getAttribute("transform")).toBe(`rotate(56.5 ${C} ${C})`);
+    void unmount(bezel);
+  });
+
+  it("north-up on a map drawn turned 180°: N at the bottom, the box and teammates turned with it", () => {
+    const { target, bezel } = open({ heading: 65, northUp: true, targets: [kilo], offset: 180 });
+    const n = label(target, "N")!;
+    expect(Number(n.getAttribute("x"))).toBeCloseTo(C);
+    expect(Number(n.getAttribute("y"))).toBeGreaterThan(C);
+    expect(target.querySelector("text.hdg")!.textContent).toBe("065");
+    expect(Number(target.querySelector("text.hdg")!.getAttribute("x"))).toBeLessThan(C);
+    expect(Number(target.querySelector("text.hdg")!.getAttribute("y"))).toBeGreaterThan(C);
+    expect(target.querySelector("g.mark.mate")!.getAttribute("transform")).toBe(`rotate(236.5 ${C} ${C})`);
     void unmount(bezel);
   });
 

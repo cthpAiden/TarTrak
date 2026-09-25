@@ -73,9 +73,13 @@ export function chipAngles(ro: number): number[] {
   return out;
 }
 
-/** Where on the ring a bearing sits: as is when north is up, relative to my heading when the map turns. */
-export function ringAngle(bearing: number, heading: number | null, northUp: boolean): number {
-  return northUp || heading === null ? bearing : bearing - heading;
+/**
+ * Where on the ring a bearing sits. On a fixed map: where it points on the drawn map, which is the bearing turned
+ * by `offset` (where bearing 0 points on screen; tarkov.dev draws some maps turned). On a map that turns with me:
+ * relative to my heading.
+ */
+export function ringAngle(bearing: number, heading: number | null, northUp: boolean, offset = 0): number {
+  return northUp || heading === null ? bearing + offset : bearing - heading;
 }
 
 /** Smallest absolute difference between two angles, in degrees (0..180). */
