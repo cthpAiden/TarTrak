@@ -1,0 +1,31 @@
+{
+  "name": "tartrak-promo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "test": "node --test \"src/**/*.test.ts\" \"audio/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit",
+    "audio": "node audio/build.ts",
+    "still": "node scripts/still.ts",
+    "render:video": "remotion render src/index.ts Showreel out/tartrak-showreel.mp4 --codec=h264 --crf=14 --pixel-format=yuv420p --audio-codec=aac --audio-bitrate=320k",
+    "post": "node scripts/post.ts",
+    "render": "npm run audio && npm run render:video && npm run post"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.529",
+    "@remotion/cli": "4.0.529",
+    "@remotion/google-fonts": "4.0.529",
+    "@remotion/motion-blur": "4.0.529",
+    "@remotion/paths": "4.0.529",
+    "@remotion/renderer": "4.0.529",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "remotion": "4.0.529"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "19.3.0",
+    "typescript": "5.9.3"
+  }
+}
