@@ -18,7 +18,7 @@
   /* Above the overlay's teammate-distance pill instead of on it. */
   :global(body.overlay) .toasts { bottom: 44px; }
   :global(.toast) {
-    background: rgba(30, 35, 43, 0.85); color: #fff; padding: 6px 10px; border: 1px solid #3a4048;
+    background: rgba(30, 35, 43, 0.85); color: #fff; padding: 6px 10px; border: 1px solid var(--line-2);
     border-radius: 4px; box-shadow: none; font-size: 12px; max-width: 260px;
   }
 </style>

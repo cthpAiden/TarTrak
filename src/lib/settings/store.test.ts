@@ -134,6 +134,27 @@ describe("mergeSettings", () => {
     expect(mergeSettings({ markKeyVk: "F7" }).markKeyVk).toBe(0xa4);
   });
 
+  it("defaults the overlay to a north-up circle with its bezel and rim tools", () => {
+    const s = mergeSettings({});
+    expect(s.overlayShape).toBe("circle");
+    expect(s.minimapRotation).toBe("north");
+    expect(s.minimapSize).toBe(300);
+    expect(s.compassBezel).toBe(true);
+    expect(s.rimTools).toBe(true);
+  });
+
+  it("keeps a known overlay shape and rotation and resets unknown ones", () => {
+    expect(mergeSettings({ overlayShape: "box" }).overlayShape).toBe("box");
+    expect(mergeSettings({ overlayShape: "hexagon" }).overlayShape).toBe("circle");
+    expect(mergeSettings({ minimapRotation: "heading" }).minimapRotation).toBe("heading");
+    expect(mergeSettings({ minimapRotation: "south" }).minimapRotation).toBe("north");
+  });
+
+  it("clamps the minimap size to [200, 480] whole pixels", () => {
+    expect(mergeSettings({ minimapSize: 50 }).minimapSize).toBe(200);
+    expect(mergeSettings({ minimapSize: 9000 }).minimapSize).toBe(480);
+    expect(mergeSettings({ minimapSize: 321.6 }).minimapSize).toBe(322);
+  });
 });
 
 describe("loadSettings", () => {

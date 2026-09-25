@@ -319,9 +319,9 @@
   .hdr .trader-icon { width: 18px; height: 18px; vertical-align: -4px; }
   .badge {
     display: inline-block; margin-left: 4px; padding: 0 4px; border-radius: 3px; font-size: 10px; line-height: 14px;
-    vertical-align: 1px; background: #2a2f38; color: var(--accent); border: 1px solid #3a4048;
+    vertical-align: 1px; background: var(--raised-2); color: var(--accent); border: 1px solid var(--line-2);
   }
-  input { background: #2a2f38; color: var(--fg); border: 1px solid #3a4048; padding: 3px 6px; }
+  input { background: var(--raised-2); color: var(--fg); border: 1px solid var(--line-2); padding: 3px 6px; }
   input[type="number"] { width: 48px; }
   /* The to-do list keeps to the top third so the finder below stays reachable. */
   .todo { overflow-y: auto; max-height: 34%; flex: none; }

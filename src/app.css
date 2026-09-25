@@ -1,78 +1,221 @@
 :root {
   color-scheme: dark;
-  --bg: #14171c;
-  --panel: #1e232b;
-  --fg: #e6e6e6;
-  --muted: #8a94a3;
+  --bg: #12151a;
+  --panel: #161a20;
+  --raised: #1c2129;
+  --raised-2: #232a33;
+  --line: #2a313b;
+  --line-2: #2e3640;
+  --fg: #e8eaed;
+  --fg-2: #c5ccd5;
+  --muted: #9aa4b1;
   --accent: #f0b429;
+  --on-accent: #1a1405;
+  --accent-soft: rgba(240, 180, 41, 0.14);
+  --ok: #3ecf8e;
+  --sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", Consolas, ui-monospace, monospace;
 }
 html, body, #app { height: 100%; margin: 0; }
 body {
-  font-family: system-ui, Segoe UI, sans-serif;
+  font-family: var(--sans);
+  font-size: 13px;
   color: var(--fg);
   background: var(--bg);
   overflow: hidden;
 }
-/* The window is transparent, so the rounded box below is the whole overlay and the game shows around its corners. */
+.mono { font-family: var(--mono); }
+.grow { flex: 1; }
+.muted { color: var(--muted); font-size: 12px; }
+
+/* Form controls, shared by every panel. */
+button { font-family: inherit; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+select, input[type="text"], input[type="number"], input:not([type]) {
+  background: #0f1216; color: var(--fg); border: 1px solid var(--line-2); border-radius: 6px; padding: 4px 8px; font: inherit;
+}
+input::placeholder { color: #7d8793; }
+input[type="checkbox"] {
+  appearance: none; width: 16px; height: 16px; margin: 0; flex: none; cursor: pointer; vertical-align: middle;
+  background: #0f1216 center / 12px no-repeat; border: 1px solid #4a5460; border-radius: 4px;
+}
+input[type="checkbox"]:checked {
+  background-color: var(--accent); border-color: var(--accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%231a1405' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+input[type="checkbox"]:indeterminate {
+  background-color: rgba(240, 180, 41, 0.45); border-color: var(--accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8h8' stroke='%23e8eaed' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+/* A checkbox drawn as an on/off switch, for settings. */
+input[type="checkbox"].switch {
+  width: 32px; height: 18px; border: 0; border-radius: 9px; background-color: #3a434e;
+  background-image: radial-gradient(circle, #9aa4b1 0 6.5px, transparent 7px);
+  background-size: 18px 18px; background-position: left center;
+}
+input[type="checkbox"].switch:checked {
+  background-color: var(--accent);
+  background-image: radial-gradient(circle, var(--on-accent) 0 6.5px, transparent 7px);
+  background-position: right center;
+}
+input[type="range"] { accent-color: var(--accent); }
+
+/* ---------- Window: icon rail | panel | map, status bar underneath ---------- */
+.layout { display: flex; flex-direction: column; height: 100%; }
+.body { display: flex; flex: 1; min-height: 0; }
+
+.rail {
+  width: 64px; flex: none; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 12px 0 10px; background: #0f1216; border-right: 1px solid var(--raised-2);
+}
+.rail .logo {
+  width: 34px; height: 34px; margin-bottom: 10px; border-radius: 9px; display: grid; place-items: center;
+  background: var(--accent); color: var(--on-accent);
+}
+.rail-tabs { display: flex; flex-direction: column; gap: 4px; }
+.rail-tabs button {
+  position: relative; width: 54px; height: 54px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  background: none; color: var(--muted); border: 0; border-radius: 10px; font-size: 11px; font-weight: 500; cursor: pointer;
+}
+.rail-tabs button:hover { color: var(--fg); background: rgba(255, 255, 255, 0.04); }
+.rail-tabs button[aria-selected="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.rail-tabs .dot { position: absolute; top: 8px; right: 12px; width: 8px; height: 8px; border-radius: 50%; border: 2px solid #0f1216; }
+.rail-tabs .badge {
+  position: absolute; top: 5px; right: 7px; min-width: 16px; height: 16px; box-sizing: border-box; padding: 0 4px; border-radius: 8px;
+  background: var(--accent); color: var(--on-accent); font-size: 10px; font-weight: 700; line-height: 16px; text-align: center;
+}
+.rail-action {
+  width: 54px; height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  background: none; color: var(--fg-2); border: 1px solid var(--line-2); border-radius: 10px; cursor: pointer;
+}
+.rail-action:hover { color: var(--accent); border-color: var(--accent); }
+.rail-action .key { font-family: var(--mono); font-size: 10px; }
+.dot.open { background: var(--ok); }
+.dot.connecting { background: #e8c547; }
+.dot.closed { background: #e5534b; }
+
+.side { width: 400px; flex: none; background: var(--panel); border-right: 1px solid #262d36; overflow: hidden; display: flex; flex-direction: column; }
+.side .pane { flex: 1; min-height: 0; overflow-y: auto; }
+/* Panel buttons share one look; a panel's own rules refine it. */
+.side button {
+  background: var(--raised-2); color: var(--fg); border: 1px solid var(--line-2); border-radius: 6px; padding: 3px 10px; cursor: pointer; font-size: 12.5px;
+}
+.side button:hover:not(:disabled) { border-color: #4a5460; }
+.side button:disabled { opacity: 0.45; cursor: default; }
+/* Panels share this frame: generous padding, small caps section headings. */
+.side .panel { padding: 14px 16px; }
+.side .panel h2 { margin: 0 0 8px; font-size: 17px; font-weight: 700; }
+.side .panel h3 { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.map { position: relative; flex: 1; min-height: 0; background: #20251d; }
+.empty { display: grid; place-items: center; height: 100%; color: var(--muted); }
+
+.map-toolbar {
+  position: absolute; right: 12px; top: 12px; z-index: 1000; width: 44px; box-sizing: border-box;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px;
+  background: rgba(22, 26, 32, 0.92); border: 1px solid var(--line-2); border-radius: 10px;
+}
+.map-toolbar .sep { width: 24px; height: 1px; margin: 4px 0; background: var(--line-2); }
+.tool-btn {
+  width: 34px; height: 34px; padding: 0; display: grid; place-items: center;
+  background: none; color: var(--fg-2); border: 0; border-radius: 7px; cursor: pointer;
+}
+.tool-btn:hover:not(:disabled) { color: var(--accent); background: rgba(255, 255, 255, 0.05); }
+.tool-btn[aria-pressed="true"] { background: rgba(240, 180, 41, 0.16); color: var(--accent); }
+.tool-btn:disabled { opacity: 0.35; cursor: default; }
+
+.status {
+  height: 30px; flex: none; box-sizing: border-box; display: flex; align-items: center; gap: 14px; padding: 0 14px;
+  background: #0c0f13; border-top: 1px solid var(--raised-2); font-size: 12px; color: var(--fg-2); white-space: nowrap; overflow: hidden;
+}
+.status select { height: 22px; padding: 0 6px; font-size: 12px; font-weight: 600; background: #161a20; border-radius: 5px; }
+.status .st-map { display: flex; align-items: center; gap: 6px; }
+.status .auto {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.08em; color: #7ee2a8; background: rgba(62, 207, 142, 0.12); padding: 1px 6px; border-radius: 4px;
+}
+.status .st-sep { width: 1px; height: 14px; background: var(--line-2); }
+.status .st-coords { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.status .st-coords b, .status .st-raid b { color: var(--accent); font-weight: 600; font-family: var(--mono); }
+.status .st-squad { display: flex; align-items: center; gap: 6px; }
+.status .st-squad .dot { width: 8px; height: 8px; border-radius: 50%; }
+.status .st-muted { color: var(--muted); }
+
+/* ---------- Overlay (both shapes) ---------- */
+/* The window is transparent, so what the overlay draws is all that shows over the game. */
 body.overlay { background: transparent; }
-body.overlay .layout {
+body.overlay .rail, body.overlay .side, body.overlay .status, body.overlay .banner { display: none; }
+body.overlay .toast { font-size: 11px; padding: 4px 8px; }
+
+/* Box: a rounded rectangle with the compass tape on top. */
+body.overlay:not(.circle) .layout {
   box-sizing: border-box; border-radius: 7px; border: 1px solid rgba(255, 255, 255, 0.13);
   background: rgba(14, 17, 22, 0.94); overflow: hidden;
 }
-body.overlay .side { display: none; }
-body.overlay .topbar { padding: 2px 6px; font-size: 12px; background: rgba(30, 35, 43, 0.75); }
+body.overlay .map { background: transparent; }
 .map-tools { position: absolute; top: 8px; left: 8px; z-index: 1000; display: flex; gap: 6px; align-items: flex-start; }
 .mode-btn {
   width: 26px; height: 26px; padding: 0; display: grid; place-items: center;
-  background: var(--panel); color: var(--fg); border: 1px solid #3a4048; border-radius: 3px; cursor: pointer;
+  background: rgba(30, 35, 43, 0.75); color: var(--fg); border: 1px solid #3a4048; border-radius: 3px; cursor: pointer;
 }
 .mode-btn:hover { border-color: var(--accent); color: var(--accent); }
-body.overlay .mode-btn { background: rgba(30, 35, 43, 0.75); }
 .follow-btn, .draw-btn { color: var(--muted); }
 .follow-btn[aria-pressed="true"], .draw-btn[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
-/* Setup banners are for the desktop layout; in overlay they would sit over the game. */
-body.overlay .banner { display: none; }
-body.overlay .toast { font-size: 11px; padding: 4px 8px; }
+.box-floors { position: absolute; top: 8px; right: 8px; z-index: 1000; }
 
 .conn-pill {
-  position: absolute; top: 40px; left: 8px; z-index: 1000;
+  position: absolute; top: 40px; left: 8px; z-index: 1001;
   display: flex; align-items: center; gap: 6px;
   height: 26px; padding: 0 10px; box-sizing: border-box; font-size: 12px;
   color: var(--fg); background: rgba(30, 35, 43, 0.75); border: 1px solid #3a4048; border-radius: 3px;
   pointer-events: none;
 }
-.conn-pill .dot { width: 8px; height: 8px; border-radius: 50%; background: #cc3; }
-/* Bottom-right corner of the map: the teammate-distance pill, then the raid timer at the very corner. */
+.conn-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+body.circle .conn-pill { top: 8px; border-radius: 13px; background: rgba(15, 19, 24, 0.94); }
+/* Bottom-right corner of the box: the teammate-distance pill, then the raid timer at the very corner. */
 .corner-pills { position: absolute; right: 8px; bottom: 8px; z-index: 1000; display: flex; gap: 6px; pointer-events: none; }
 /* Time left in the raid: a twin of the teammate-distance pill, and as see-through to clicks. */
 .raid-pill {
   height: 26px; padding: 0 10px; box-sizing: border-box; display: flex; align-items: center;
-  font-family: ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; font-size: 13px;
+  font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 13px;
   color: var(--fg); background: rgba(30, 35, 43, 0.75); border: 1px solid #3a4048; border-radius: 3px;
   pointer-events: none;
 }
 
-.layout { display: flex; flex-direction: column; height: 100%; }
-.topbar { display: flex; gap: 8px; align-items: center; padding: 6px 10px; background: var(--panel); flex-wrap: nowrap; overflow: hidden; }
-.topbar .grow { flex: 1; }
-.topbar .muted, .muted { color: var(--muted); font-size: 12px; }
-.topbar .coords { font-variant-numeric: tabular-nums; font-size: 13px; white-space: nowrap; }
-.topbar button, .side button { background: #2a2f38; color: var(--fg); border: 1px solid #3a4048; padding: 3px 8px; cursor: pointer; }
-.topbar button:disabled { opacity: .4; cursor: default; }
-select { background: #2a2f38; color: var(--fg); border: 1px solid #3a4048; padding: 3px 6px; }
-.body { display: flex; flex: 1; min-height: 0; }
-.map { position: relative; flex: 1; }
-.side { width: 320px; background: var(--panel); overflow: hidden; display: flex; flex-direction: column; }
-.side .tabs { display: flex; flex: none; border-bottom: 1px solid #2a2f38; }
-.side .tabs button {
-  flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;
-  background: none; border: none; border-bottom: 2px solid transparent; color: var(--muted);
-  font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; padding: 8px 4px; cursor: pointer;
+/* Circle: the disc, its bezel, and what sits round its rim; everything else in the window is see-through. */
+body.circle .layout { background: transparent; }
+body.circle .empty.round {
+  position: absolute; top: 40px; right: 40px; width: 240px; height: 240px; border-radius: 50%;
+  background: rgba(14, 17, 22, 0.94); text-align: center; padding: 30px; box-sizing: border-box; font-size: 12px;
 }
-.side .tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
-.side .tabs .dot { width: 8px; height: 8px; border-radius: 50%; }
-.side .tabs .dot.open { background: #3c3; }
-.side .tabs .dot.connecting { background: #cc3; }
-.side .tabs .dot.closed { background: #c33; }
-.side .pane { flex: 1; min-height: 0; overflow-y: auto; }
-.empty { display: grid; place-items: center; height: 100%; color: var(--muted); }
+.bezel-at { position: absolute; z-index: 900; pointer-events: none; }
+.rim-at { position: absolute; z-index: 1000; transform: translate(-50%, -50%); }
+.floor-at { transform: translateX(-50%); }
+/* An open menu (route, floors) sits above the chips it opens over. */
+.rim-at:focus-within { z-index: 1005; }
+.rim-btn {
+  width: 30px; height: 30px; padding: 0; display: grid; place-items: center;
+  background: rgba(15, 19, 24, 0.94); color: #eef1f4; border: 1px solid rgba(255, 255, 255, 0.24); border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); cursor: pointer;
+}
+.rim-btn:hover { border-color: var(--accent); }
+.rim-btn[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+.rim-at.zoom {
+  width: 24px; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden;
+  background: rgba(15, 19, 24, 0.94); border: 1px solid rgba(255, 255, 255, 0.24); border-radius: 12px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+.rim-at.zoom button { width: 22px; height: 24px; padding: 0; display: grid; place-items: center; background: none; color: #eef1f4; border: 0; cursor: pointer; }
+.rim-at.zoom button + button { border-top: 1px solid rgba(255, 255, 255, 0.18); }
+.rim-at.zoom button:hover { color: var(--accent); }
+/* Rim tools off: they appear only while the mouse is over the minimap. */
+.map.rim-hover .rim-tool { opacity: 0; transition: opacity 0.15s; }
+.map.rim-hover:hover .rim-tool, .map.rim-hover .rim-tool:focus-within { opacity: 1; }
+.rim-chip {
+  display: flex; align-items: center; gap: 5px; height: 24px; box-sizing: border-box; padding: 0 9px; white-space: nowrap;
+  background: rgba(15, 19, 24, 0.94); border: 1px solid rgba(255, 255, 255, 0.24); border-radius: 12px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 500; color: #eef1f4;
+  pointer-events: none;
+}
+.rim-chip.timer { padding-left: 7px; font-weight: 700; }
+.rim-chip.more { pointer-events: auto; cursor: default; }
+.rim-chip .mate-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }

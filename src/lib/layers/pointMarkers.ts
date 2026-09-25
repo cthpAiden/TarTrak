@@ -1,6 +1,7 @@
 import L from "leaflet";
 import { esc } from "../quests/questLayer";
 import { toLatLng } from "../map/crs";
+import { upright } from "../map/labels";
 import { markerIcon, outlineColor, pointIcon, pointPopupHtml } from "./pointLayer";
 import type { MapPoint } from "./points";
 
@@ -135,7 +136,7 @@ export class PointMarkers {
     const hit = this.hits.has(p.id);
     const marker = L.marker(ll, { icon: this.icon(p, hit) });
     // Popup HTML is built when it opens; a string per marker would sit in memory unused.
-    marker.bindTooltip(esc(p.name)).bindPopup(() => pointPopupHtml(p));
+    marker.bindTooltip(upright(esc(p.name))).bindPopup(() => pointPopupHtml(p));
     marker.addTo(this.group);
     const s: Shown = { p, marker, hit };
     this.shown.set(p.id, s);

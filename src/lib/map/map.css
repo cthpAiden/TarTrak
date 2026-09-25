@@ -4,15 +4,28 @@
 .hidden-layer { display: none; }
 .off-level { opacity: 0.35; }
 .tt-label {
-  /* Translucent so the tag hides less of the map; the shadow keeps the text readable over it. */
-  background: rgba(0, 0, 0, 0.35);
   text-shadow: 0 0 3px #000, 0 0 1px #000;
   color: #fff;
+  background: none;
   border: none;
   box-shadow: none;
-  padding: 1px 5px;
+  padding: 0;
   font-size: 11px;
 }
+/* Translucent so the tag hides less of the map; the shadow keeps the text readable over it. On the inner
+   span, so the tag turns with its text on a heading-up minimap. */
+.tt-label .upright { background: rgba(0, 0, 0, 0.35); padding: 1px 5px; }
+.upright { display: inline-block; }
+
+/* Round minimap: the Leaflet container is the disc itself. */
+.map-root.circle { right: auto; bottom: auto; border-radius: 50%; overflow: hidden; background: #20251d; }
+/* Heading-up: the whole map element is turned by -heading; text turns back by --counter to stay upright.
+   Marker icons turn with the map. Tooltips sit above their point, so they turn about their bottom edge. */
+.map-root.rotated .upright { transform: rotate(var(--counter)); transform-origin: 50% 100%; }
+.map-root.rotated .leaflet-popup-content-wrapper { transform: rotate(var(--counter)); transform-origin: 50% calc(100% + 20px); }
+.map-root.rotated .leaflet-popup-tip-container { transform: rotate(var(--counter)); transform-origin: 50% 100%; }
+/* The close button is placed on the popup's unturned box; clicking elsewhere closes the popup instead. */
+.map-root.rotated .leaflet-popup-close-button { display: none; }
 .tt-label::before { display: none; }
 /* Name labels must never intercept clicks meant for the markers under them. */
 .tt-label { pointer-events: none; }
@@ -20,26 +33,6 @@
 .leaflet-popup-content { margin: 8px 10px; font-size: 12px; }
 .leaflet-popup-content small { color: var(--muted); }
 .leaflet-container a.leaflet-popup-close-button { color: var(--muted); }
-.floor-menu { position: absolute; top: 8px; right: 8px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-.floor-toggle {
-  display: inline-flex; align-items: center; gap: 4px;
-  background: var(--panel); color: var(--fg); border: 1px solid #333; border-radius: 4px; padding: 4px 6px 4px 10px; cursor: pointer;
-}
-/* The chevron points down while closed and up while open, like a native select. */
-.floor-toggle svg.chevron { transform: rotate(90deg); }
-.floor-toggle svg.chevron.open { transform: rotate(-90deg); }
-.floor-list {
-  display: flex; flex-direction: column; min-width: 130px;
-  background: var(--panel); border: 1px solid #333; border-radius: 4px; overflow: hidden;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
-}
-.floor-list button {
-  background: none; color: var(--fg); border: 0; padding: 6px 10px; text-align: left; cursor: pointer; font: inherit;
-}
-.floor-list button:hover { background: rgba(255, 255, 255, 0.07); }
-.floor-list button.active { background: var(--accent); color: #000; }
-/* Overlay sits over the game: the floor menu goes as translucent as the corner buttons. */
-body.overlay .floor-toggle, body.overlay .floor-list { background: rgba(30, 35, 43, 0.75); border-color: #3a4048; }
 .pin-menu {
   position: absolute; z-index: 1000; display: flex; flex-direction: column; gap: 4px; padding: 6px; width: 200px;
   background: var(--panel); border: 1px solid #333; border-radius: 4px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);

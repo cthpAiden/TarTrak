@@ -137,3 +137,38 @@ Secondary (v2):
 3. Set up repo in this folder (`git init`), MIT license, README stating the safety principles.
 4. Build order: screenshot parser + log map detection (pure logic, TDD) -> map render with transforms
    -> own marker -> relay + rooms -> quest markers -> the rest.
+
+## UI overhaul + circle minimap (2026-09-25, cloud session, mockups only, no code yet)
+
+Mockups: 20 boards on the design canvas https://claude.ai/artifact/JRgu9WjJL6CDNz2JY5aSqk (private to the owner).
+- UI 01-10: full-window redesigns. 01-02 polished current look, 03-05 tactical (05 shows the new
+  overlay settings), 06-08 modern app layouts, 09-10 sci-fi HUD.
+- Circle 01-10: circular overlay minimap in the top-right corner of a 1080p screen, all with a compass
+  bezel (degree ticks, N/E/S/W, teammates and route as markers on the ring).
+- The map art in the mockups is a made-up placeholder; the app keeps its tarkov.dev maps.
+
+Decided:
+- Overlay minimap becomes a circle, placed top-right (the box used to sit bottom-right).
+- Compass tape becomes a bezel ring around the circle.
+- Rotation: user toggle between north-up and heading-up; default north-up.
+- The window stays a rectangle; its transparent corners around the circle may catch clicks. Accepted:
+  hide the overlay with F7 when looting, as today. No click-through mode.
+- Player marker stays dot + heading line (no view cone), as before.
+
+Picked (2026-09-25) and built on branch `claude/festive-sagan-d0knj9`, not yet released:
+- Full window: UI 02 (icon rail, 400 px panel, map toolbar on the right edge, status bar), with the
+  "FINAL" Settings board's sections.
+- Circle: Circle 02's look, Circle 09's tool buttons round the rim, and the raid timer and teammate
+  distances as chips on the lower right of the rim. North-up is the default; heading-up is the toggle.
+- Settings > Overlay shape switches between the new circle and the old box.
+- Needs checking on Windows: the window shrinking/restoring around the circle, click-through of the
+  transparent corners, and heading-up drag/right-click on a real map. Only a browser preview was seen.
+
+Notes for implementation:
+- `leaflet-rotate` (the usual Leaflet rotation plugin) is GPL-3.0 on npm; TarTrak is MIT, so write the
+  rotation ourselves instead of adding it.
+- Heading-up can only turn when a screenshot arrives, so the map snaps to each new heading rather than
+  rotating smoothly.
+- A CSS-rotated map needs its mouse handling (drag, right-click menu, draw) mapped back through the
+  rotation, or those interactions go off in heading-up mode.
+- Whether transparent window corners really block clicks on Windows/WebView2 is untested.

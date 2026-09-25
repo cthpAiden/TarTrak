@@ -4,6 +4,7 @@ import { ADD_BATCH, PointMarkers, VIEW_PAD, type Defer } from "./pointMarkers";
 import type { MapPoint } from "./points";
 import { makeCrs, boundsOf, toLatLng } from "../map/crs";
 import { getMapDef } from "../map/mapsData";
+import { upright } from "../map/labels";
 
 function makeMap(): L.Map {
   const el = document.createElement("div");
@@ -87,7 +88,7 @@ describe("PointMarkers", () => {
     pm.setPoints([pt("a", 0, 0, { name: "<b>Safe</b>", details: ["Container"] })], new Set());
     pm.refresh(EVERYWHERE);
     const m = pm.markerFor("a")!;
-    expect(m.getTooltip()!.getContent()).toBe("&#60;b&#62;Safe&#60;/b&#62;");
+    expect(m.getTooltip()!.getContent()).toBe(upright("&#60;b&#62;Safe&#60;/b&#62;"));
     expect(typeof m.getPopup()!.getContent()).toBe("function");
     m.openPopup();
     const html = map.getContainer().querySelector(".leaflet-popup-content")!.innerHTML;
@@ -130,7 +131,7 @@ describe("PointMarkers", () => {
     pm.setPoints([pt("a", 0, 0, { name: "Renamed" }), b], new Set());
     pm.refresh(EVERYWHERE);
     expect(pm.markerFor("a")).not.toBe(markerA);
-    expect(pm.markerFor("a")!.getTooltip()!.getContent()).toBe("Renamed");
+    expect(pm.markerFor("a")!.getTooltip()!.getContent()).toBe(upright("Renamed"));
     expect(pm.markerFor("b")).toBe(markerB);
   });
 

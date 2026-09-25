@@ -26,9 +26,25 @@ No memory reading, no injection, no hooks, no keystrokes sent to the game, no ac
    Positions travel through the project relay (`wss://tartrak-relay.aidenmileshp.workers.dev`); you can
    point Settings > Relay URL at your own Worker instead (see [Relay](#relay)).
 5. Hotkeys: `F5` overlay mode, `F6` opacity, `F7` hides the window until you press it again (for looting
-   with the overlay in the way), `Alt+drag` moves the overlay. Rebind in Settings. The square
-   button in the map's top-left corner also switches between the full window and the map-only overlay; the
-   crosshair next to it toggles **follow me**, which recentres the map on your marker after every screenshot.
+   with the overlay in the way), `Alt+drag` moves the overlay. Rebind in Settings. In the full window the
+   icon rail on the left switches the panel (Filters, Squad, Quests, Settings) and holds the Overlay and
+   opacity buttons; the toolbar on the map's right edge has overlay, **follow me** (recentres the map on your
+   marker after every screenshot), route, draw, centre, fit and the floor picker; the status bar along the
+   bottom has the map picker, your coordinates and heading, the squad room and the raid clock.
+
+**Overlay.** Settings > Overlay shape picks the look. **Circle** (the default) is a round minimap with a
+compass bezel: degree ticks, N/E/S/W, and your teammates and route as markers on the ring at their bearing,
+with a box showing your heading. The window shrinks around it, keeping its top-right corner where it was,
+and comes back to its old size and place when you leave the overlay; park it in the screen's top-right
+corner. Buttons round the lower left of the rim switch to the full window and toggle follow me, route,
+draw and the rotation; zoom sits on the right of the rim and the floor picker under it; the raid timer and
+teammate distances step up the lower right of the rim, closest teammate first. **North-up** (the default)
+keeps the map still and slides the heading box round the ring; **heading-up** turns the map so you face up,
+at each screenshot (the heading only changes when you take one). On a turned map, labels and tooltips stay
+upright but marker icons turn with it. Settings also has the minimap size, the bezel on or off, and the rim
+buttons always shown or only under the mouse. The window around the circle is still a rectangle, and its
+see-through corners may catch clicks meant for the game: hide the overlay with F7 while looting. **Box** is
+the earlier rectangle, with the compass tape on top and the pills in its bottom-right corner.
 
 Markers never disappear; they dim slowly after 30 s and settle at 35% after 5 minutes.
 
@@ -39,7 +55,7 @@ turns it off). The screenshot key is read from the game's log, where the game li
 at start, so a rebound screenshot key just works; Settings shows the key it read. Ctrl does not work as
 the held key: the game ignores its screenshot key while Ctrl is held.
 
-**Raid timer.** In overlay mode a small pill in the map's bottom-right corner (next to the teammate-distance pill) counts down the time left in the
+**Raid timer.** The status bar and the overlay (a chip on the circle's rim, or a pill in the box's bottom-right corner) count down the time left in the
 raid (mm:ss), from the moment the game log says the raid started against the map's raid length. It lets clicks
 through, shows 00:00 for a minute after the end, and Settings > Raid timer turns it off. PMC raids only: a Scav
 raid joins mid-raid and the log does not say how much time is left, so it would read too high.
@@ -66,8 +82,8 @@ your map, otherwise the map they are on, plus how long ago they last reported. C
 Names carry the floor a teammate is on, like "Aiden [2F]". Click the colour dot in a row to pick the colour that
 teammate is drawn in on your screen; it is yours alone, they keep their own colour on theirs (↺ goes back).
 A teammate whose game log was not found reports no map and is drawn on yours, marked "map unknown". The app
-pings the relay every 20 s; if the connection drops, a small "Squad: reconnecting" pill appears next to the
-corner button and the app reconnects by itself, with one notice on loss and one on recovery.
+pings the relay every 20 s; if the connection drops, a small "Squad: reconnecting" pill appears in the map's
+top-left corner and the app reconnects by itself, with one notice on loss and one on recovery.
 
 **Details.** Click any marker for a popup with its name, type, elevation, and, for loose loot, the full item
 list; boss spawns show each boss with its spawn chance, escort size and whether a switch spawns it. A loose loot
@@ -150,5 +166,6 @@ what upstream lists that the file left off, so it can be kept current when a pat
 - Marker icons: [the-hideout/tarkov-dev](https://github.com/the-hideout/tarkov-dev) `public/maps/interactive` (MIT), copied to `public/icons/` with its licence.
 - Trader portraits in `public/icons/traders/`: Battlestate Games' artwork as served by tarkov.dev (assets.tarkov.dev); not covered by the MIT licence.
 - Screenshot filename format documented by the community (TarkovMonitor).
+- Fonts: IBM Plex Sans and IBM Plex Mono (SIL Open Font License 1.1), bundled through `@fontsource`.
 
 Escape from Tarkov is a trademark of Battlestate Games. TarTrak is not affiliated with or endorsed by them.
