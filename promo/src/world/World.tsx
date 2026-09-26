@@ -781,11 +781,12 @@ export const World = ({ cam, width, height, show, extrude = 1 }: WorldProps) => 
     const pop = 0.45 + 0.55 * springAt(REVEAL.from);
     nodes.push(
       <At key="me" p={p}>
+        {/* Remotion sets `* { box-sizing: border-box }`, so the 3 px border sits inside the 18 px box: half of 18 centres it */}
         <div
           style={{
             position: "absolute",
-            left: -12,
-            top: -12,
+            left: -9,
+            top: -9,
             width: 18,
             height: 18,
             borderRadius: 12,

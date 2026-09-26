@@ -101,7 +101,7 @@ const RoomCode = ({ frame }: { frame: number }) => {
         top: 90,
         width: PANEL_W,
         transform: `translateY(${-40 * (1 - enter) - 40 * exit}px)`,
-        opacity: prog(frame, 240, 245) * (1 - exit),
+        opacity: prog(frame, 240, 242) * (1 - exit),
       }}
     >
       <div style={{ textAlign: "center", font: `500 16px ${MONO}`, lineHeight: "16px", letterSpacing: "0.3em", paddingLeft: "0.3em", color: C.muted }}>ROOM</div>

@@ -7,6 +7,7 @@ import { easeInCubic, easeOutCubic, prog } from "../../lib/ease.ts";
 import { World } from "../../world/World.tsx";
 import { CAM_MINIMAP } from "../../world/camera.ts";
 import { MATES } from "../../world/data.ts";
+import { raidClock } from "../app/motion.ts";
 import { Bezel } from "./Bezel.tsx";
 import { CHIP, HDG, MINI, RIM, chipSlots, polar, stageAt, upAt } from "./shot6.ts";
 
@@ -78,7 +79,7 @@ export const Minimap = () => {
       <span style={{ display: "flex", color: C.fg2 }}>
         <Icon name="clock" size={13} />
       </span>
-      <span style={{ fontWeight: 700 }}>{frame < 690 ? "31:47" : "31:46"}</span>
+      <span style={{ fontWeight: 700 }}>{raidClock(frame)}</span>
     </Chip>,
     ...BY_DISTANCE.map((m) => (
       <Chip key={m.id} color={m.color}>

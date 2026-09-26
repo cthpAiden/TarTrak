@@ -57,6 +57,8 @@ export const Hud = () => {
   const frame = useCurrentFrame();
   const fade = 1 - prog(frame, 720, 740, easeInOutCubic);
   if (fade <= 0) return null;
+  // shot 4's window fills the frame: the viewfinder steps back off the rail, Squad heading and toolbar
+  const dim = 1 - 0.85 * (prog(frame, 358, 364, easeInOutCubic) - prog(frame, 444, 454, easeInOutCubic));
   const shot = SHOTS[shotAt(frame)];
   // A new shot's name decodes over 10 frames (shot 1's types in with the rest of the HUD).
   const name = shot.from > 0 && frame < shot.from + 10 ? scramble(shot.name, prog(frame, shot.from, shot.from + 10), frame, 7) : shot.name;
@@ -69,7 +71,7 @@ export const Hud = () => {
   return (
     <AbsoluteFill
       style={{
-        opacity: fade, pointerEvents: "none", color: INK, fontFamily: MONO, fontSize: 14, fontWeight: 500, lineHeight: "20px",
+        opacity: fade * dim, pointerEvents: "none", color: INK, fontFamily: MONO, fontSize: 14, fontWeight: 500, lineHeight: "20px",
         letterSpacing: "0.14em", fontVariantNumeric: "tabular-nums",
       }}
     >
