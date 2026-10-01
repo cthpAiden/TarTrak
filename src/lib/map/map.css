@@ -31,7 +31,9 @@
 .tt-label { pointer-events: none; }
 /* Teammate age capsule: the marker itself, with the seconds since their last screenshot inside.
    Background, digit colour and the counter-rotation are inline (markers.ts). */
-.tt-age { pointer-events: none; }
+/* Above the pane's SVG (z 200): Leaflet gives a div icon z-index = its screen y, which would put a capsule
+   near the top of the view under the heading lines. */
+.tt-age { pointer-events: none; z-index: 300 !important; }
 .tt-age span {
   display: inline-flex; align-items: center; justify-content: center;
   height: 18px; min-width: 18px; padding: 0 5px; box-sizing: border-box;
