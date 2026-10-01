@@ -426,13 +426,14 @@
       const label = mateLabel(t.name, floorTag(floorForHeight(d, t)));
       let marker = mates.get(t.id);
       if (!marker) {
-        marker = new PositionMarker(m, { color, radius: 6, lineLengthM: len, label });
+        marker = new PositionMarker(m, { color, radius: 6, lineLengthM: len, label, age: true });
         mates.set(t.id, marker);
       }
       marker.setColor(color);
       marker.setLabel(label);
       marker.update(t.x, t.z, t.yaw);
       marker.setOpacity(opacityFor(tick - t.receivedAt));
+      marker.setAge((tick - t.receivedAt) / 1000);
     }
   });
 
