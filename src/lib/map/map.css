@@ -29,6 +29,16 @@
 .tt-label::before { display: none; }
 /* Name labels must never intercept clicks meant for the markers under them. */
 .tt-label { pointer-events: none; }
+/* Teammate age capsule: the marker itself, with the seconds since their last screenshot inside.
+   Background, digit colour and the counter-rotation are inline (markers.ts). */
+.tt-age { pointer-events: none; }
+.tt-age span {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 18px; min-width: 18px; padding: 0 5px; box-sizing: border-box;
+  border: 1.5px solid #000; border-radius: 9px;
+  font: 500 12px/1 ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: #1e222a; color: var(--fg); }
 .leaflet-popup-content { margin: 8px 10px; font-size: 12px; }
 .leaflet-popup-content small { color: var(--muted); }

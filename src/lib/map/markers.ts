@@ -11,6 +11,8 @@ export interface MarkerStyle {
   label?: string;
   /** Pane for every part; defaults to the shared players pane. */
   pane?: string;
+  /** Draw a capsule holding the seconds since the last update (see setAge) instead of a dot. Teammates. */
+  age?: boolean;
 }
 
 /**
@@ -67,9 +69,23 @@ export function inkFor(color: string): "#000" | "#fff" {
   return lum > 0.55 ? "#000" : "#fff";
 }
 
-/** A player: filled circle plus a heading line that fades out towards its far end. */
+/** Tooltip offset that clears the capsule (9 px half height, 1.5 px border) or the 6 px dot. */
+const CAPSULE_LABEL_OFFSET = -12;
+const DOT_LABEL_OFFSET = -8;
+
+function paintCapsule(el: HTMLSpanElement, color: string): void {
+  el.style.background = color;
+  el.style.color = inkFor(color);
+}
+
+/** A player: filled dot (or an age capsule for a teammate) plus a heading line that fades out towards its far end. */
 export class PositionMarker {
-  readonly circle: L.CircleMarker;
+  /** The dot; null when the marker is an age capsule. */
+  readonly circle: L.CircleMarker | null;
+  /** The age capsule, a div icon; null for a dot marker. */
+  readonly capsule: L.Marker | null;
+  /** The capsule's visible span: digits, colour and the counter-rotation all live on it. */
+  private readonly capsuleEl: HTMLSpanElement | null;
   readonly line: L.Polyline;
   /** Stroke gradient from full colour at the player to transparent at the tip, in layer pixels. */
   readonly gradient: SVGLinearGradientElement;
@@ -87,15 +103,34 @@ export class PositionMarker {
     ensurePlayerPanes(map);
     this.label = style.label;
     const pane = style.pane ?? PLAYER_PANE;
-    this.circle = L.circleMarker([0, 0], {
-      pane,
-      radius: style.radius,
-      color: "#000",
-      weight: 1.5,
-      fillColor: style.color,
-      fillOpacity: 1,
-      opacity: 1,
-    });
+    if (style.age) {
+      const el = document.createElement("span");
+      // Centred on the point; --counter is the map's own turn (map.css), so the digits stay upright heading-up.
+      el.style.transform = "translate(-50%, -50%) rotate(var(--counter, 0deg))";
+      el.textContent = ageText(0);
+      paintCapsule(el, style.color);
+      this.capsuleEl = el;
+      // Not interactive: a teammate is never a click target, and a right-click on them must still pin.
+      this.capsule = L.marker([0, 0], {
+        pane,
+        icon: L.divIcon({ className: "tt-age", html: el, iconSize: [0, 0] }),
+        interactive: false,
+        keyboard: false,
+      });
+      this.circle = null;
+    } else {
+      this.circle = L.circleMarker([0, 0], {
+        pane,
+        radius: style.radius,
+        color: "#000",
+        weight: 1.5,
+        fillColor: style.color,
+        fillOpacity: 1,
+        opacity: 1,
+      });
+      this.capsule = null;
+      this.capsuleEl = null;
+    }
     // Dashed and fading: a line of sight that hides as little of the map as it can.
     this.line = L.polyline([], { pane, color: style.color, weight: 4, opacity: 0.85, dashArray: "5 10", lineCap: "round" });
     this.gradient = document.createElementNS(SVG_NS, "linearGradient");
@@ -111,10 +146,10 @@ export class PositionMarker {
     }
     gradientDefs(map).appendChild(this.gradient);
     if (style.label) {
-      this.circle.bindTooltip(upright(esc(style.label)), {
+      this.dot.bindTooltip(upright(esc(style.label)), {
         permanent: true,
         direction: "top",
-        offset: [0, -8],
+        offset: [0, style.age ? CAPSULE_LABEL_OFFSET : DOT_LABEL_OFFSET],
         className: "tt-label",
         pane,
         interactive: false,
@@ -122,8 +157,13 @@ export class PositionMarker {
     }
     this.line.addTo(map);
     this.applyGradient();
-    this.circle.addTo(map);
+    this.dot.addTo(map);
     map.on("zoomend", this.onZoom);
+  }
+
+  /** Whichever marks the point: the dot or the capsule. */
+  private get dot(): L.CircleMarker | L.Marker {
+    return this.circle ?? this.capsule!;
   }
 
   /** Leaflet resets the stroke to a flat colour on every setStyle, so the gradient goes back on after each. */
@@ -149,30 +189,39 @@ export class PositionMarker {
   }
 
   setOpacity(o: number): void {
-    this.circle.setStyle({ opacity: o, fillOpacity: o });
+    if (this.circle) this.circle.setStyle({ opacity: o, fillOpacity: o });
+    else this.capsule!.setOpacity(o);
     this.line.setStyle({ opacity: o });
     this.applyGradient();
-    const tt = this.circle.getTooltip();
+    const tt = this.dot.getTooltip();
     if (tt) tt.setOpacity(o);
   }
 
   setColor(color: string): void {
-    this.circle.setStyle({ fillColor: color });
+    if (this.circle) this.circle.setStyle({ fillColor: color });
+    else paintCapsule(this.capsuleEl!, color);
     this.line.setStyle({ color });
     this.applyGradient();
     for (const stop of Array.from(this.gradient.children)) stop.setAttribute("stop-color", color);
+  }
+
+  /** Seconds since the teammate's last update, shown in the capsule. No-op for a dot marker. */
+  setAge(sec: number): void {
+    if (!this.capsuleEl) return;
+    const text = ageText(sec);
+    if (this.capsuleEl.textContent !== text) this.capsuleEl.textContent = text;
   }
 
   /** Replaces the name label, e.g. when the teammate changes floor. No-op for a marker made without one. */
   setLabel(text: string): void {
     if (text === this.label) return;
     this.label = text;
-    this.circle.getTooltip()?.setContent(upright(esc(text)));
+    this.dot.getTooltip()?.setContent(upright(esc(text)));
   }
 
   remove(): void {
     this.map.off("zoomend", this.onZoom);
-    this.circle.remove();
+    this.dot.remove();
     this.line.remove();
     this.gradient.remove();
   }
@@ -184,7 +233,7 @@ export class PositionMarker {
     const rad = (this.yaw * Math.PI) / 180;
     const len = this.style.lineLengthM;
     const end = toLatLng(this.x + Math.sin(rad) * len, this.z + Math.cos(rad) * len);
-    this.circle.setLatLng(center);
+    this.dot.setLatLng(center);
     this.line.setLatLngs([center, end]);
     // Gradient axis follows the line in layer pixels; those only change on zoom, which redraws too.
     const a = this.map.latLngToLayerPoint(center);

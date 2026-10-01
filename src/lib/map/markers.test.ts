@@ -122,12 +122,12 @@ describe("PositionMarker", () => {
     const m = new PositionMarker(map, { color: "#fff", radius: 6, lineLengthM: 28, label: "Bob" });
     m.update(0, 0, 0);
     m.setOpacity(0.35);
-    expect(m.circle.options.opacity).toBeCloseTo(0.35);
-    expect(m.circle.options.fillOpacity).toBeCloseTo(0.35);
+    expect(m.circle!.options.opacity).toBeCloseTo(0.35);
+    expect(m.circle!.options.fillOpacity).toBeCloseTo(0.35);
     expect(m.line.options.opacity).toBeCloseTo(0.35);
-    expect(map.hasLayer(m.circle)).toBe(true);
+    expect(map.hasLayer(m.circle!)).toBe(true);
     m.remove();
-    expect(map.hasLayer(m.circle)).toBe(false);
+    expect(map.hasLayer(m.circle!)).toBe(false);
     expect(map.hasLayer(m.line)).toBe(false);
   });
 });
@@ -137,7 +137,7 @@ describe("PositionMarker label", () => {
     const map = makeMap();
     const m = new PositionMarker(map, { color: "#fff", radius: 6, lineLengthM: 28, label: "<b>x</b>" });
     m.update(0, 0, 0);
-    const tt = m.circle.getTooltip()!;
+    const tt = m.circle!.getTooltip()!;
     expect(tt.getContent()).toBe(upright("&#60;b&#62;x&#60;/b&#62;"));
     m.remove();
   });
@@ -146,10 +146,10 @@ describe("PositionMarker label", () => {
     const map = makeMap();
     const m = new PositionMarker(map, { color: "#fff", radius: 6, lineLengthM: 28, label: "Bob" });
     m.setLabel("Bob [2F] <i>");
-    expect(m.circle.getTooltip()!.getContent()).toBe(upright("Bob [2F] &#60;i&#62;"));
+    expect(m.circle!.getTooltip()!.getContent()).toBe(upright("Bob [2F] &#60;i&#62;"));
     const plain = new PositionMarker(map, { color: "#fff", radius: 6, lineLengthM: 28 });
     plain.setLabel("x");
-    expect(plain.circle.getTooltip()).toBeUndefined();
+    expect(plain.circle!.getTooltip()).toBeUndefined();
     m.remove();
     plain.remove();
   });
@@ -161,7 +161,7 @@ describe("player pane", () => {
     const m = new PositionMarker(map, { color: "#fff", radius: 6, lineLengthM: 28 });
     const pane = map.getPane(PLAYER_PANE)!;
     expect(Number(pane.style.zIndex)).toBeGreaterThan(600);
-    expect(m.circle.options.pane).toBe(PLAYER_PANE);
+    expect(m.circle!.options.pane).toBe(PLAYER_PANE);
     expect(m.line.options.pane).toBe(PLAYER_PANE);
     // Adding a second marker to the same map must reuse the pane, not throw on a duplicate.
     new PositionMarker(map, { color: "#fff", radius: 6, lineLengthM: 28 });
@@ -176,11 +176,11 @@ describe("player pane", () => {
     const players = Number(map.getPane(PLAYER_PANE)!.style.zIndex);
     const ownZ = Number(map.getPane(OWN_PANE)!.style.zIndex);
     expect(ownZ).toBeGreaterThan(players);
-    expect(mate.circle.getTooltip()!.options.pane).toBe(PLAYER_PANE);
+    expect(mate.circle!.getTooltip()!.options.pane).toBe(PLAYER_PANE);
     // The tooltip pane (650) would otherwise sit above every player.
     expect(ownZ).toBeLessThan(650);
-    expect(mate.circle.getTooltip()!.getElement()?.parentElement).toBe(map.getPane(PLAYER_PANE));
-    expect(me.circle.options.pane).toBe(OWN_PANE);
+    expect(mate.circle!.getTooltip()!.getElement()?.parentElement).toBe(map.getPane(PLAYER_PANE));
+    expect(me.circle!.options.pane).toBe(OWN_PANE);
     expect(me.line.options.pane).toBe(OWN_PANE);
   });
 });
@@ -220,5 +220,83 @@ describe("inkFor", () => {
 
   it("falls back to white for a colour it cannot read", () => {
     expect(inkFor("nope")).toBe("#fff");
+  });
+});
+
+describe("PositionMarker age capsule", () => {
+  let map: L.Map;
+  beforeEach(() => {
+    map = makeMap();
+  });
+
+  it("draws a capsule in the players pane instead of a dot and holds the age digits", () => {
+    const m = new PositionMarker(map, { color: "#ffb74d", radius: 6, lineLengthM: 28, label: "Bob", age: true });
+    m.update(100, -50, 0);
+    expect(m.circle).toBeNull();
+    const el = m.capsule!.getElement()!;
+    expect(el.parentElement).toBe(map.getPane(PLAYER_PANE));
+    expect(el.classList.contains("tt-age")).toBe(true);
+    const span = el.querySelector("span")!;
+    expect(span.textContent).toBe("0");
+    m.setAge(47);
+    expect(span.textContent).toBe("47");
+    m.setAge(130);
+    expect(span.textContent).toBe("2m");
+    expect(m.capsule!.getLatLng().lng).toBe(100);
+    expect(m.capsule!.getLatLng().lat).toBe(-50);
+    expect(m.capsule!.options.interactive).toBe(false);
+    expect(m.capsule!.options.pane).toBe(PLAYER_PANE);
+    m.remove();
+    expect(map.hasLayer(m.capsule!)).toBe(false);
+    expect(map.hasLayer(m.line)).toBe(false);
+  });
+
+  it("stays upright on a heading-up map: centred on the point and turned back by --counter", () => {
+    const m = new PositionMarker(map, { color: "#ffb74d", radius: 6, lineLengthM: 28, age: true });
+    const span = m.capsule!.getElement()!.querySelector("span")!;
+    expect(span.style.transform).toBe("translate(-50%, -50%) rotate(var(--counter, 0deg))");
+    m.remove();
+  });
+
+  it("paints the capsule in the colour with contrasting digits, and repaints on setColor", () => {
+    const m = new PositionMarker(map, { color: "#ffb74d", radius: 6, lineLengthM: 28, age: true });
+    const span = m.capsule!.getElement()!.querySelector("span")!;
+    expect(span.style.background).toMatch(/#ffb74d|rgb\(255, 183, 77\)/);
+    expect(span.style.color).toMatch(/#000|rgb\(0, 0, 0\)/);
+    m.setColor("#7e57c2");
+    expect(span.style.background).toMatch(/#7e57c2|rgb\(126, 87, 194\)/);
+    expect(span.style.color).toMatch(/#fff|rgb\(255, 255, 255\)/);
+    // The heading line follows the colour like it does for a dot.
+    expect(Array.from(m.gradient.children).every((st) => st.getAttribute("stop-color") === "#7e57c2")).toBe(true);
+    m.remove();
+  });
+
+  it("fades the capsule, its line and its label together", () => {
+    const m = new PositionMarker(map, { color: "#ffb74d", radius: 6, lineLengthM: 28, label: "Bob", age: true });
+    m.update(0, 0, 0);
+    m.setOpacity(0.35);
+    expect(m.capsule!.options.opacity).toBeCloseTo(0.35);
+    expect(m.line.options.opacity).toBeCloseTo(0.35);
+    expect(m.capsule!.getTooltip()!.options.opacity).toBeCloseTo(0.35);
+    m.remove();
+  });
+
+  it("keeps the name label above the capsule, in the players pane", () => {
+    const m = new PositionMarker(map, { color: "#ffb74d", radius: 6, lineLengthM: 28, label: "Bob", age: true });
+    m.update(0, 0, 0);
+    const tt = m.capsule!.getTooltip()!;
+    expect(tt.getContent()).toBe(upright("Bob"));
+    expect(tt.options.offset).toEqual([0, -12]);
+    expect(tt.options.pane).toBe(PLAYER_PANE);
+    m.setLabel("Bob [2F]");
+    expect(tt.getContent()).toBe(upright("Bob [2F]"));
+    m.remove();
+  });
+
+  it("setAge is a no-op on a dot marker", () => {
+    const m = new PositionMarker(map, { color: "#fff", radius: 6, lineLengthM: 28 });
+    expect(() => m.setAge(5)).not.toThrow();
+    expect(m.capsule).toBeNull();
+    m.remove();
   });
 });
