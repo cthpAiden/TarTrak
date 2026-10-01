@@ -22,6 +22,9 @@
 /* Heading-up: the whole map element is turned by -heading; text turns back by --counter to stay upright.
    Marker icons turn with the map. Tooltips sit above their point, so they turn about their bottom edge. */
 .map-root.rotated .upright { transform: rotate(var(--counter)); transform-origin: 50% 100%; }
+/* A player's name turns about the marker point, not the label's bottom edge, so it stays 12 px above the
+   capsule whichever way the map is turned (12 = -CAPSULE_LABEL_OFFSET in markers.ts). */
+.map-root.rotated .tt-player .upright { transform-origin: 50% calc(100% + 12px); }
 .map-root.rotated .leaflet-popup-content-wrapper { transform: rotate(var(--counter)); transform-origin: 50% calc(100% + 20px); }
 .map-root.rotated .leaflet-popup-tip-container { transform: rotate(var(--counter)); transform-origin: 50% 100%; }
 /* The close button is placed on the popup's unturned box; clicking elsewhere closes the popup instead. */

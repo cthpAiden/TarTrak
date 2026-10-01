@@ -150,7 +150,7 @@ export class PositionMarker {
         permanent: true,
         direction: "top",
         offset: [0, style.age ? CAPSULE_LABEL_OFFSET : DOT_LABEL_OFFSET],
-        className: "tt-label",
+        className: "tt-label tt-player",
         pane,
         interactive: false,
       });
