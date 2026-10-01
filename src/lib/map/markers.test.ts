@@ -276,6 +276,7 @@ describe("PositionMarker age capsule", () => {
     m.update(0, 0, 0);
     m.setOpacity(0.35);
     expect(m.capsule!.options.opacity).toBeCloseTo(0.35);
+    expect(m.capsule!.getElement()!.style.opacity).toBe("0.35");
     expect(m.line.options.opacity).toBeCloseTo(0.35);
     expect(m.capsule!.getTooltip()!.options.opacity).toBeCloseTo(0.35);
     m.remove();
@@ -287,6 +288,7 @@ describe("PositionMarker age capsule", () => {
     const tt = m.capsule!.getTooltip()!;
     expect(tt.getContent()).toBe(upright("Bob"));
     expect(tt.options.offset).toEqual([0, -12]);
+    expect(tt.options.className).toBe("tt-label tt-player");
     expect(tt.options.pane).toBe(PLAYER_PANE);
     m.setLabel("Bob [2F]");
     expect(tt.getContent()).toBe(upright("Bob [2F]"));
