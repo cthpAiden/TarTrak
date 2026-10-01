@@ -246,6 +246,49 @@ describe("RoomController", () => {
     }
   });
 
+  it("keeps the age of a position replayed under the same id", () => {
+    vi.useFakeTimers();
+    try {
+      const { client } = makeController();
+      client.onMessage(pos("aaaaaaaa", "Bob"));
+      const first = app.teammates.aaaaaaaa.receivedAt;
+      vi.advanceTimersByTime(5000);
+      // Same ts: a rename/recolour resend of the same screenshot, not a new one.
+      client.onMessage(pos("aaaaaaaa", "Bob"));
+      expect(app.teammates.aaaaaaaa.receivedAt).toBe(first);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps the age of a position replayed under a new id after a reconnect", () => {
+    vi.useFakeTimers();
+    try {
+      const { client } = makeController();
+      client.onMessage(pos("aaaaaaaa", "Bob"));
+      const first = app.teammates.aaaaaaaa.receivedAt;
+      vi.advanceTimersByTime(5000);
+      client.onMessage(pos("bbbbbbbb", "Bob"));
+      expect(Object.keys(app.teammates)).toEqual(["bbbbbbbb"]);
+      expect(app.teammates.bbbbbbbb.receivedAt).toBe(first);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("restarts the age when a new screenshot arrives", () => {
+    vi.useFakeTimers();
+    try {
+      const { client } = makeController();
+      client.onMessage(pos("aaaaaaaa", "Bob"));
+      vi.advanceTimersByTime(5000);
+      client.onMessage({ ...pos("aaaaaaaa", "Bob"), ts: 2 } as ServerMsg);
+      expect(app.teammates.aaaaaaaa.receivedAt).toBe(Date.now());
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("replaces a same-name teammate on a new id and leaves other names alone, departed or not", () => {
     const { client } = makeController();
     client.onMessage(pos("aaaaaaaa", "Bob"));

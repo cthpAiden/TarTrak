@@ -228,6 +228,9 @@ export class RoomController {
     this.warnVersion(m.name, m.version);
     // Judged before the ghost is dropped: a same-name marker of any kind means this is a reconnect.
     const rejoin = Object.values(app.teammates).some((t) => t.id !== m.id && t.name === m.name);
+    // A replayed position (my reconnect, theirs, or their rename) is not a new screenshot: the sender's
+    // ts is unchanged, so the age keeps counting from when it first arrived.
+    const prev = app.teammates[m.id] ?? Object.values(app.teammates).find((t) => t.name === m.name);
     this.dropGhost(m.id, m.name);
     const color = this.shownColor(m.name, m.color);
     if (m.type === "hello") {
@@ -264,7 +267,7 @@ export class RoomController {
       z: m.z,
       yaw: m.yaw,
       ts: m.ts,
-      receivedAt: Date.now(),
+      receivedAt: prev && !prev.noPosition && prev.ts === m.ts ? prev.receivedAt : Date.now(),
     });
   }
 }
