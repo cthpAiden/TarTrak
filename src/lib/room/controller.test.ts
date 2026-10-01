@@ -276,6 +276,25 @@ describe("RoomController", () => {
     }
   });
 
+  it("carries a reconnecting teammate's position and age over their hello, then their resent pos", () => {
+    vi.useFakeTimers();
+    try {
+      const { client } = makeController();
+      client.onMessage(pos("aaaaaaaa", "Bob"));
+      const first = app.teammates.aaaaaaaa.receivedAt;
+      vi.advanceTimersByTime(5000);
+      // A reconnecting client sends hello first, then its last pos, under a new id.
+      client.onMessage(hello("bbbbbbbb", "Bob"));
+      expect(Object.keys(app.teammates)).toEqual(["bbbbbbbb"]);
+      expect(app.teammates.bbbbbbbb.noPosition).toBeUndefined();
+      expect(app.teammates.bbbbbbbb).toMatchObject({ map: "customs", x: 1, ts: 1, receivedAt: first });
+      client.onMessage(pos("bbbbbbbb", "Bob"));
+      expect(app.teammates.bbbbbbbb.receivedAt).toBe(first);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("restarts the age when a new screenshot arrives", () => {
     vi.useFakeTimers();
     try {
@@ -299,13 +318,15 @@ describe("RoomController", () => {
     expect(Object.keys(app.teammates).sort()).toEqual(["bbbbbbbb", "cccccccc"]);
   });
 
-  it("drops the ghost on a hello as well as on a pos", () => {
+  it("drops the ghost on a hello as well as on a pos, carrying its position over", () => {
     const { client } = makeController();
     client.onMessage(pos("aaaaaaaa", "Bob"));
     client.onMessage(leave("aaaaaaaa"));
     client.onMessage(hello("bbbbbbbb", "Bob"));
     expect(Object.keys(app.teammates)).toEqual(["bbbbbbbb"]);
-    expect(app.teammates.bbbbbbbb.noPosition).toBe(true);
+    expect(app.teammates.bbbbbbbb.noPosition).toBeUndefined();
+    expect(app.teammates.bbbbbbbb.left).toBeUndefined();
+    expect(app.teammates.bbbbbbbb.x).toBe(1);
   });
 
   it("lists a joiner on hello and upgrades the row when the first pos arrives", () => {

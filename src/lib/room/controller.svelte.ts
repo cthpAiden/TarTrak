@@ -230,7 +230,8 @@ export class RoomController {
     const rejoin = Object.values(app.teammates).some((t) => t.id !== m.id && t.name === m.name);
     // A replayed position (my reconnect, theirs, or their rename) is not a new screenshot: the sender's
     // ts is unchanged, so the age keeps counting from when it first arrived.
-    const prev = app.teammates[m.id] ?? Object.values(app.teammates).find((t) => t.name === m.name);
+    const sameName = Object.values(app.teammates).filter((t) => t.name === m.name);
+    const prev = app.teammates[m.id] ?? sameName.find((t) => !t.noPosition) ?? sameName[0];
     this.dropGhost(m.id, m.name);
     const color = this.shownColor(m.name, m.color);
     if (m.type === "hello") {
@@ -241,6 +242,13 @@ export class RoomController {
         return;
       }
       if (!rejoin) app.toast(`${m.name} joined the room`);
+      // A rejoin carries the ghost's last position over, so the marker neither vanishes nor restarts its
+      // age before the resent pos arrives.
+      if (prev && !prev.noPosition) {
+        const { left: _left, ...carried } = prev;
+        app.upsertTeammate({ ...carried, id: m.id, name: m.name, color });
+        return;
+      }
       // Listed at once, so a joiner who has not taken a screenshot yet still shows up as present.
       app.upsertTeammate({
         id: m.id,
