@@ -102,7 +102,7 @@ describe("RoomClient", () => {
     expect(messages[0]).toMatchObject({ type: "pos", id: "x1" });
   });
 
-  it("throttles positions to one per 500 ms, sending the latest trailing one", () => {
+  it("throttles positions to one per 100 ms, sending the latest trailing one", () => {
     const { client } = make();
     client.connect();
     const ws = FakeWs.instances[0];
@@ -113,7 +113,7 @@ describe("RoomClient", () => {
     client.sendPosition("customs", { x: 3, y: 0, z: 0, yaw: 0 });
     expect(ws.sent).toHaveLength(1);
     expect(JSON.parse(ws.sent[0])).toMatchObject({ type: "pos", x: 1, map: "customs", name: "Bob", color: "#f00" });
-    vi.advanceTimersByTime(499);
+    vi.advanceTimersByTime(99);
     expect(ws.sent).toHaveLength(1);
     vi.advanceTimersByTime(1);
     expect(ws.sent).toHaveLength(2);

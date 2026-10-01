@@ -85,7 +85,7 @@ Hard requirements from the user:
   in-memory only. No LAN mode (dropped 2026-09-04).
 - Room UX: host creates 6-char code, others join with code + display name + color. Messages
   `{room, name, map, x, y, z, yaw, ts}` ~60 bytes. Marker stays at last-known position indefinitely (see decisions below).
-  Client-side throttle 500 ms per player. Delete PNG right after parsing.
+  Client-side throttle 100 ms per player. Delete PNG right after parsing.
 - Load math: 600 screenshots/raid x 15 raids = 9k msgs/day; WS messages billed 20:1 -> ~450 requests
   vs 100k/day free limit. Not a concern.
 - Latency: dominated by game writing the PNG (200-500 ms). Relay adds 20-80 ms.

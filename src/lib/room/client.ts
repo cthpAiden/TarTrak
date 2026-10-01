@@ -42,7 +42,8 @@ export interface RoomClientOptions {
   now?: () => number;
 }
 
-export const SEND_INTERVAL_MS = 500;
+/** A double-tapped screenshot key still goes out once per window; the newest position wins. */
+export const SEND_INTERVAL_MS = 100;
 /** Keepalive: a silent socket is indistinguishable from a dead one, so we probe it. */
 export const PING_INTERVAL_MS = 20_000;
 export const PONG_TIMEOUT_MS = 10_000;
@@ -100,7 +101,7 @@ export class RoomClient {
     this.setStatus("closed");
   }
 
-  /** Throttled: at most one send per 500 ms; the newest position wins and is sent at the window end. */
+  /** Throttled: at most one send per 100 ms; the newest position wins and is sent at the window end. */
   sendPosition(map: string | null, p: Position): void {
     this.pending = {
       type: "pos",
