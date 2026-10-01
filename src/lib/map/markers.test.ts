@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import L from "leaflet";
-import { OWN_PANE, PLAYER_PANE, PositionMarker } from "./markers";
+import { OWN_PANE, PLAYER_PANE, PositionMarker, ageText, inkFor } from "./markers";
 import { makeCrs, boundsOf, toLatLng } from "./crs";
 import { getMapDef } from "./mapsData";
 import { upright } from "./labels";
@@ -182,5 +182,43 @@ describe("player pane", () => {
     expect(mate.circle.getTooltip()!.getElement()?.parentElement).toBe(map.getPane(PLAYER_PANE));
     expect(me.circle.options.pane).toBe(OWN_PANE);
     expect(me.line.options.pane).toBe(OWN_PANE);
+  });
+});
+
+describe("ageText", () => {
+  it("shows whole seconds under a minute, then whole minutes", () => {
+    expect(ageText(0)).toBe("0");
+    expect(ageText(0.9)).toBe("0");
+    expect(ageText(47)).toBe("47");
+    expect(ageText(59.9)).toBe("59");
+    expect(ageText(60)).toBe("1m");
+    expect(ageText(130)).toBe("2m");
+    expect(ageText(420)).toBe("7m");
+    expect(ageText(3600)).toBe("60m");
+  });
+
+  it("never goes negative when the clock runs ahead of receivedAt", () => {
+    expect(ageText(-3)).toBe("0");
+  });
+});
+
+describe("inkFor", () => {
+  it("picks black digits on light colours and white on dark ones", () => {
+    expect(inkFor("#ffb74d")).toBe("#000");
+    expect(inkFor("#4fc3f7")).toBe("#000");
+    expect(inkFor("#ffffff")).toBe("#000");
+    expect(inkFor("#7e57c2")).toBe("#fff");
+    expect(inkFor("#ff5252")).toBe("#fff");
+    expect(inkFor("#000000")).toBe("#fff");
+  });
+
+  it("reads short hex and ignores an alpha channel", () => {
+    expect(inkFor("#fff")).toBe("#000");
+    expect(inkFor("#000")).toBe("#fff");
+    expect(inkFor("#ffb74d80")).toBe("#000");
+  });
+
+  it("falls back to white for a colour it cannot read", () => {
+    expect(inkFor("nope")).toBe("#fff");
   });
 });

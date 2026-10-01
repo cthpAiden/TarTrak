@@ -52,6 +52,21 @@ function gradientDefs(map: L.Map): SVGDefsElement {
   return svg.querySelector("defs")!;
 }
 
+/** Digits for the age capsule: whole seconds under a minute, then whole minutes ("2m"). */
+export function ageText(sec: number): string {
+  const s = Math.max(0, Math.floor(sec));
+  return s < 60 ? String(s) : `${Math.floor(s / 60)}m`;
+}
+
+/** Black or white digits, whichever reads on the colour: perceived luminance of the hex, alpha ignored. */
+export function inkFor(color: string): "#000" | "#fff" {
+  // #rgb and #rgba double each digit; #rrggbbaa drops its alpha with the slice below.
+  const hex = color.length <= 5 ? "#" + Array.from(color.slice(1), (c) => c + c).join("") : color;
+  const n = parseInt(hex.slice(1, 7), 16);
+  const lum = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  return lum > 0.55 ? "#000" : "#fff";
+}
+
 /** A player: filled circle plus a heading line that fades out towards its far end. */
 export class PositionMarker {
   readonly circle: L.CircleMarker;
