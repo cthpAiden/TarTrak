@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.0 - 2026-10-02
+
+### Squad
+- **See when a teammate last pressed the screenshot key.** Each teammate's dot is now a small capsule in their colour holding the seconds since their last screenshot (`47`, then `2m`), so a marker that has not moved reads as stale at a glance. Digits go black or white to suit the colour, the name sits above the capsule, and both stay upright on the heading-up minimap. A reconnect or a name change replays the last position without restarting the count.
+- **Positions reach the squad faster.** The app used to hold a position for up to half a second after the previous one; it now holds it for at most 100 ms. The game writing the screenshot file remains the largest part of the delay.
+
 ## 0.12.2 - 2026-09-25
 
 ### Overlay
