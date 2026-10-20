@@ -139,7 +139,8 @@ Node 24, Rust stable (MSVC), WebView2 (ships with Windows 10/11).
 
 Pushing a `v*` tag (matching the version in `src-tauri/tauri.conf.json`, `package.json` and
 `src-tauri/Cargo.toml`) runs `.github/workflows/release.yml`, which builds the installer, signs it and publishes
-a GitHub Release with `latest.json`. Installed apps check that manifest at every start and offer the update
+a GitHub Release with `latest.json`. Without git, Actions > release > Run workflow on `main` does the same and
+creates the tag `v<version>` itself; it refuses a version that is already tagged. Installed apps check that manifest at every start and offer the update
 (Settings > About > Check for updates does it on demand); the installer runs with a progress bar and relaunches
 the app.
 

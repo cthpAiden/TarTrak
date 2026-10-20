@@ -2,6 +2,8 @@ name: release
 on:
   push:
     tags: ["v*"]
+  # Run workflow on main: tags it v<version from tauri.conf.json> and releases it, for when pushing a tag is not possible.
+  workflow_dispatch:
 permissions:
   contents: write
 jobs:
@@ -21,9 +23,22 @@ jobs:
         shell: bash
         run: |
           v=$(node -p "require('./src-tauri/tauri.conf.json').version")
-          if [ "$GITHUB_REF_NAME" != "v$v" ]; then
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            if [ "$GITHUB_REF_NAME" != "main" ]; then
+              echo "::error::run the release from main, not $GITHUB_REF_NAME"
+              exit 1
+            fi
+            # An existing tag means this version is out already: bump it rather than publish over it.
+            if [ -n "$(git ls-remote --tags origin "refs/tags/v$v")" ]; then
+              echo "::error::v$v is already tagged; bump the version first"
+              exit 1
+            fi
+            echo "TAG=v$v" >> "$GITHUB_ENV"
+          elif [ "$GITHUB_REF_NAME" != "v$v" ]; then
             echo "::error::tag $GITHUB_REF_NAME does not match tauri.conf.json version v$v"
             exit 1
+          else
+            echo "TAG=$GITHUB_REF_NAME" >> "$GITHUB_ENV"
           fi
       - uses: tauri-apps/tauri-action@v0
         env:
@@ -31,8 +46,10 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "TarTrak ${{ github.ref_name }}"
+          # On a manual run the tag does not exist yet; the release creates it on the commit just built.
+          tagName: ${{ env.TAG }}
+          releaseName: "TarTrak ${{ env.TAG }}"
+          releaseCommitish: ${{ github.sha }}
           releaseDraft: false
           prerelease: false
           includeUpdaterJson: true
