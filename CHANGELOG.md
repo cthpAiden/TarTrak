@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.13.1 - 2026-10-20
 
 ### Fixed
 - **Reserve's map sat 20 to 28 m off.** tarkov.dev places Reserve's vector map on its own bounds (`svgBounds`), not the map's; TarTrak used the map's, so the drawing sat about 23 m north of where it belongs and slightly squashed, and your marker, teammates, loot and extracts all landed beside the buildings they are in. The drawing now sits where tarkov.dev puts it: of Reserve's 1448 loot spots, 69% land on a building, was 22%. Reserve is the only map with its own SVG bounds; the other maps were checked the same way and line up.
