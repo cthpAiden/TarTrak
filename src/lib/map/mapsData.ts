@@ -28,6 +28,8 @@ export interface MapDef {
   transform: [number, number, number, number];
   coordinateRotation: number;
   bounds: [[number, number], [number, number]];
+  /** Where the SVG drawing sits when that is not `bounds`: Reserve's, 20 to 28 m off them along z. */
+  svgBounds?: [[number, number], [number, number]];
   svgPath?: string;
   svgLayer?: string;
   /** Raster map as a Leaflet tile URL template, used when there is no SVG (The Lab, The Labyrinth, Icebreaker). */
@@ -63,6 +65,7 @@ interface RawMap {
   transform: [number, number, number, number];
   coordinateRotation?: number;
   bounds: [[number, number], [number, number]];
+  svgBounds?: [[number, number], [number, number]];
   svgPath?: string;
   svgLayer?: string;
   tilePath?: string;
@@ -114,6 +117,7 @@ export function loadMapDefs(): MapDef[] {
         transform: TRANSFORM_FIXES[m.key] ?? m.transform,
         coordinateRotation: m.coordinateRotation ?? 0,
         bounds: m.bounds,
+        svgBounds: m.svgBounds,
         svgPath: m.svgPath,
         svgLayer: m.svgLayer,
         tilePath: m.tilePath,

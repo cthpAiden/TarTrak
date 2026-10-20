@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { makeCrs, toLatLng, boundsOf, screenBearing } from "./crs";
+import { makeCrs, toLatLng, boundsOf, svgBoundsOf, screenBearing } from "./crs";
 import { getMapDef } from "./mapsData";
 
 describe("makeCrs", () => {
@@ -51,6 +51,19 @@ describe("makeCrs", () => {
     expect(b.getSouthWest().lng).toBe(-545);
     expect(b.getNorthEast().lat).toBe(725);
     expect(b.getNorthEast().lng).toBe(515);
+  });
+
+  it("svgBoundsOf places Reserve's SVG on its own svgBounds", () => {
+    const b = svgBoundsOf(getMapDef("reserve")!); // svgBounds [[289,-274],[-303,272]], bounds [[289,-293],[-303,244]]
+    expect(b.getSouthWest().lat).toBe(-274);
+    expect(b.getSouthWest().lng).toBe(-303);
+    expect(b.getNorthEast().lat).toBe(272);
+    expect(b.getNorthEast().lng).toBe(289);
+  });
+
+  it("svgBoundsOf falls back to the map bounds", () => {
+    const def = getMapDef("lighthouse")!;
+    expect(svgBoundsOf(def).equals(boundsOf(def))).toBe(true);
   });
 });
 

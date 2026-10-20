@@ -137,7 +137,7 @@ function shapeBoxes(doc, group) {
   return boxes;
 }
 
-/** SVG unit (u, v) -> game (x, z): L.svgOverlay stretches the viewBox over the map bounds in pixel space. */
+/** SVG unit (u, v) -> game (x, z): L.svgOverlay stretches the viewBox over the SVG bounds (crs.ts svgBoundsOf) in pixel space. */
 function svgToGame(def, viewBox) {
   const [scaleX, marginX, scaleY, marginY] = def.transform;
   const a = ((def.coordinateRotation ?? 0) * Math.PI) / 180;
@@ -146,7 +146,7 @@ function svgToGame(def, viewBox) {
     const lng = x * Math.cos(a) - z * Math.sin(a);
     return [scaleX * lng + marginX, -scaleY * lat + marginY];
   };
-  const [[x1, z1], [x2, z2]] = def.bounds;
+  const [[x1, z1], [x2, z2]] = def.svgBounds ?? def.bounds;
   const p1 = project(x1, z1);
   const p2 = project(x2, z2);
   const pxMin = Math.min(p1[0], p2[0]);

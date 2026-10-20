@@ -47,3 +47,9 @@ export function boundsOf(def: MapDef): L.LatLngBounds {
   const [[x1, z1], [x2, z2]] = def.bounds;
   return L.latLngBounds([z1, x1], [z2, x2]);
 }
+
+/** Where the SVG drawing is stretched over, as tarkov.dev does: its svgBounds if it has them, else the map bounds. */
+export function svgBoundsOf(def: MapDef): L.LatLngBounds {
+  const [[x1, z1], [x2, z2]] = def.svgBounds ?? def.bounds;
+  return L.latLngBounds([z1, x1], [z2, x2]);
+}

@@ -4,7 +4,7 @@
   import "./map.css";
   import type { MapDef } from "./mapsData";
   import { floorForHeight, visibleOnFloor } from "./mapsData";
-  import { makeCrs, boundsOf, toLatLng } from "./crs";
+  import { makeCrs, boundsOf, svgBoundsOf, toLatLng } from "./crs";
   import { buildSvgElement, showFloor, type LoadedSvg } from "./svgLoader";
   import { OWN_PANE, PositionMarker } from "./markers";
   import { fetchTextCached } from "../tauri/http";
@@ -256,7 +256,7 @@
       const text = await fetchTextCached(d.svgPath, `maps/${d.key}.svg`);
       if (my !== gen || !map) return;
       const loaded = buildSvgElement(text);
-      L.svgOverlay(loaded.element, boundsOf(d)).addTo(m);
+      L.svgOverlay(loaded.element, svgBoundsOf(d)).addTo(m);
       svg = loaded;
     } catch (e) {
       if (my !== gen) return;
