@@ -289,7 +289,9 @@
     <p class="small">
       TarTrak is free and open source (MIT). It only reads screenshot filenames and the game's text logs.
       Map images: <a href="https://github.com/the-hideout/tarkov-dev-svg-maps" onclick={external}>tarkov-dev-svg-maps</a> (CC BY-NC-SA 4.0).
-      Map math and quest data: <a href="https://tarkov.dev" onclick={external}>tarkov.dev</a> (MIT). Not affiliated with Battlestate Games.
+      Map math and quest data: <a href="https://tarkov.dev" onclick={external}>tarkov.dev</a> (MIT). Escape from Tarkov and its trader portraits belong to Battlestate Games; TarTrak is not affiliated with or endorsed by them.
+      In a squad room, your name, colour, position, shared markers, drawings and to-do list go through the relay to
+      everyone with the room code; markers and drawings are deleted 30 minutes after the room empties.
       Source and issues: <a href="https://github.com/cthpAiden/TarTrak" onclick={external}>github.com/cthpAiden/TarTrak</a>.
     </p>
     <p class="small">
