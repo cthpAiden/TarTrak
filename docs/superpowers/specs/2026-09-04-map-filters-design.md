@@ -1,8 +1,8 @@
 # TarTrak Map Filters and Trader-Grouped Quests
 
 Date: 2026-09-04. Extends the v1 design (`2026-09-04-tartrak-v1-design.md`). All v1 constraints
-(ban-safe, $0, no accounts, MIT, never copy TarkovQuestie code or assets) still apply. The goal is
-feature parity with TarkovQuestie's map filter tree and quest list, built only from tarkov.dev data.
+(ban-safe, $0, no accounts, MIT, never copy another tool's code or assets) still apply. The goal is
+a map filter tree and quest list like other community trackers have, built only from tarkov.dev data.
 
 ## Goal
 
@@ -111,7 +111,7 @@ group key writes that key and deletes every `group/*` key so the group toggle wi
 category key writes only that key. Group state for the UI is `groupState(filters, group,
 categories) => "all" | "none" | "some"`.
 
-These defaults mirror what the user sees in TarkovQuestie on first launch: extracts and quest
+These are the first-launch defaults: extracts and quest
 markers on, loot and spawns off.
 
 ## UI

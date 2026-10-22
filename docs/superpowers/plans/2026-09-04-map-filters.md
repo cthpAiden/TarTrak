@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a TarkovQuestie-style filter tree (extracts, quests, spawns, containers, locks, hazards, switches, BTR) with per-map counts and persisted toggles, plus a trader-grouped quest list with per-quest hide.
+**Goal:** Add a filter tree (extracts, quests, spawns, containers, locks, hazards, switches, BTR) with per-map counts and persisted toggles, plus a trader-grouped quest list with per-quest hide.
 
 **Architecture:** tarkov.dev map data is flattened into a generic `MapPoint { group, category }` list by a pure module; a pure filter module resolves `group/category` keys against persisted settings with defaults; `MapView` renders the pre-filtered points in one layer group; a new `FilterPanel` and a regrouped `QuestPanel` drive the settings. Spec: `docs/superpowers/specs/2026-09-04-map-filters-design.md`.
 
@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Ban-safe: read-only data from tarkov.dev; no game memory, hooks, or input. No TarkovQuestie code or assets.
+- Ban-safe: read-only data from tarkov.dev; no game memory, hooks, or input. No other tool's code or assets.
 - Svelte 5 runes only (`$state`, `$derived`, `$effect`, `$props`); `$state.raw` for large wholly-replaced values.
 - Leaflet renders string tooltips/popups as HTML: every remote string goes through `esc()` from `src/lib/quests/questLayer.ts`.
 - Filter key format: `"<group>"` or `"<group>/<category>"`; regex `/^[a-z]+(\/[a-z0-9_-]+)?$/i`.

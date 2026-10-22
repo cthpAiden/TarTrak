@@ -6,7 +6,7 @@ Date: 2026-09-04. Status: reviewed and approved; implementation plan follows.
 
 Free, open-source Windows desktop app for Escape from Tarkov. Shows an interactive map with your own
 position and heading, your teammates' positions and headings via a shared room code, and quest markers.
-Feature-set clone of TarkovQuestie (proprietary). No code, maps, or assets from TarkovQuestie are used.
+No code, maps, or assets from other trackers are used.
 
 ## 2. Hard constraints
 
