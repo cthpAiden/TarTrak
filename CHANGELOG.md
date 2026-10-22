@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.14.0 - 2026-10-22
+
+### Squad
+- **Hide the room code.** The squad panel has a Hide button next to the code, so it stays off a stream or a screenshot. Copy still copies the real code.
+- **Gentler reconnects.** After the relay drops, each retry waits a random half to all of the backoff, so a squad does not knock all at once, and the longest wait is now 2 minutes (was 30 s).
+- **The relay protects rooms.** A room holds 12 players; a client that floods messages is disconnected; shared markers and drawings are rate-limited; and a connection sees nothing from the room until it says who it is. This took effect on the relay already, for every version.
+
+### Setup
+- **Steam installs are found.** Log folder detection now reads your Steam libraries and checks any `steamapps\common` folder with Tarkov in its name, plus `Battlestate Games\EscapeFromTarkov` on every drive.
+
+### Fixed
+- **A shared marker's colour could inject HTML into the map.** Marker colours from the relay are now checked like teammate colours.
+
+### Other
+- Trader portraits load from tarkov.dev instead of shipping in the app. Settings > About says Battlestate owns the game name and the portraits, and what the relay shares with your room.
+
 ## 0.13.1 - 2026-10-20
 
 ### Fixed
