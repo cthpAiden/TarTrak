@@ -7,7 +7,14 @@ interface Conn {
   ws: WebSocket;
   next: (timeoutMs?: number) => Promise<string>;
   quiet: (ms: number) => Promise<boolean>;
+  /** Everything received until 200 ms pass with nothing new, parsed. */
+  all: () => Promise<Record<string, unknown>[]>;
+  /** Resolves with the close code once the relay closes the socket. */
+  closed: Promise<number>;
+  clear: () => void;
 }
+
+const rooms = new Map<string, Conn[]>();
 
 async function connect(code: string): Promise<Conn> {
   const res = await SELF.fetch(`${BASE}/room/${code}`, { headers: { Upgrade: "websocket" } });
@@ -21,9 +28,19 @@ async function connect(code: string): Promise<Conn> {
     if (w) w(s);
     else queue.push(s);
   });
+  const closed = new Promise<number>((resolve) => ws.addEventListener("close", (e) => resolve(e.code)));
   ws.accept();
-  return {
+  const conn: Conn = {
     ws,
+    closed,
+    clear: () => {
+      queue.length = 0;
+    },
+    all: async () => {
+      const out: Record<string, unknown>[] = [];
+      while (!(await conn.quiet(200))) out.push(JSON.parse(await conn.next()));
+      return out;
+    },
     next: (timeoutMs = 2000) =>
       new Promise<string>((resolve, reject) => {
         if (queue.length) return resolve(queue.shift()!);
@@ -41,13 +58,37 @@ async function connect(code: string): Promise<Conn> {
           if (idx >= 0) waiters.splice(idx, 1);
           resolve(true);
         }, ms);
-        const w = () => {
+        const w = (s: string) => {
           clearTimeout(t);
+          // Put it back so next() still sees it.
+          queue.unshift(s);
           resolve(false);
         };
         waiters.push(w);
       }),
   };
+  const key = code.toUpperCase();
+  rooms.set(key, [...(rooms.get(key) ?? []), conn]);
+  return conn;
+}
+
+const hello = (name: string) => JSON.stringify({ type: "hello", name, color: "#abc" });
+
+/** Connects and says hello, the way the app does; the others' copy of that hello is cleared. */
+async function join(code: string, name: string): Promise<Conn> {
+  const conn = await connect(code);
+  conn.ws.send(hello(name));
+  await new Promise((r) => setTimeout(r, 100));
+  for (const other of rooms.get(code.toUpperCase()) ?? []) if (other !== conn) other.clear();
+  return conn;
+}
+
+/** Everyone joins, then every queue is emptied, so a test starts from a quiet room. */
+async function room(code: string, ...names: string[]): Promise<Conn[]> {
+  const out: Conn[] = [];
+  for (const name of names) out.push(await join(code, name));
+  for (const c of out) c.clear();
+  return out;
 }
 
 const pos = (name: string, x: number) =>
@@ -72,8 +113,8 @@ describe("routing", () => {
   });
 
   it("lowercase codes are upgraded to the same room", async () => {
-    const a = await connect("ROOMAA");
-    const b = await connect("roomaa");
+    const [a] = await room("ROOMAA", "A");
+    const b = await join("roomaa", "B");
     a.ws.send(pos("A", 1));
     const got = JSON.parse(await b.next());
     expect(got.name).toBe("A");
@@ -82,8 +123,7 @@ describe("routing", () => {
 
 describe("room relay", () => {
   it("broadcasts pos with an id, replays last pos to newcomers, announces leave", async () => {
-    const a = await connect("ROOM01");
-    const b = await connect("ROOM01");
+    const [a, b] = await room("ROOM01", "A", "B");
 
     a.ws.send(pos("A", 10));
     const seenByB = JSON.parse(await b.next());
@@ -94,10 +134,12 @@ describe("room relay", () => {
     a.ws.send(pos("A", 11)); // newer position replaces the replay state
     await b.next();
 
-    const c = await connect("ROOM01");
-    const replay = JSON.parse(await c.next());
-    expect(replay).toMatchObject({ type: "pos", name: "A", x: 11, id: seenByB.id });
-    expect(await c.quiet(200)).toBe(true); // B never sent a pos, so nothing else to replay
+    const c = await join("ROOM01", "C");
+    const replay = await c.all();
+    // A's latest pos, and B's hello since B never sent a pos.
+    expect(replay).toHaveLength(2);
+    expect(replay).toContainEqual(expect.objectContaining({ type: "pos", name: "A", x: 11, id: seenByB.id }));
+    expect(replay).toContainEqual(expect.objectContaining({ type: "hello", name: "B" }));
 
     a.ws.close(1000, "done");
     const leave = JSON.parse(await b.next());
@@ -108,43 +150,53 @@ describe("room relay", () => {
   });
 
   it("does not echo to the sender and drops invalid messages", async () => {
-    const a = await connect("ROOM02");
-    const b = await connect("ROOM02");
+    const [a, b] = await room("ROOM02", "A", "B");
     a.ws.send("{not json");
     a.ws.send(JSON.stringify({ type: "leave", id: "spoof" }));
     a.ws.send(JSON.stringify({ type: "pos", name: "A", pad: "x".repeat(600) }));
     expect(await b.quiet(300)).toBe(true);
-    a.ws.send(JSON.stringify({ type: "hello", name: "A", color: "#abc" }));
-    expect(JSON.parse(await b.next())).toMatchObject({ type: "hello", name: "A", color: "#abc" });
+    a.ws.send(JSON.stringify({ type: "hello", name: "A2", color: "#abc" }));
+    expect(JSON.parse(await b.next())).toMatchObject({ type: "hello", name: "A2", color: "#abc" });
     expect(await a.quiet(200)).toBe(true);
   });
 
   it("replays a hello to newcomers until that socket has a pos", async () => {
-    const a = await connect("ROOM06");
-    a.ws.send(JSON.stringify({ type: "hello", name: "A", color: "#abc" }));
-    await new Promise((r) => setTimeout(r, 100));
-    const b = await connect("ROOM06");
+    const a = await join("ROOM06", "A");
+    const b = await join("ROOM06", "B");
     const replay = JSON.parse(await b.next());
     expect(replay).toMatchObject({ type: "hello", name: "A", color: "#abc" });
     expect(typeof replay.id).toBe("string");
     a.ws.send(pos("A", 5));
     await b.next();
-    const c = await connect("ROOM06");
-    expect(JSON.parse(await c.next())).toMatchObject({ type: "pos", name: "A", x: 5, id: replay.id });
-    expect(await c.quiet(200)).toBe(true);
+    const c = await join("ROOM06", "C");
+    expect(await c.all()).toContainEqual(expect.objectContaining({ type: "pos", name: "A", x: 5, id: replay.id }));
+  });
+
+  it("tells a socket nothing, and relays nothing from it, until it says hello", async () => {
+    const [a] = await room("ROOM11", "A");
+    a.ws.send(pos("A", 1));
+    await new Promise((r) => setTimeout(r, 100));
+
+    const lurker = await connect("ROOM11");
+    a.ws.send(pos("A", 2));
+    expect(await lurker.quiet(300)).toBe(true);
+    lurker.ws.send(pos("L", 9));
+    expect(await a.quiet(300)).toBe(true);
+
+    lurker.ws.send(hello("L"));
+    expect(JSON.parse(await a.next())).toMatchObject({ type: "hello", name: "L" });
+    expect(await lurker.all()).toEqual([expect.objectContaining({ type: "pos", name: "A", x: 2 })]);
   });
 
   it("auto-responds to ping without disturbing the other sockets", async () => {
-    const a = await connect("ROOM05");
-    const b = await connect("ROOM05");
+    const [a, b] = await room("ROOM05", "A", "B");
     a.ws.send("ping");
     expect(await a.next()).toBe("pong");
     expect(await b.quiet(300)).toBe(true);
   });
 
   it("stores shared pins, replays them to newcomers and forgets them on unpin", async () => {
-    const a = await connect("ROOM07");
-    const b = await connect("ROOM07");
+    const [a, b] = await room("ROOM07", "A", "B");
     const pin = { type: "pin", pin: "abcd1234", map: "customs", x: 1, z: 2, label: "loot", color: "#f00" };
     a.ws.send(JSON.stringify(pin));
     const seen = JSON.parse(await b.next());
@@ -152,21 +204,19 @@ describe("room relay", () => {
     expect(typeof seen.id).toBe("string");
     await new Promise((r) => setTimeout(r, 100));
 
-    const c = await connect("ROOM07");
-    expect(JSON.parse(await c.next())).toMatchObject({ ...pin, id: seen.id });
-    expect(await c.quiet(200)).toBe(true);
+    const c = await join("ROOM07", "C");
+    expect((await c.all()).filter((m) => m.type === "pin")).toEqual([expect.objectContaining({ ...pin, id: seen.id })]);
 
     b.ws.send(JSON.stringify({ type: "unpin", pin: "abcd1234" }));
     expect(JSON.parse(await a.next())).toMatchObject({ type: "unpin", pin: "abcd1234" });
     expect(JSON.parse(await c.next())).toMatchObject({ type: "unpin", pin: "abcd1234" });
     await new Promise((r) => setTimeout(r, 100));
-    const d = await connect("ROOM07");
-    expect(await d.quiet(200)).toBe(true);
+    const d = await join("ROOM07", "D");
+    expect((await d.all()).filter((m) => m.type === "pin")).toEqual([]);
   });
 
   it("stores shared strokes, replays them, forgets them on undraw and wipes a map on cleardraw", async () => {
-    const a = await connect("ROOM08");
-    const b = await connect("ROOM08");
+    const [a, b] = await room("ROOM08", "A", "B");
     const draw = { type: "draw", draw: "abcd1234", map: "customs", color: "#f00", points: [[1, 2], [3.5, -4]] };
     const other = { ...draw, draw: "abcd5678", map: "woods" };
     a.ws.send(JSON.stringify(draw));
@@ -175,9 +225,9 @@ describe("room relay", () => {
     expect(JSON.parse(await b.next())).toMatchObject(other);
     await new Promise((r) => setTimeout(r, 100));
 
-    const c = await connect("ROOM08");
-    expect(JSON.parse(await c.next())).toMatchObject(draw);
-    expect(JSON.parse(await c.next())).toMatchObject(other);
+    const c = await join("ROOM08", "C");
+    const strokes = (await c.all()).filter((m) => m.type === "draw");
+    expect(strokes).toEqual([expect.objectContaining(draw), expect.objectContaining(other)]);
 
     b.ws.send(JSON.stringify({ type: "undraw", draw: "abcd5678" }));
     expect(JSON.parse(await a.next())).toMatchObject({ type: "undraw", draw: "abcd5678" });
@@ -185,13 +235,12 @@ describe("room relay", () => {
     b.ws.send(JSON.stringify({ type: "cleardraw", map: "customs" }));
     expect(JSON.parse(await a.next())).toMatchObject({ type: "cleardraw", map: "customs" });
     await new Promise((r) => setTimeout(r, 100));
-    const d = await connect("ROOM08");
-    expect(await d.quiet(200)).toBe(true);
+    const d = await join("ROOM08", "D");
+    expect((await d.all()).filter((m) => m.type === "draw")).toEqual([]);
   });
 
   it("replays the latest to-do list per socket and forgets it when that socket leaves", async () => {
-    const a = await connect("ROOM09");
-    const b = await connect("ROOM09");
+    const [a, b] = await room("ROOM09", "A", "B");
     a.ws.send(JSON.stringify({ type: "todo", tasks: ["t1", "t2"] }));
     const seen = JSON.parse(await b.next());
     expect(seen).toMatchObject({ type: "todo", tasks: ["t1", "t2"] });
@@ -199,21 +248,20 @@ describe("room relay", () => {
     await b.next();
     await new Promise((r) => setTimeout(r, 100));
 
-    const c = await connect("ROOM09");
-    expect(JSON.parse(await c.next())).toMatchObject({ type: "todo", tasks: ["t2"], id: seen.id });
-    expect(await c.quiet(200)).toBe(true);
+    const c = await join("ROOM09", "C");
+    expect((await c.all()).filter((m) => m.type === "todo")).toEqual([
+      expect.objectContaining({ type: "todo", tasks: ["t2"], id: seen.id }),
+    ]);
 
     a.ws.close(1000, "bye");
     expect(JSON.parse(await c.next())).toMatchObject({ type: "leave", id: seen.id });
     await new Promise((r) => setTimeout(r, 100));
-    const d = await connect("ROOM09");
-    expect(await d.quiet(200)).toBe(true);
+    const d = await join("ROOM09", "D");
+    expect((await d.all()).filter((m) => m.type === "todo")).toEqual([]);
   });
 
   it("flags a leave as dropped unless the socket closed with 1000", async () => {
-    const a = await connect("ROOM10");
-    const b = await connect("ROOM10");
-    const c = await connect("ROOM10");
+    const [a, b, c] = await room("ROOM10", "A", "B", "C");
     a.ws.close(4000, "gone");
     expect(JSON.parse(await b.next())).toMatchObject({ type: "leave", dropped: true });
     // c heard about a as well; the next thing it hears is b leaving on purpose.
@@ -225,9 +273,38 @@ describe("room relay", () => {
   });
 
   it("isolates rooms", async () => {
-    const a = await connect("ROOM03");
-    const b = await connect("ROOM04");
+    const [a] = await room("ROOM03", "A");
+    const [b] = await room("ROOM04", "B");
     a.ws.send(pos("A", 1));
     expect(await b.quiet(300)).toBe(true);
+  });
+});
+
+describe("limits", () => {
+  it("turns away a socket once the room is full", async () => {
+    for (let i = 0; i < 12; i++) await connect("ROOM12");
+    const res = await SELF.fetch(`${BASE}/room/ROOM12`, { headers: { Upgrade: "websocket" } });
+    expect(res.status).toBe(429);
+    expect(await res.text()).toBe("room full");
+  });
+
+  it("closes a socket that floods the room with 1008 and tells the others it dropped", async () => {
+    const [a, b] = await room("ROOM13", "A", "B");
+    for (let i = 0; i < 200; i++) a.ws.send(pos("A", i));
+    expect(await a.closed).toBe(1008);
+    const got = await b.all();
+    expect(got.filter((m) => m.type === "pos").length).toBeLessThan(200);
+    expect(got.at(-1)).toMatchObject({ type: "leave", dropped: true });
+  });
+
+  it("drops shared-marker writes past the burst instead of storing every one", async () => {
+    const [a] = await room("ROOM14", "A");
+    for (let i = 0; i < 30; i++) {
+      const id = `pin${String(i).padStart(5, "0")}`;
+      a.ws.send(JSON.stringify({ type: "pin", pin: id, map: "customs", x: i, z: 0, label: "", color: "#f00" }));
+    }
+    await new Promise((r) => setTimeout(r, 200));
+    const c = await join("ROOM14", "C");
+    expect((await c.all()).filter((m) => m.type === "pin").length).toBe(20);
   });
 });
