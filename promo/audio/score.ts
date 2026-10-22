@@ -1,6 +1,7 @@
 /**
- * The arrangement: a 15 s, 120 BPM groove in A minor plus one sound per cue in the shared timeline, so
- * every hit lands on the frame its picture does. Beat k starts at k * 0.5 s.
+ * The arrangement: a 120 BPM groove in A minor plus one sound per cue in a timeline, so every hit lands
+ * on the frame its picture does. Beat k starts at k * 0.5 s. `renderScore` takes one cut's bars and cues
+ * (the 15 s showreel by default; the 45 s reel passes its own, audio/reel45.ts).
  */
 import { BPM, CUES, DURATION_FRAMES, frameToSec } from "../src/timeline.ts";
 import type { Cue, CueKind } from "../src/timeline.ts";
@@ -8,15 +9,35 @@ import { SR, biquad, dbToGain, limit, mix, mixStereo, noteHz, secToSamples, soft
 import type { Stereo } from "./dsp.ts";
 import * as I from "./instruments.ts";
 
-const LEN = frameToSec(DURATION_FRAMES);
 const BEAT = 60 / BPM, BAR = 4 * BEAT;
 
-const AM9 = ["A2", "E3", "G3", "B3", "C4"];
-/** Chords by bar (index 0 = bar 1 = 0-2 s); the last one holds to the end. */
-const CHORDS: readonly (readonly string[])[] = [AM9, AM9, ["F2", "C3", "E3", "A3"], ["C3", "G3", "D4", "E4"], ["G2", "D3", "E3", "B3"], AM9, AM9];
-/** Bass roots by bar (bars 2-6 play). */
-const ROOTS = ["A1", "A1", "F1", "C2", "G1", "A1"];
-const barAt = (sec: number): number => Math.min(CHORDS.length - 1, Math.floor(sec / BAR + 1e-9));
+/**
+ * One bar. `chord` is the pad (the last bar's chord holds to the end); `root` plays bass 8ths; `drums`:
+ * "muffled" 8th ticks or "groove" (kick 4/4, offbeat hats); `clap` on beats 2 and 4; `openHat` on the
+ * last offbeat; `extraHat` adds 16th hats that many dB under the hat.
+ */
+export type Bar = { chord: readonly string[]; root?: string; drums?: "muffled" | "groove"; clap?: boolean; openHat?: boolean; extraHat?: number };
+export type Arrangement = { durationFrames: number; bars: readonly Bar[]; cues: readonly Cue[] };
+
+export const AM9 = ["A2", "E3", "G3", "B3", "C4"] as const;
+export const FMAJ = ["F2", "C3", "E3", "A3"] as const;
+export const CMAJ = ["C3", "G3", "D4", "E4"] as const;
+export const GMAJ = ["G2", "D3", "E3", "B3"] as const;
+
+/** The 15 s showreel: muffled bar 1, groove bars 2-6, the last chord held under the end card. */
+export const SHOWREEL: Arrangement = {
+  durationFrames: DURATION_FRAMES,
+  cues: CUES,
+  bars: [
+    { chord: AM9, drums: "muffled" },
+    { chord: AM9, root: "A1", drums: "groove" },
+    { chord: FMAJ, root: "F1", drums: "groove", clap: true, extraHat: -6 },
+    { chord: CMAJ, root: "C2", drums: "groove", clap: true, openHat: true },
+    { chord: GMAJ, root: "G1", drums: "groove", clap: true, extraHat: -2 },
+    { chord: AM9, root: "A1", drums: "groove", clap: true, openHat: true, extraHat: -2 },
+    { chord: AM9 },
+  ],
+};
 
 /**
  * Mix levels in dB, set by measurement (K-weighted 50 ms / 400 ms loudness per element). The muffled
@@ -34,8 +55,8 @@ const CUE_DB: Record<CueKind, number> = {
   dashTicks: 0, checkTick: -1, scribble: 12, glitch: -7.5, ratchet: -5, snareRoll: DB.clap + 4, shimmer: -14, typing: 4.5,
 };
 
-/** One sound per cue kind; `dur` in seconds. */
-const CUE_SOUND: Record<CueKind, (c: Cue, dur: number) => Float32Array | Stereo> = {
+/** One sound per cue kind; `dur` in seconds; `chordAt` gives the pad chord under a time (for stabs). */
+const CUE_SOUND: Record<CueKind, (c: Cue, dur: number, chordAt: (sec: number) => readonly string[]) => Float32Array | Stereo> = {
   uiClick: () => I.uiClick(),
   pop: (c) => I.pop(noteHz(c.note ?? "A5")),
   keyClick: () => I.keyClick(),
@@ -51,7 +72,7 @@ const CUE_SOUND: Record<CueKind, (c: Cue, dur: number) => Float32Array | Stereo>
   ping: () => I.ping(),
   tick: (c) => I.tick(noteHz(c.note ?? "E6")),
   thud: () => I.thud(),
-  stab: (c) => I.stab(CHORDS[barAt(frameToSec(c.at))]),
+  stab: (c, _, chordAt) => I.stab(chordAt(frameToSec(c.at))),
   dashTicks: (_, d) => I.dashTicks(d),
   checkTick: () => I.checkTick(),
   scribble: (c, d) => I.scribble(d, c.at),
@@ -78,42 +99,43 @@ function duckCurve(kicks: readonly number[], n: number): Float32Array {
 
 type Buses = { drums: Stereo; bass: Stereo; pad: Stereo; sfx: Stereo };
 
-function renderBuses(): Buses {
-  const drums = stereo(LEN), bass = stereo(LEN), pad = stereo(LEN), sfx = stereo(LEN);
+function renderBuses(arr: Arrangement, len: number): Buses {
+  const { bars } = arr;
+  const drums = stereo(len), bass = stereo(len), pad = stereo(len), sfx = stereo(len);
   const n = drums.L.length;
   const kick = I.kick(), hat = I.hat(), openHat = I.hat(true), clap = I.clap();
-
-  // Bar 1: muffled 8th ticks.
   const muffled = I.muffledTick();
-  for (let e = 0; e < 8; e++) mix(drums, muffled, (e * BEAT) / 2, dbToGain(DB.muffledTick));
-
-  // Bars 2-6 (index 1-5): kick 4/4, bass 8ths, hats, claps.
   const kicks: number[] = [];
-  for (let b = 1; b <= 5; b++) {
+
+  bars.forEach((bar, b) => {
     const t0 = b * BAR;
-    for (let q = 0; q < 4; q++) {
-      const t = t0 + q * BEAT;
-      kicks.push(t);
-      mix(drums, kick, t, dbToGain(DB.kick));
-      const open = q === 3 && (b === 3 || b === 5);
-      mix(drums, open ? openHat : hat, t + BEAT / 2, dbToGain(open ? DB.openHat : DB.hat));
-      if (b >= 2 && (q === 1 || q === 3)) mixStereo(drums, clap, t, dbToGain(DB.clap));
-      const extra = b === 2 ? -6 : b >= 4 ? -2 : null;
-      if (extra !== null) for (const s of [1, 3]) mix(drums, hat, t + (s * BEAT) / 4, dbToGain(DB.hat + extra));
+    if (bar.drums === "muffled") for (let e = 0; e < 8; e++) mix(drums, muffled, t0 + (e * BEAT) / 2, dbToGain(DB.muffledTick));
+    if (bar.drums === "groove") {
+      for (let q = 0; q < 4; q++) {
+        const t = t0 + q * BEAT;
+        kicks.push(t);
+        mix(drums, kick, t, dbToGain(DB.kick));
+        const open = q === 3 && bar.openHat;
+        mix(drums, open ? openHat : hat, t + BEAT / 2, dbToGain(open ? DB.openHat : DB.hat));
+        if (bar.clap && (q === 1 || q === 3)) mixStereo(drums, clap, t, dbToGain(DB.clap));
+        if (bar.extraHat !== undefined) for (const s of [1, 3]) mix(drums, hat, t + (s * BEAT) / 4, dbToGain(DB.hat + bar.extraHat));
+      }
     }
-    for (let e = 0; e < 8; e++) {
-      const t = t0 + (e * BEAT) / 2;
-      const hz = noteHz(ROOTS[b]) * (e === 7 ? 2 : 1);
-      // Gate plus the 40 ms release fill the 8th exactly, so notes never overlap.
-      mix(bass, I.bass(hz, BEAT / 2 - 0.04, t), t, dbToGain(DB.bass + (e === 0 || e === 4 ? 3 : 0)));
+    if (bar.root) {
+      for (let e = 0; e < 8; e++) {
+        const t = t0 + (e * BEAT) / 2;
+        const hz = noteHz(bar.root) * (e === 7 ? 2 : 1);
+        // Gate plus the 40 ms release fill the 8th exactly, so notes never overlap.
+        mix(bass, I.bass(hz, BEAT / 2 - 0.04, t), t, dbToGain(DB.bass + (e === 0 || e === 4 ? 3 : 0)));
+      }
     }
-  }
+  });
 
   // Pad: one chord per bar, -30 dB rising to -18 dB over bar 1.
-  for (let b = 0; b < CHORDS.length; b++) {
-    const last = b === CHORDS.length - 1;
-    mixStereo(pad, I.padChord(CHORDS[b], last ? LEN - b * BAR : BAR), b * BAR);
-  }
+  bars.forEach((bar, b) => {
+    const last = b === bars.length - 1;
+    mixStereo(pad, I.padChord(bar.chord, last ? len - b * BAR : BAR), b * BAR);
+  });
   for (let i = 0; i < n; i++) {
     const t = i / SR;
     const g = dbToGain(t < BAR ? DB.padStart + ((DB.pad - DB.padStart) * t) / BAR : DB.pad);
@@ -131,8 +153,9 @@ function renderBuses(): Buses {
   }
 
   // One sound per cue.
-  for (const c of CUES) {
-    const s = cueSound(c);
+  const chordAt = (sec: number) => bars[Math.min(bars.length - 1, Math.floor(sec / BAR + 1e-9))].chord;
+  for (const c of arr.cues) {
+    const s = cueSound(c, chordAt);
     if (s instanceof Float32Array) mix(sfx, s, frameToSec(c.at), 1, c.pan ?? 0);
     else mixStereo(sfx, s, frameToSec(c.at));
   }
@@ -140,8 +163,8 @@ function renderBuses(): Buses {
 }
 
 /** One cue's sound at its mix level (cue gain and kind trim applied). */
-function cueSound(c: Cue): Float32Array | Stereo {
-  const s = CUE_SOUND[c.kind](c, frameToSec(c.dur ?? 0));
+function cueSound(c: Cue, chordAt: (sec: number) => readonly string[]): Float32Array | Stereo {
+  const s = CUE_SOUND[c.kind](c, frameToSec(c.dur ?? 0), chordAt);
   const g = (c.gain ?? 1) * dbToGain(CUE_DB[c.kind]);
   for (const ch of s instanceof Float32Array ? [s] : [s.L, s.R]) for (let i = 0; i < ch.length; i++) ch[i] *= g;
   return s;
@@ -153,9 +176,10 @@ const END_FADE = 0.8;
  * Sum, highpass 25 Hz, mono below ~120 Hz, soft clip, lowpass 17 kHz, fade the last 0.8 s to silence,
  * limit at -1 dBFS.
  */
-export function renderScore(): Stereo {
-  const { drums, bass, pad, sfx } = renderBuses();
-  const sum = stereo(LEN);
+export function renderScore(arr: Arrangement = SHOWREEL): Stereo {
+  const len = frameToSec(arr.durationFrames);
+  const { drums, bass, pad, sfx } = renderBuses(arr, len);
+  const sum = stereo(len);
   for (const bus of [drums, bass, pad, sfx]) mixStereo(sum, bus, 0, dbToGain(DB.master));
   const L = biquad(sum.L, "highpass", 25), R = biquad(sum.R, "highpass", 25);
   const n = L.length;

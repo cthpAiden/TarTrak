@@ -1,11 +1,11 @@
-import type { ReactNode } from "react";
+import { useContext, type ReactNode } from "react";
 import { AbsoluteFill, useCurrentFrame } from "remotion";
 import { CameraMotionBlur } from "@remotion/motion-blur";
 import { C } from "../theme.ts";
 import { MONO } from "../fonts.ts";
 import { easeInExpo, easeInOutQuint, easeOutCubic, easeOutExpo, prog } from "../lib/ease.ts";
 import { scramble, typed } from "../lib/text.ts";
-import { Headline } from "../components/Headline.tsx";
+import { Headline, HeadlinePlace } from "../components/Headline.tsx";
 import { Ping } from "../components/Ping.tsx";
 import { World, type WorldShow } from "../world/World.tsx";
 import { camAt, project, type Cam } from "../world/camera.ts";
@@ -194,8 +194,11 @@ const SubLine = ({ frame }: { frame: number }) => {
   const leave = prog(frame, 224, 232, easeInExpo);
   if (p <= 0 || leave >= 1) return null;
   const text = typed(SUB, p);
+  const place = useContext(HeadlinePlace);
+  const at = place ? place.at({ x: 120, y: 982 }) : { x: 120, y: 982 };
+  const k = place?.k ?? 1;
   return (
-    <div style={{ position: "absolute", left: 120, top: 982, height: 26, overflow: "hidden", pointerEvents: "none" }}>
+    <div style={{ position: "absolute", left: at.x, top: at.y, height: 26, overflow: "hidden", pointerEvents: "none", transform: k === 1 ? undefined : `scale(${k})`, transformOrigin: "0 0" }}>
       <div
         style={{
           transform: `translateY(${-26 * leave}px)`,

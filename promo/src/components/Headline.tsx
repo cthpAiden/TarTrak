@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { createContext, useContext, type CSSProperties } from "react";
 import { useCurrentFrame } from "remotion";
 import { COND } from "../fonts.ts";
 import { C, HEADLINE } from "../theme.ts";
@@ -23,6 +23,13 @@ const SHADOW = "0 0.015em 0.03em rgba(11, 13, 16, 0.5), 0 0.05em 0.2em rgba(11, 
 const ACCENT_SHADOW = `${SHADOW}, 0 0 0.26em rgba(240, 180, 41, 0.2)`;
 
 type Run = { text: string; accent: boolean };
+
+/**
+ * Re-places headlines (and shot 2's sub-line) without touching the shots: `at` maps a point in the
+ * shot's 1920x1080 space to where it should go, `k` scales the type. The vertical reel uses it to move
+ * the headlines of the 16:9 shots into the bands above and below the reframed picture.
+ */
+export const HeadlinePlace = createContext<{ at: (p: { x: number; y: number }) => { x: number; y: number }; k: number } | null>(null);
 
 /** Splits a line into words, each a list of runs coloured by whether they fall in the accent. */
 function words(line: HeadlineLine): Run[][] {
@@ -60,9 +67,9 @@ export const Headline = ({
   lines,
   at,
   out,
-  x,
-  y,
-  size = HEADLINE.size,
+  x: x0,
+  y: y0,
+  size: size0 = HEADLINE.size,
   align = "left",
 }: {
   lines: HeadlineLine[];
@@ -74,6 +81,9 @@ export const Headline = ({
   align?: "left" | "center" | "right";
 }) => {
   const frame = useCurrentFrame();
+  const place = useContext(HeadlinePlace);
+  const { x, y } = place ? place.at({ x: x0, y: y0 }) : { x: x0, y: y0 };
+  const size = size0 * (place?.k ?? 1);
   const lh = size * LINE_HEIGHT;
   let n = 0;
   const perLine = lines.map((l) => words(l).map((runs) => ({ runs, index: n++ })));

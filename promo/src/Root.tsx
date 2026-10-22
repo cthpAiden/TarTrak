@@ -5,6 +5,8 @@ import { Showreel } from "./Showreel.tsx";
 import { Frame } from "./components/Frame.tsx";
 import { Gallery } from "./components/Gallery.tsx";
 import { WorldTilt, WorldTop } from "./world/WorldTest.tsx";
+import { Reel45 } from "./reel45/Reel45.tsx";
+import { DURATION_FRAMES as REEL45_FRAMES } from "./reel45/timeline.ts";
 import { Shot1Snap } from "./shots/Shot1Snap.tsx";
 import { Shot2Map } from "./shots/Shot2Map.tsx";
 import { Shot3Squad } from "./shots/Shot3Squad.tsx";
@@ -36,6 +38,8 @@ const common = { durationInFrames: DURATION_FRAMES, fps: FPS, width: WIDTH, heig
 export const Root = () => (
   <>
     <Composition id="Showreel" component={Showreel} {...common} />
+    <Composition id="Reel45" component={Reel45} {...common} durationInFrames={REEL45_FRAMES} />
+    <Composition id="Reel45Vertical" component={Reel45} {...common} durationInFrames={REEL45_FRAMES} width={HEIGHT} height={WIDTH} />
     {SHOT_COMPS.map(([id, c]) => (
       <Composition key={id} id={id} component={c} {...common} />
     ))}

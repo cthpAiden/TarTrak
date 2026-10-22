@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { AbsoluteFill, useCurrentFrame } from "remotion";
+import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
 import { MONO } from "../fonts.ts";
 import { C } from "../theme.ts";
 import { clamp, easeInOutCubic, easeOutExpo, prog } from "../lib/ease.ts";
@@ -49,20 +49,25 @@ const Bracket = ({ right, bottom, at, frame }: Corner & { frame: number }) => {
 /** Types `text` in over 12 frames from `at`. */
 const typeIn = (text: string, frame: number, at: number) => typed(text, prog(frame, at, at + 12));
 
+/** What the HUD reads off a cut: its title, shot count, the shot at a frame, and the end card's first frame. */
+export type HudSpec = { title: string; total: number; shotAt: (frame: number) => { from: number; index: number; name: string }; endAt: number };
+const SHOWREEL_HUD: HudSpec = { title: "TARTRAK // SHOWREEL", total: 7, shotAt: (f) => SHOTS[shotAt(f)], endAt: 720 };
+
 /**
  * The thin viewfinder HUD: corner brackets drawing in over f5-25, REC + title top-left, shot counter
- * top-right, running timecode bottom-left, heading bottom-right. Fades out over f720-740.
+ * top-right, running timecode bottom-left, heading bottom-right. Fades out over the end card's first 20 frames.
  */
-export const Hud = () => {
+export const Hud = ({ spec = SHOWREEL_HUD }: { spec?: HudSpec }) => {
   const frame = useCurrentFrame();
-  const fade = 1 - prog(frame, 720, 740, easeInOutCubic);
+  const { height } = useVideoConfig();
+  const fade = 1 - prog(frame, spec.endAt, spec.endAt + 20, easeInOutCubic);
   if (fade <= 0) return null;
   // shot 4's window fills the frame: the viewfinder steps back off the rail, Squad heading and toolbar
   const dim = 1 - 0.85 * (prog(frame, 358, 364, easeInOutCubic) - prog(frame, 444, 454, easeInOutCubic));
-  const shot = SHOTS[shotAt(frame)];
+  const shot = spec.shotAt(frame);
   // A new shot's name decodes over 10 frames (shot 1's types in with the rest of the HUD).
   const name = shot.from > 0 && frame < shot.from + 10 ? scramble(shot.name, prog(frame, shot.from, shot.from + 10), frame, 7) : shot.name;
-  const count = `${String(shot.index).padStart(2, "0")} / 07`;
+  const count = `${String(shot.index).padStart(2, "0")} / ${String(spec.total).padStart(2, "0")}`;
   // REC blinks at 1 Hz with 2-frame soft edges.
   const ph = frame % 60;
   const blink = ph < 30 ? clamp(ph / 2 + 0.5) : clamp((32 - ph) / 2);
@@ -86,14 +91,14 @@ export const Hud = () => {
           }}
         />
         <span>{typeIn("REC", frame, 13)}</span>
-        <span style={{ marginLeft: 8 }}>{typeIn("TARTRAK // SHOWREEL", frame, 15)}</span>
+        <span style={{ marginLeft: 8 }}>{typeIn(spec.title, frame, 15)}</span>
       </div>
       <div style={{ ...row, right: TEXT_X, top: ROW }}>
         <span>{typeIn(count, frame, 17)}</span>
         <span style={{ marginLeft: 8 }}>{typeIn(name, frame, 19)}</span>
       </div>
-      <div style={{ ...row, left: TEXT_X, top: 1080 - ROW }}>{typeIn(timecode(frame), frame, 21)}</div>
-      <div style={{ ...row, right: TEXT_X, top: 1080 - ROW }}>{typeIn("HDG 048°", frame, 23)}</div>
+      <div style={{ ...row, left: TEXT_X, top: height - ROW }}>{typeIn(timecode(frame), frame, 21)}</div>
+      <div style={{ ...row, right: TEXT_X, top: height - ROW }}>{typeIn("HDG 048°", frame, 23)}</div>
     </AbsoluteFill>
   );
 };

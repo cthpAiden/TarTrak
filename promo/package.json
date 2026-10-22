@@ -10,7 +10,9 @@
     "still": "node scripts/still.ts",
     "render:video": "remotion render src/index.ts Showreel out/tartrak-showreel.mp4 --codec=h264 --crf=14 --pixel-format=yuv420p --audio-codec=aac --audio-bitrate=320k",
     "post": "node scripts/post.ts",
-    "render": "npm run audio && npm run render:video && npm run post"
+    "render": "npm run audio && npm run render:video && npm run post",
+    "audio:reel45": "node audio/build.ts reel45",
+    "render:reel45": "npm run audio:reel45 && remotion render src/index.ts Reel45 out/tartrak-reel45.mp4 --codec=h264 --crf=14 --pixel-format=yuv420p --audio-codec=aac --audio-bitrate=320k"
   },
   "dependencies": {
     "@remotion/bundler": "4.0.529",
