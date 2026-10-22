@@ -50,7 +50,7 @@ export interface TaskRewards {
 export interface QuestTask {
   id: string;
   name: string;
-  /** `id` is tarkov.dev's trader id, the file name of the portrait in public/icons/traders. */
+  /** `id` is tarkov.dev's trader id, the file name of the portrait on assets.tarkov.dev. */
   trader: { id: string; name: string };
   minPlayerLevel: number;
   objectives: TaskObjective[];

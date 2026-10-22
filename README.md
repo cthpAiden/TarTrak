@@ -165,7 +165,7 @@ what upstream lists that the file left off, so it can be kept current when a pat
 - Map images: [tarkov-dev-svg-maps](https://github.com/the-hideout/tarkov-dev-svg-maps), CC BY-NC-SA 4.0, fetched at runtime.
 - Map transforms and quest data: [tarkov.dev](https://tarkov.dev) (MIT). Coordinate math adapted from tarkov.dev.
 - Marker icons: [the-hideout/tarkov-dev](https://github.com/the-hideout/tarkov-dev) `public/maps/interactive` (MIT), copied to `public/icons/` with its licence.
-- Trader portraits in `public/icons/traders/`: Battlestate Games' artwork as served by tarkov.dev (assets.tarkov.dev); not covered by the MIT licence.
+- Trader portraits: Battlestate Games' artwork, loaded at runtime from tarkov.dev (assets.tarkov.dev); not bundled and not covered by the MIT licence.
 - Screenshot filename format documented by the community (TarkovMonitor).
 - Fonts: IBM Plex Sans and IBM Plex Mono (SIL Open Font License 1.1), bundled through `@fontsource`.
 

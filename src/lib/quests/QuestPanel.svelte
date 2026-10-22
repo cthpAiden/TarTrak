@@ -138,7 +138,7 @@
 
 {#snippet portrait(t: QuestTask)}
   <!-- tarkov.dev's trader portrait, bundled per trader id; a trader without one shows nothing. -->
-  <img class="trader-icon" src="/icons/traders/{t.trader.id}.webp" alt="" title={t.trader.name} onerror={(e) => ((e.currentTarget as HTMLImageElement).hidden = true)} />
+  <img class="trader-icon" src="https://assets.tarkov.dev/{t.trader.id}.webp" alt="" title={t.trader.name} onerror={(e) => ((e.currentTarget as HTMLImageElement).hidden = true)} />
 {/snippet}
 
 {#snippet badges(t: QuestTask)}
