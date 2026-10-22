@@ -19,6 +19,12 @@ describe("pinIcon", () => {
     expect(pinIcon(pin).options.className).toBe("pin-icon");
     expect(pinIcon({ ...pin, shared: true }).options.className).toBe("pin-icon shared");
   });
+
+  it("drops a colour that is not a hex code, so a peer cannot inject markup", () => {
+    const html = String(pinIcon({ ...pin, color: '"/><img src=x onerror=alert(1)>' }).options.html);
+    expect(html).not.toContain("<img");
+    expect(html).toContain('fill="#888888"');
+  });
 });
 
 describe("pinPopup", () => {

@@ -1,5 +1,6 @@
 import L from "leaflet";
 import type { Pin } from "../state/app.svelte";
+import { safeColor } from "../room/squad";
 
 /** Private markers: my own colour on the map, so they read as mine at a glance. */
 export const PRIVATE_PIN_COLOR = "#f0b429";
@@ -20,7 +21,7 @@ export function pinIcon(pin: Pin): L.DivIcon {
     : `<circle cx="12" cy="11" r="4" fill="none" stroke="#fff" stroke-width="2"/>`;
   return L.divIcon({
     className: `pin-icon${pin.shared ? " shared" : ""}`,
-    html: `<svg viewBox="0 0 24 32" width="24" height="32" aria-hidden="true"><path d="M12 31C12 31 2 19 2 11a10 10 0 0 1 20 0c0 8-10 20-10 20z" fill="${pin.color}" stroke="#000" stroke-width="1.5"/>${dot}</svg>`,
+    html: `<svg viewBox="0 0 24 32" width="24" height="32" aria-hidden="true"><path d="M12 31C12 31 2 19 2 11a10 10 0 0 1 20 0c0 8-10 20-10 20z" fill="${safeColor(pin.color)}" stroke="#000" stroke-width="1.5"/>${dot}</svg>`,
     iconSize: [24, 32],
     iconAnchor: [12, 31],
     popupAnchor: [0, -30],
