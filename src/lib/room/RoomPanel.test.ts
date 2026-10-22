@@ -50,6 +50,24 @@ describe("RoomPanel code row", () => {
     void unmount(b.panel);
   });
 
+  it("hides the code behind dots and shows it again, Copy still copying the real code", async () => {
+    room.code = "ABC123";
+    const writeText = vi.fn(() => Promise.resolve());
+    setClipboard(writeText);
+    const { target, panel } = open();
+    const toggle = () => [...target.querySelectorAll("button")].find((b) => /^(Hide|Show)$/.test(b.textContent!.trim()))!;
+    toggle().click();
+    flushSync();
+    expect(target.querySelector(".code")!.textContent).toBe("••••••");
+    copyButton(target)!.click();
+    await tick();
+    expect(writeText).toHaveBeenCalledWith("ABC123");
+    toggle().click();
+    flushSync();
+    expect(target.querySelector(".code")!.textContent).toBe("ABC123");
+    void unmount(panel);
+  });
+
   it("says Copied once the clipboard write resolves", async () => {
     room.code = "ABC123";
     setClipboard(() => Promise.resolve());

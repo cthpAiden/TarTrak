@@ -39,6 +39,8 @@
   /** Ticks once a second so the ages in the squad list stay current. */
   let now = $state(Date.now());
   let copied = $state(false);
+  /** Anyone who reads the code off a stream can join and see the squad. */
+  let codeHidden = $state(false);
   let copyTimer: ReturnType<typeof setTimeout> | null = null;
   onMount(() => {
     const tick = setInterval(() => (now = Date.now()), 1000);
@@ -114,7 +116,8 @@
   <label>Color <input type="color" bind:value={color} onchange={persistIdentity} /></label>
   {#if room.code}
     <div class="code-row">
-      <span class="code">{room.code}</span>
+      <span class="code">{codeHidden ? "••••••" : room.code}</span>
+      <button onclick={() => (codeHidden = !codeHidden)} title="Hide the code from a stream or screenshot">{codeHidden ? "Show" : "Hide"}</button>
       <button onclick={copyCode}>{copied ? "Copied" : "Copy"}</button>
     </div>
   {:else}
