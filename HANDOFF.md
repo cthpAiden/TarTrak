@@ -1,6 +1,6 @@
 # TarTrak — handoff context
 
-Free, open-source clone of the feature set of TarkovQuestie (paid, proprietary, by zenwai).
+Free, open-source squad map and quest tracker for Escape from Tarkov.
 Written 2026-09-04 after a research-only session. No code exists yet. No spec or plan has been written yet.
 
 ## Goal
@@ -13,32 +13,20 @@ Desktop Windows app for Escape from Tarkov that shows:
 
 Hard requirements from the user:
 1. Completely free to use AND free to maintain/self-host. $0 forever.
-2. Must not violate EFT TOS, must not get anyone banned. Same principles as TarkovQuestie:
+2. Must not violate EFT TOS, must not get anyone banned. Same principles as other community trackers:
    read screenshot filename coords, send to a relay, parse, update the app. Nothing else.
 3. Teammates must be able to join a room and share location + heading.
 4. User wants to own and modify the code freely.
 
 ## What is NOT allowed / not being built
 
-- No decompiling or copying TarkovQuestie's code, maps, or assets. It is proprietary, paid,
-  and its README forbids reverse engineering. Do not extract the PyInstaller archive.
+- No copying any other tool's code, maps, or assets.
 - No enemy/scav positions, no memory reading, no DLL injection, no hooks into the game,
   no sending keystrokes to the game (no auto-PrintScreen). BattlEye bans exactly that.
 - No login, license server, payments, accounts.
 - No view cone. Original heading line only (user reverted this decision explicitly).
 
 ## Research findings (verified)
-
-### TarkovQuestie itself (installed at C:\Users\datdo\AppData\Local\Programs\TarkovQuestie)
-- Python 3.12 + PySide6 (Qt 6), PyInstaller onedir, ~240 MB exe. Bundles cv2, onnxruntime, pygame, rapidfuzz, psutil.
-- `data/{regular,pve,pvp-season}/` = verbatim tarkov.dev GraphQL JSON: tasks, maps, traders, items,
-  barters, crafts, hideout + 20 locale files. ~66 MB per mode. Nothing proprietary in it.
-- Registry HKCU\Software\Tarkovquestie has subkeys: HideoutPanel, MiniTracker, StatsPanel, Workspace
-  (last_tab=map, preferred_window_size=1000,600, always_on_top).
-- Hotkeys: F5 overlay mode, F6 transparency, wheel zoom, drag pan, right-click menu, Alt+drag move window.
-- Friends feature: observed one persistent TLS connection on 443 to a single AWS EC2 host
-  (34.203.150.46, us-east-1). i.e. a self-hosted WebSocket relay on a rented VM.
-- Could not screenshot its UI (game was fullscreen). Feature list came from README/QUICK_START/registry.
 
 ### Position tracking method (how every open tool does it)
 - EFT writes a PNG on PrintScreen whose filename contains position + rotation quaternion.
@@ -48,7 +36,7 @@ Hard requirements from the user:
   (?<x>-?[\d]+\.[\d]{2}), (?<y>-?[\d]+\.[\d]{2}), (?<z>-?[\d]+\.[\d]{2})_?(?<rx>-?[\d.]{1}\.[\d]{1,5}), (?<ry>...), (?<rz>...), (?<rw>...)
   ```
   Quaternion (Unity, y-up) -> yaw gives heading.
-- Default screenshot dir: `C:\Users\datdo\Documents\Escape from Tarkov\Screenshots` (does not exist yet on this PC — user has not taken screenshots).
+- Default screenshot dir: `%USERPROFILE%\Documents\Escape from Tarkov\Screenshots`.
 - Game logs at `D:\Escape From Tarkov\Logs\log_<date>_<ver>\`. Useful lines in `*application_000.log`:
   - `scene preset path:maps/<name>_preset.bundle`  (map about to load)
   - `TRACE-NetworkGameCreate profileStatus: ... Location: Lighthouse, ...`  (map name)
@@ -60,8 +48,7 @@ Hard requirements from the user:
 ### Data + map sources (all free)
 - tarkov.dev GraphQL: `POST https://api.tarkov.dev/graphql`. Was returning
   `{"errors":["GraphQL server unavailable. Try again later."]}` during this session (known outage
-  pattern, issue #474 July 2026). MUST cache locally and degrade gracefully. TarkovQuestie's data folder
-  can serve as a first offline cache for dev (it's just tarkov.dev output).
+  pattern, issue #474 July 2026). MUST cache locally and degrade gracefully.
 - Maps: https://github.com/the-hideout/tarkov-dev-svg-maps — layered SVG per map, floor groups.
   License CC BY-NC-SA 4.0, explicitly forbids radar/ESP use. Own-squad screenshot positions are fine
   (tarkov.dev does the same).
