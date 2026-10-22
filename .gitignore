@@ -13,3 +13,4 @@ src-tauri/gen/schemas/
 !tests/fixtures/*.log
 .superpowers/
 .claude/
+/*.mp4

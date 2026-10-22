@@ -32,7 +32,8 @@ No memory reading, no injection, no hooks, no keystrokes sent to the game, no ac
    marker after every screenshot), route, draw, centre, fit and the floor picker; the status bar along the
    bottom has the map picker, your coordinates and heading, the squad room and the raid clock.
 
-**Overlay.** Settings > Overlay shape picks the look. **Circle** (the default) is a round minimap with a
+**Overlay.** Settings > Overlay shape picks the look. **Box** (the default) is a rectangle with the compass tape on top and the pills in its
+bottom-right corner. **Circle** is a round minimap with a
 compass bezel: degree ticks, N/E/S/W, and your teammates and route as markers on the ring at their bearing,
 with a box showing your heading. The window shrinks around it, keeping its top-right corner where it was,
 and comes back to its old size and place when you leave the overlay; park it in the screen's top-right
@@ -43,8 +44,7 @@ keeps the map still and slides the heading box round the ring; **heading-up** tu
 at each screenshot (the heading only changes when you take one). On a turned map, labels and tooltips stay
 upright but marker icons turn with it. Settings also has the minimap size, the bezel on or off, and the rim
 buttons always shown or only under the mouse. The window around the circle is still a rectangle, and its
-see-through corners may catch clicks meant for the game: hide the overlay with F7 while looting. **Box** is
-the earlier rectangle, with the compass tape on top and the pills in its bottom-right corner.
+see-through corners may catch clicks meant for the game: hide the overlay with F7 while looting.
 
 Markers never disappear; they dim slowly after 30 s and settle at 35% after 5 minutes.
 
