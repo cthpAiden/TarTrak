@@ -49,6 +49,8 @@ function make(overrides: Partial<ConstructorParameters<typeof RoomClient>[0]> = 
     onMessage: (m) => messages.push(m),
     onStatus: (s) => statuses.push(s),
     wsFactory: (url) => new FakeWs(url),
+    // The top of the jitter range: every retry waits the full backoff.
+    random: () => 1,
     ...overrides,
   });
   return { client, messages, statuses };
@@ -170,7 +172,22 @@ describe("RoomClient", () => {
     expect(JSON.parse(ws.sent[0])).toEqual({ type: "hello", name: "Ann", color: "#0f0" });
   });
 
-  it("reconnects with doubling backoff capped at 30 s and stops after close()", () => {
+  it("waits a random half to all of the backoff, so a room's clients do not retry in lockstep", () => {
+    const { client } = make({ random: () => 0 });
+    client.connect();
+    FakeWs.instances[0].open();
+    FakeWs.instances[0].drop();
+    vi.advanceTimersByTime(499);
+    expect(FakeWs.instances).toHaveLength(1);
+    vi.advanceTimersByTime(1);
+    expect(FakeWs.instances).toHaveLength(2); // half of 1 s
+    FakeWs.instances[1].drop();
+    vi.advanceTimersByTime(1000);
+    expect(FakeWs.instances).toHaveLength(3); // half of 2 s
+    client.close();
+  });
+
+  it("reconnects with doubling backoff capped at 2 min and stops after close()", () => {
     const { client, statuses } = make();
     client.connect();
     FakeWs.instances[0].open();
@@ -187,9 +204,12 @@ describe("RoomClient", () => {
     FakeWs.instances[2].drop();
     vi.advanceTimersByTime(4000);
     expect(FakeWs.instances).toHaveLength(4); // 4 s
-    for (let i = 4; i <= 8; i++) {
+    // 8, 16, 32, 64 s, then 120 s from there on
+    for (const [i, ms] of [[4, 8_000], [5, 16_000], [6, 32_000], [7, 64_000], [8, 120_000], [9, 120_000]]) {
       FakeWs.instances[i - 1].drop();
-      vi.advanceTimersByTime(30_000);
+      vi.advanceTimersByTime(ms - 1);
+      expect(FakeWs.instances).toHaveLength(i);
+      vi.advanceTimersByTime(1);
       expect(FakeWs.instances).toHaveLength(i + 1);
     }
     // a successful open resets the backoff to 1 s

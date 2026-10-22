@@ -40,6 +40,8 @@ export interface RoomClientOptions {
   onError?: (e: unknown) => void;
   wsFactory?: (url: string) => WebSocketLike;
   now?: () => number;
+  /** In [0, 1); picks where in the jitter range each reconnect lands. */
+  random?: () => number;
 }
 
 /** A double-tapped screenshot key still goes out once per window; the newest position wins. */
@@ -48,7 +50,8 @@ export const SEND_INTERVAL_MS = 100;
 export const PING_INTERVAL_MS = 20_000;
 export const PONG_TIMEOUT_MS = 10_000;
 const BACKOFF_MIN_MS = 1_000;
-const BACKOFF_MAX_MS = 30_000;
+/** Each retry is a relay request, which the free plan counts; an app left open in a dead room stays cheap. */
+const BACKOFF_MAX_MS = 120_000;
 const WS_OPEN = 1;
 
 export function roomUrl(relayUrl: string, code: string): string {
@@ -210,10 +213,13 @@ export class RoomClient {
   /** Shared by onclose and by a failed socket construction, so a bad URL cannot kill the loop. */
   private scheduleReconnect(): void {
     if (this.stopped || this.reconnectTimer) return;
+    // Half to all of the backoff: after a relay outage the squad's clients spread out instead of
+    // all knocking at the same instant.
+    const delay = this.backoff * (0.5 + 0.5 * (this.opts.random ?? Math.random)());
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
       if (!this.stopped) this.open();
-    }, this.backoff);
+    }, delay);
     this.backoff = Math.min(BACKOFF_MAX_MS, this.backoff * 2);
   }
 
