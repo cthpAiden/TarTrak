@@ -1,172 +1,75 @@
-# TarTrak
+<p align="center">
+  <img src="docs/assets/banner.png" alt="TarTrak" width="720">
+</p>
 
-Free, open-source Windows companion for Escape from Tarkov: an interactive map with your own position and
-heading, your teammates' positions via a shared room code, and quest markers. MIT licensed.
+<p align="center">
+  A free squad map for Escape from Tarkov. Take a screenshot in raid and see where you and your teammates are.
+</p>
 
-## How it stays ban-safe
+<p align="center">
+  <a href="https://github.com/cthpAiden/TarTrak/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/cthpAiden/TarTrak?color=f0b429"></a>
+  <img alt="Platform: Windows" src="https://img.shields.io/badge/platform-Windows-555">
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-555"></a>
+  <a href="https://paypal.me/HeyAiden"><img alt="Support on PayPal" src="https://img.shields.io/badge/support-PayPal-00457C?logo=paypal&logoColor=white"></a>
+</p>
 
-TarTrak never touches the game process. It only:
+## What it does
 
-- reads the **filenames** of screenshots the game writes (they contain your coordinates and camera rotation), then deletes that PNG (optional; only screenshots named with coordinates are deleted, menu screenshots stay);
-- reads the game's **text log** to learn which map you loaded;
-- reads whether your chosen **mark-here key** is down (the same Windows call push-to-talk apps make; no keyboard hook, nothing sent to the game).
+- Puts your position and heading on an interactive map every time you take a screenshot.
+- Shows your squad on the same map, linked by a 6-character room code.
+- Draws quests, extracts, bosses and loot, with filters for each.
+- Runs as an overlay on top of the game in borderless windowed mode.
 
-TarTrak asks for administrator rights when it starts. The game runs elevated (its launcher asks for the same),
-and Windows hides an elevated window's key state from apps that are not, so the mark-here key would only
-work after an Alt+Tab. Same level as the game, nothing more.
+## Get started
 
-No memory reading, no injection, no hooks, no keystrokes sent to the game, no accounts, no telemetry.
+1. Download the installer from the [latest release](https://github.com/cthpAiden/TarTrak/releases/latest) and run it.
+2. Set Tarkov to borderless windowed.
+3. In raid, press PrintScreen. Your marker shows up on the map.
 
-## Use
+TarTrak asks for administrator rights because the game runs as administrator too. Without them, Windows hides the game's key state from TarTrak and the mark-here key only works after an Alt+Tab. It needs Windows 10 or 11.
 
-1. Install the latest release from GitHub Releases (NSIS installer, per-user).
-2. Start the game in **borderless windowed** mode so the overlay can sit on top.
-3. In raid, press your screenshot key (PrintScreen by default). Your marker appears on the map.
-4. Team: one player presses **Create**, shares the 6-character code; others enter it and press **Join**.
-   Positions travel through the project relay (`wss://tartrak-relay.aidenmileshp.workers.dev`); you can
-   point Settings > Relay URL at your own Worker instead (see [Relay](#relay)).
-5. Hotkeys: `F5` overlay mode, `F6` opacity, `F7` hides the window until you press it again (for looting
-   with the overlay in the way), `Alt+drag` moves the overlay. Rebind in Settings. In the full window the
-   icon rail on the left switches the panel (Filters, Squad, Quests, Settings) and holds the Overlay and
-   opacity buttons; the toolbar on the map's right edge has overlay, **follow me** (recentres the map on your
-   marker after every screenshot), route, draw, centre, fit and the floor picker; the status bar along the
-   bottom has the map picker, your coordinates and heading, the squad room and the raid clock.
+## Playing with a squad
 
-**Overlay.** Settings > Overlay shape picks the look. **Box** (the default) is a rectangle with the compass tape on top and the pills in its
-bottom-right corner. **Circle** is a round minimap with a
-compass bezel: degree ticks, N/E/S/W, and your teammates and route as markers on the ring at their bearing,
-with a box showing your heading. The window shrinks around it, keeping its top-right corner where it was,
-and comes back to its old size and place when you leave the overlay; park it in the screen's top-right
-corner. Buttons round the lower left of the rim switch to the full window and toggle follow me, route,
-draw and the rotation; zoom sits on the right of the rim and the floor picker under it; the raid timer and
-teammate distances step up the lower right of the rim, closest teammate first. **North-up** (the default)
-keeps the map still and slides the heading box round the ring; **heading-up** turns the map so you face up,
-at each screenshot (the heading only changes when you take one). On a turned map, labels and tooltips stay
-upright but marker icons turn with it. Settings also has the minimap size, the bezel on or off, and the rim
-buttons always shown or only under the mouse. The window around the circle is still a rectangle, and its
-see-through corners may catch clicks meant for the game: hide the overlay with F7 while looting.
+One player clicks **Create** and shares the code. Everyone else types it in and clicks **Join**. Positions go through a small relay server that keeps nothing and logs nothing. You can [run your own](docs/developing.md#relay) if you prefer.
 
-Markers never disappear; they dim slowly after 30 s and settle at 35% after 5 minutes.
+## Hotkeys
 
-**Mark here.** Hold the mark-here key (Left Alt by default) and press the game's screenshot key: a private
-marker labelled with the time drops where you stand, on top of the usual dot move. Either key alone does
-nothing. Settings > Mark-here key rebinds the held key to any key or a middle or side mouse button (Backspace
-turns it off). The screenshot key is read from the game's log, where the game lists its control bindings
-at start, so a rebound screenshot key just works; Settings shows the key it read. Ctrl does not work as
-the held key: the game ignores its screenshot key while Ctrl is held.
+| Key | What it does |
+| --- | --- |
+| `F5` | Switch overlay mode |
+| `F6` | Change overlay opacity |
+| `F7` | Hide the window until you press it again |
+| `Alt` + drag | Move the overlay |
+| `Left Alt` + screenshot key | Drop a private marker where you stand |
 
-**Raid timer.** The status bar and the overlay (a chip on the circle's rim, or a pill in the box's bottom-right corner) count down the time left in the
-raid (mm:ss), from the moment the game log says the raid started against the map's raid length. It lets clicks
-through, shows 00:00 for a minute after the end, and Settings > Raid timer turns it off. PMC raids only: a Scav
-raid joins mid-raid and the log does not say how much time is left, so it would read too high.
+Every key can be rebound in Settings.
 
-**Your own markers.** Right-click anywhere on the map, type a label if you want one, and pick **Marker for
-me** (only this app shows it) or **Shared marker** (everyone in your squad room sees it, in your colour).
-Click a marker for its details and a Remove button; anyone in the room can remove a shared marker. Shared
-markers live as long as the room does, and go away when you leave it.
+## Is it ban-safe?
 
-**Route and drawings.** The exit button next to Follow me lists the map's extracts; pick one and a dashed line
-runs from your marker to it with the distance in metres, updated on every screenshot. **Go here** on the
-right-click menu draws the same line to any spot on the map; the route button clears either. The pencil button turns a
-left drag into a stroke: in a room the squad sees every stroke live and later joiners get them replayed; right-click
-offers undo (also Ctrl+Z) and clear-all, which wipes the map for the whole room.
+TarTrak never touches the game process. It reads three things:
 
-**Quests.** The Quests tab is a to-do list. "Find quests on <map>" lists the quests with markers on the map you
-are on (type to search, "all maps" widens it). Tick a quest there to put it on your to-do; only to-do quests draw
-markers, and the checkbox on a to-do entry marks it done.
-"Share with squad" sends the list to your room, so teammates see those markers too and can copy quests over.
-"See squad's quests" (on by default) shows what teammates share; turn it off to keep the map to your own quests.
+- The filenames of the screenshots the game saves, which contain your coordinates and camera rotation. It can delete those screenshots afterwards, and only the ones named with coordinates.
+- The game's text log, to learn which map you loaded.
+- Whether your mark-here key is held down, using the same Windows call push-to-talk apps use.
 
-**Squad.** Every player marker has a heading line (length adjustable in Settings). While you are in a room, the Squad tab lists your teammates: distance to you when they are on
-your map, otherwise the map they are on, plus how long ago they last reported. Click a row to center on them.
-Names carry the floor a teammate is on, like "Aiden [2F]". Click the colour dot in a row to pick the colour that
-teammate is drawn in on your screen; it is yours alone, they keep their own colour on theirs (↺ goes back).
-A teammate whose game log was not found reports no map and is drawn on yours, marked "map unknown". The app
-pings the relay every 20 s; if the connection drops, a small "Squad: reconnecting" pill appears in the map's
-top-left corner and the app reconnects by itself, with one notice on loss and one on recovery.
+It doesn't read memory, inject code, install keyboard hooks or send keystrokes to the game. There are no accounts and no telemetry. I can't speak for Battlestate's anti-cheat, but that is everything TarTrak does.
 
-**Details.** Click any marker for a popup with its name, type, elevation, and, for loose loot, the full item
-list; boss spawns show each boss with its spawn chance, escort size and whether a switch spawns it. A loose loot
-spot holding one item is drawn as that item's picture, one whose items share a handbook category as the category's
-picture (both from assets.tarkov.dev, like tarkov.dev's map); popups also show a lock's key, an extract's fee item
-and a quest item. Quest objectives with a zone draw its footprint
-as a translucent green outline, shown on every floor the zone spans. The "?" button next to a quest opens its
-wiki page in your browser.
+## Learn more
 
-**Filters.** The sidebar has four tabs: Filters, Squad, Quests and Settings. The Filters tab opens with a card
-for the current map: raid length, player count, the keys needed to get in (The Lab, Terminal, The Labyrinth), and
-every boss with its spawn chance and escort size. Below it the tab groups
-everything the map can draw: Extracts, Map
-Tasks, Spawns, Containers, Locks, Hazards, Switches and BTR. Each group and each category shows a
-`shown/total` count for the current map, so a group with nothing on this map still appears as `0/0`.
-PMC, co-op and transit extracts plus every map task category are on by default; everything else is
-off. Your choices are saved with the rest of your settings. The filter counts are for the whole
-map; the map itself shows only markers on the selected floor.
+- [Guide](docs/guide.md): the overlay, quests, markers, routes, filters and everything else in the app.
+- [Developing](docs/developing.md): build from source, the relay, releases and the data files.
 
-**Find item.** The Filters tab has a "Find item on map" box: type part of an item name (two letters or
-more) and every loose-loot spot holding it, every lock opened by a key of that name and every stationary gun
-of that name lights up on the current map, whatever the layer toggles say. The box shows how many spots matched.
+## Support
 
-**Game mode.** Settings > Game mode picks the tarkov.dev data set: PvP (default) or PvE. Each mode keeps its
-own cache; the quest list footer shows which one is loaded. Settings > PMC faction (USEC or BEAR) hides the
-quests only the other faction gets; those quests carry a USEC or BEAR badge.
+TarTrak is free. If it helps your raids, you can chip in through [PayPal](https://paypal.me/HeyAiden). Tips go toward the time it takes to keep the map working after each patch.
 
-**Quest list.** Quests are grouped by trader in the usual trader order, with a `done/total` count per
-trader; sections collapse and quests with markers on the current map sort first. The checkbox marks a
-quest done. Quests needed
-for Kappa carry a "κ" badge, Lightkeeper ones "LK"; the **Kappa** toggle lists only those. The **available**
-toggle (saved with your settings) shows only quests whose prerequisite quests you have marked done, and hides
-the markers of the locked ones from the map as well. Click a quest's name to unfold it: every objective with
-its count and found-in-raid flag, what still gates it (prerequisites left, trader loyalty level, faction), the
-rewards, and what would fail it.
-
-## Relay
-
-Positions go through a tiny Cloudflare Worker (`relay/`). It keeps nothing, logs nothing, needs no account.
-
-The default relay (`DEFAULT_RELAY_URL` in `src/lib/settings/store.ts`) is
-`wss://tartrak-relay.aidenmileshp.workers.dev`, hosted by the project on the Cloudflare free tier. To run
-your own, deploy `relay/` (`cd relay && npm ci && npx wrangler deploy`) and paste the resulting
-`wss://...workers.dev` URL into Settings > Relay URL.
-
-## Build from source
-
-Node 24, Rust stable (MSVC), WebView2 (ships with Windows 10/11).
-
-    npm ci
-    npm test
-    npm run tauri dev
-
-Pushing a `v*` tag (matching the version in `src-tauri/tauri.conf.json`, `package.json` and
-`src-tauri/Cargo.toml`) runs `.github/workflows/release.yml`, which builds the installer, signs it and publishes
-a GitHub Release with `latest.json`. Without git, Actions > release > Run workflow on `main` does the same and
-creates the tag `v<version>` itself; it refuses a version that is already tagged. Installed apps check that manifest at every start and offer the update
-(Settings > About > Check for updates does it on demand); the installer runs with a progress bar and relaunches
-the app.
-
-The updater private key lives only in the `TAURI_SIGNING_PRIVATE_KEY` repository secret (with
-`TAURI_SIGNING_PRIVATE_KEY_PASSWORD` for its passphrase). The updater endpoint in
-`src-tauri/tauri.conf.json` `plugins.updater.endpoints` points at the `cthpAiden/TarTrak` releases; forks
-must change the owner there.
-
-Quest data is fetched live from tarkov.dev and cached locally. `npm run snapshot` writes an offline
-fallback into `data/snapshot/` (PvP data), used when tarkov.dev is unreachable and no cache exists; refresh
-it before tagging.
-
-`data/extracts.json` lists every extract of every map, checked against sources independent of tarkov.dev,
-and is what the app draws: an extract tarkov.dev still lists is drawn as tarkov.dev has it, one it dropped
-comes from the file, one the file does not know is left off (tarkov.dev's September 2026 data regeneration
-lost five of Lighthouse's extracts and filed Woods' UN Roadblock under Ground Zero, among others). A map the
-file does not cover takes tarkov.dev's list as it comes. `npm run snapshot` prints what the file restored and
-what upstream lists that the file left off, so it can be kept current when a patch changes a map.
-
-## Credits and licenses
+## Credits
 
 - Map images: [tarkov-dev-svg-maps](https://github.com/the-hideout/tarkov-dev-svg-maps), CC BY-NC-SA 4.0, fetched at runtime.
 - Map transforms and quest data: [tarkov.dev](https://tarkov.dev) (MIT). Coordinate math adapted from tarkov.dev.
 - Marker icons: [the-hideout/tarkov-dev](https://github.com/the-hideout/tarkov-dev) `public/maps/interactive` (MIT), copied to `public/icons/` with its licence.
-- Trader portraits: Battlestate Games' artwork, loaded at runtime from tarkov.dev (assets.tarkov.dev); not bundled and not covered by the MIT licence.
+- Trader portraits: Battlestate Games' artwork, loaded at runtime from tarkov.dev (assets.tarkov.dev). Not bundled and not covered by the MIT licence.
 - Screenshot filename format documented by the community (TarkovMonitor).
 - Fonts: IBM Plex Sans and IBM Plex Mono (SIL Open Font License 1.1), bundled through `@fontsource`.
 
-Escape from Tarkov is a trademark of Battlestate Games. TarTrak is not affiliated with or endorsed by them.
+TarTrak is MIT licensed. Escape from Tarkov is a trademark of Battlestate Games. TarTrak is not affiliated with or endorsed by them.
