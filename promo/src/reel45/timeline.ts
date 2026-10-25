@@ -52,13 +52,32 @@ export function glitchAt(frame: number): number {
  * sound on them, so picture and sound cannot drift apart.
  */
 export const SAFE = {
-  /** Step rows: each slams in at `rows[k]` and is underlined 12 frames later. */
-  rows: [6, 36, 66, 96, 126],
-  markAfter: 12,
-  collapse: 168,
-  headline: [186, 194],
-  check: 204,
-  caption: 222,
+  /** The game view; PRT SC rises at `key`, goes down on beat 2 and comes back up at `release`. */
+  key: 6,
+  press: 30,
+  release: 44,
+  /** The shutter fires; under its flash the frozen frame shrinks into a file card while its filename decodes. */
+  shutter: 34,
+  shrink: [36, 58],
+  decode: [44, 64],
+  /** The read head runs the filename from `scan`, leaving X, Y, Z and the rotation at `fields`, off the end at `scanEnd`. */
+  scan: 66,
+  fields: [74, 80, 86, 96],
+  scanEnd: 100,
+  /** The rest of the filename falls away; the four fields drop into their cells, landing on beat 5. */
+  fall: 102,
+  drop: [104, 120],
+  /** Each cell translates its field, an 8-frame step apart; the compass needle lands on beat 6. */
+  resolve: [126, 134, 142, 150],
+  /** X and Z swing round into a grid's axes and throw lines that meet; the lock lands on beat 8. */
+  axes: [158, 180],
+  project: [182, 204],
+  lock: 210,
+  /** The map comes up under the lock and its name pops. */
+  map: [210, 240],
+  tag: 226,
+  headline: [244, 252],
+  caption: 264,
   out: 338,
 } as const;
 export const MAPS = { spinFrom: 4, land: 150, headline: [8, 16], out: 224 } as const;
@@ -103,17 +122,28 @@ const cue = (scene: SceneId, local: number, c: Omit<Cue, "at">): Cue => ({ at: a
 const NOTES = ["A5", "C6", "E6", "G6", "A6"] as const;
 
 const newCues: Cue[] = [
-  // 5 HOW IT WORKS: no drums; every row is a hit, every underline a scrape.
-  ...SAFE.rows.flatMap((r, k) => [
-    cue("safe", r, { kind: "thud" }),
-    cue("safe", r, { kind: "keyClick" }),
-    cue("safe", r + SAFE.markAfter, { kind: "stab", gain: 0.55 }),
-    cue("safe", r + SAFE.markAfter, { kind: "tick", note: ["E6", "D6", "C6", "B5", "A5"][k] }),
-  ]),
-  cue("safe", SAFE.collapse - 4, { kind: "whoosh", dur: 20, pan: 0 }),
+  // 5 HOW IT WORKS: no drums; the key, the shutter, the read head and the decoder are the rhythm.
+  cue("safe", SAFE.key, { kind: "pop", note: "A4", gain: 0.6 }),
+  cue("safe", SAFE.press, { kind: "keyClick" }),
+  cue("safe", SAFE.press, { kind: "thud" }),
+  cue("safe", SAFE.shutter, { kind: "shutter" }),
+  cue("safe", SAFE.shrink[0], { kind: "whoosh", dur: 20, pan: 0 }),
+  cue("safe", SAFE.decode[0], { kind: "chirps", dur: SAFE.decode[1] - SAFE.decode[0] }),
+  cue("safe", SAFE.scan, { kind: "dashTicks", dur: SAFE.scanEnd - SAFE.scan }),
+  ...SAFE.fields.map((f, k) => cue("safe", f, { kind: "pluck", note: ["A4", "C5", "E5", "A5"][k] })),
+  cue("safe", SAFE.fall, { kind: "whoosh", dur: 18, pan: -0.3 }),
+  cue("safe", SAFE.drop[1], { kind: "thud" }),
+  cue("safe", SAFE.drop[1], { kind: "stab", gain: 0.55 }),
+  ...SAFE.resolve.map((r, k) => cue("safe", r, { kind: "tick", note: ["E6", "D6", "C6", "A5"][k] })),
+  cue("safe", SAFE.drop[1] + 4, { kind: "ratchet", dur: SAFE.resolve[3] - SAFE.drop[1] - 10 }),
+  cue("safe", SAFE.resolve[3], { kind: "stab", gain: 0.55 }),
+  cue("safe", SAFE.axes[0], { kind: "whoosh", dur: 22, pan: 0.4 }),
+  cue("safe", SAFE.project[0], { kind: "dashTicks", dur: SAFE.project[1] - SAFE.project[0] }),
+  cue("safe", SAFE.lock, { kind: "impactLite" }),
+  cue("safe", SAFE.lock, { kind: "ping" }),
+  cue("safe", SAFE.lock + 4, { kind: "checkTick" }),
+  cue("safe", SAFE.tag, { kind: "pop", note: "E6" }),
   cue("safe", SAFE.headline[0], { kind: "impactLite" }),
-  cue("safe", SAFE.check, { kind: "checkTick" }),
-  cue("safe", SAFE.check + 6, { kind: "pluck", note: "E5" }),
   cue("safe", SAFE.caption, { kind: "typing", dur: 30 }),
   cue("safe", 240, { kind: "riser", dur: 120 }),
   cue("safe", 300, { kind: "snareRoll", dur: 60 }),
