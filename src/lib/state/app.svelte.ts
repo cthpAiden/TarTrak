@@ -54,8 +54,8 @@ export class AppState {
   ownUpdatedAt = $state(0);
   currentMap = $state<string | null>(null);
   mapSource = $state<MapSource | null>(null);
-  /** Epoch ms of the log's GameStarted line for the current raid; null before one or after a map change. */
-  raidStartedAt = $state<number | null>(null);
+  /** Epoch ms (this PC's clock) the current raid ends, from the game's own raid clock; null outside a raid. */
+  raidEndsAt = $state<number | null>(null);
   /** The game's screenshot key as a virtual-key code, read from its log; null until the log says. */
   shotKeyVk = $state<number | null>(null);
   teammates = $state<Record<string, Teammate>>({});

@@ -27,10 +27,33 @@ pub fn newest_log_dir(logs_root: &Path) -> Option<PathBuf> {
     best.map(|(_, p)| p)
 }
 
-pub fn find_application_log(log_dir: &Path) -> Option<PathBuf> {
+/// Which file of a log dir to follow, and which of its lines to pass on.
+#[derive(Clone, Copy)]
+pub struct LogFile {
+    /// Part of the file name, e.g. "application" for "<stamp> application_000.log".
+    pub name: &'static str,
+    pub keep: fn(&str) -> bool,
+}
+
+fn keep_all(_: &str) -> bool {
+    true
+}
+
+/// The game's raid clock, a mid-raid change to it, and leaving the raid's server. These are only in
+/// output_000.log, which is ~60x the application log and mostly stack frames, so nothing else is sent on.
+fn is_raid_clock_line(line: &str) -> bool {
+    line.contains("|GameTimer utcNow:")
+        || line.contains("|Escape dateTime update to:")
+        || (line.contains("|Connection.Disconnect() ") && line.contains("Reason:Stop game"))
+}
+
+pub const APPLICATION_LOG: LogFile = LogFile { name: "application", keep: keep_all };
+pub const OUTPUT_LOG: LogFile = LogFile { name: "output", keep: is_raid_clock_line };
+
+pub fn find_log(log_dir: &Path, name: &str) -> Option<PathBuf> {
     fs::read_dir(log_dir).ok()?.flatten().map(|e| e.path()).find(|p| {
-        let name = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
-        p.is_file() && name.contains("application") && name.ends_with(".log")
+        let file = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
+        p.is_file() && file.contains(name) && file.ends_with(".log")
     })
 }
 
@@ -57,25 +80,32 @@ impl Drop for LogTail {
     }
 }
 
-/// Follow the newest application log under `logs_root`, replaying it from the start,
-/// then streaming appended lines. Switches files when a newer `log_*` dir appears.
+/// Follow `log`'s file in the newest log dir under `logs_root`, replaying it from the start,
+/// then streaming appended lines that `log.keep` passes. Switches files when a newer `log_*` dir appears.
 pub fn start_log_tail(
     logs_root: PathBuf,
+    log: LogFile,
     on_line: impl Fn(String) + Send + Sync + 'static,
 ) -> LogTail {
     let stop = Arc::new(AtomicBool::new(false));
     let stop2 = stop.clone();
-    let handle = std::thread::spawn(move || run(logs_root, stop2, on_line));
+    let handle = std::thread::spawn(move || {
+        run(logs_root, log.name, stop2, move |line| {
+            if (log.keep)(&line) {
+                on_line(line)
+            }
+        })
+    });
     LogTail { stop, handle: Some(handle) }
 }
 
-fn run(logs_root: PathBuf, stop: Arc<AtomicBool>, on_line: impl Fn(String)) {
+fn run(logs_root: PathBuf, name: &str, stop: Arc<AtomicBool>, on_line: impl Fn(String)) {
     while !stop.load(Ordering::SeqCst) {
         let Some(dir) = newest_log_dir(&logs_root) else {
             std::thread::sleep(POLL);
             continue;
         };
-        let Some(file) = find_application_log(&dir) else {
+        let Some(file) = find_log(&dir, name) else {
             std::thread::sleep(POLL);
             continue;
         };
@@ -151,8 +181,9 @@ fn follow(file: &Path, dir: &Path, logs_root: &Path, stop: &AtomicBool, on_line:
     }
 }
 
+/// The application log's tail and the output log's (raid clock only).
 #[derive(Default)]
-pub struct TailState(pub Mutex<Option<LogTail>>);
+pub struct TailState(pub Mutex<Vec<LogTail>>);
 
 #[tauri::command]
 pub fn start_log_tail_cmd(
@@ -164,25 +195,27 @@ pub fn start_log_tail_cmd(
     if !root.is_dir() {
         return Err(format!("not a directory: {logs_root}"));
     }
-    // Stop any existing tail (dropping the lock before the join) so it can't keep
-    // emitting `logline` concurrently with the new tail we're about to start.
-    let old = state.0.lock().map_err(|e| e.to_string())?.take();
-    if let Some(old) = old {
-        old.stop();
+    // Stop any existing tails (dropping the lock before the join) so they can't keep
+    // emitting `logline` concurrently with the new tails we're about to start.
+    let old = std::mem::take(&mut *state.0.lock().map_err(|e| e.to_string())?);
+    for tail in old {
+        tail.stop();
     }
-    let handle = app.clone();
-    let tail = start_log_tail(root, move |line| {
-        let _ = handle.emit("logline", line);
+    let tails = [APPLICATION_LOG, OUTPUT_LOG].map(|log| {
+        let handle = app.clone();
+        start_log_tail(root.clone(), log, move |line| {
+            let _ = handle.emit("logline", line);
+        })
     });
-    *state.0.lock().map_err(|e| e.to_string())? = Some(tail);
+    *state.0.lock().map_err(|e| e.to_string())? = tails.into();
     Ok(())
 }
 
 #[tauri::command]
 pub fn stop_log_tail_cmd(state: State<'_, TailState>) {
-    let old = state.0.lock().ok().and_then(|mut guard| guard.take());
-    if let Some(old) = old {
-        old.stop();
+    let old = state.0.lock().map(|mut guard| std::mem::take(&mut *guard)).unwrap_or_default();
+    for tail in old {
+        tail.stop();
     }
 }
 
@@ -214,15 +247,40 @@ mod tests {
     }
 
     #[test]
-    fn find_application_log_matches_only_application_log() {
+    fn find_log_matches_only_the_named_log() {
         let root = tempfile::tempdir().unwrap();
         let d = root.path().join("log_x");
         fs::create_dir_all(&d).unwrap();
         fs::write(d.join("x backend_000.log"), "").unwrap();
         let app = d.join("x application_000.log");
         fs::write(&app, "").unwrap();
-        assert_eq!(find_application_log(&d).unwrap(), app);
-        assert!(find_application_log(root.path()).is_none());
+        assert_eq!(find_log(&d, "application").unwrap(), app);
+        assert!(find_log(&d, "output").is_none());
+        assert!(find_log(root.path(), "application").is_none());
+    }
+
+    #[test]
+    fn output_tail_passes_on_only_the_raid_clock_lines() {
+        let root = tempfile::tempdir().unwrap();
+        mk_log(root.path(), "log_1", "1 application_000.log", "app line
+");
+        let timer = "2026-10-26 01:01:19.187|1.2.5.0.48146|Info|output|GameTimer utcNow:10/25/2026 18:02:04 start:10/25/2026 18:02:04 escape:10/25/2026 18:42:04 PastTime:00:00:00.0010000 stop:01/01/0001 00:00:00 (startTime:10/25/2026 18:02:04, sessionTime:00:40:00)";
+        let moved = "2026-09-18 12:51:51.045|1.1.5.0.47426|Info|output|Escape dateTime update to:09/18/2026 06:01:49 from:09/18/2026 06:26:22";
+        let left = "2026-10-26 01:36:40.790|1.2.5.0.48146|Info|output|Connection.Disconnect() TransportId:0 address:178.249.213.71 Reason:Stop game";
+        let content = format!(
+            "2026-10-26 01:01:19.185|1.2.5.0.48146|Info|output|application|GameStarted:914.61(9.14) real:943.1(12.02) diff:28.48\nEFT.NetworkGame`1:GameStarted(Single, Int32)\n{timer}\n{moved}\n2026-10-26 01:36:40.799|1.2.5.0.48146|Info|output|network-connection|Disconnect (address: 178.249.213.71:17007)\n{left}\n"
+        );
+        mk_log(root.path(), "log_1", "1 output_000.log", &content);
+        let (tx, rx) = mpsc::channel::<String>();
+        let tail = start_log_tail(root.path().to_path_buf(), OUTPUT_LOG, move |l| {
+            let _ = tx.send(l);
+        });
+
+        for want in [timer, moved, left] {
+            assert_eq!(rx.recv_timeout(Duration::from_secs(5)).unwrap(), want);
+        }
+        assert!(rx.recv_timeout(Duration::from_millis(1200)).is_err());
+        tail.stop();
     }
 
     #[test]
@@ -230,7 +288,7 @@ mod tests {
         let root = tempfile::tempdir().unwrap();
         let f1 = mk_log(root.path(), "log_1", "1 application_000.log", "first\r\nsecond\n");
         let (tx, rx) = mpsc::channel::<String>();
-        let tail = start_log_tail(root.path().to_path_buf(), move |l| {
+        let tail = start_log_tail(root.path().to_path_buf(), APPLICATION_LOG, move |l| {
             let _ = tx.send(l);
         });
 
@@ -254,7 +312,7 @@ mod tests {
         let root = tempfile::tempdir().unwrap();
         mk_log(root.path(), "log_1", "1 application_000.log", "first\r\npartial");
         let (tx, rx) = mpsc::channel::<String>();
-        let tail = start_log_tail(root.path().to_path_buf(), move |l| {
+        let tail = start_log_tail(root.path().to_path_buf(), APPLICATION_LOG, move |l| {
             let _ = tx.send(l);
         });
 

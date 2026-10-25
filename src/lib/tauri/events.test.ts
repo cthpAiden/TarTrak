@@ -101,21 +101,32 @@ describe("handleLogLine", () => {
     expect(s.currentMap).toBe("factory");
   });
 
-  it("remembers when the raid started, and forgets it when the map changes", () => {
+  it("takes the raid's end from the game's clock, moves it when the game does, and drops it on leaving", () => {
     const s = new AppState();
-    s.setMap("factory", "log");
-    handleLogLine("2026-09-04 04:56:12.284|1.1.0.1.46911|Info|application|GameStarted:215.23(215.23) real:236.94(236.94) diff:21.71", s);
-    expect(s.raidStartedAt).toBe(new Date(2026, 8, 4, 4, 56, 12, 284).getTime());
-    handleLogLine(loc("Lighthouse"), s);
-    expect(s.raidStartedAt).toBeNull();
+    handleLogLine(
+      "2026-09-18 12:51:34.321|1.1.5.0.47426|Info|output|GameTimer utcNow:09/18/2026 05:51:33 start:09/18/2026 05:51:22 escape:09/18/2026 06:26:22 PastTime:00:00:10.7960000 stop:01/01/0001 00:00:00 (startTime:09/18/2026 05:51:22, sessionTime:00:35:00)",
+      s,
+    );
+    const endsAt = new Date(2026, 8, 18, 12, 51, 34, 321).getTime() + 35 * 60_000 - 10_796;
+    expect(s.raidEndsAt).toBe(endsAt);
+    handleLogLine("2026-09-18 12:51:51.045|1.1.5.0.47426|Info|output|Escape dateTime update to:09/18/2026 06:01:49 from:09/18/2026 06:26:22", s);
+    expect(s.raidEndsAt).toBe(endsAt - (24 * 60 + 33) * 1000);
+    handleLogLine("2026-09-18 12:59:18.481|1.1.5.0.47426|Info|output|Connection.Disconnect() TransportId:4294967296 address:178.249.213.71 Reason:Stop game", s);
+    expect(s.raidEndsAt).toBeNull();
   });
 
-  it("keeps the raid start when the log repeats the same map", () => {
+  it("keeps the raid's end through a map change: the clock no longer depends on the map", () => {
     const s = new AppState();
+    s.setMap("factory", "log");
+    s.raidEndsAt = 123;
     handleLogLine(loc("Lighthouse"), s);
-    handleLogLine("2026-09-04 04:56:12.284|1.1.0.1.46911|Info|application|GameStarted:215.23(215.23) real:236.94(236.94) diff:21.71", s);
-    handleLogLine(loc("Lighthouse"), s);
-    expect(s.raidStartedAt).not.toBeNull();
+    expect(s.raidEndsAt).toBe(123);
+  });
+
+  it("ignores a moved end when no raid clock is known", () => {
+    const s = new AppState();
+    handleLogLine("2026-09-18 12:51:51.045|1.1.5.0.47426|Info|output|Escape dateTime update to:09/18/2026 06:01:49 from:09/18/2026 06:26:22", s);
+    expect(s.raidEndsAt).toBeNull();
   });
 
   it("uses the scene preset as an early hint", () => {

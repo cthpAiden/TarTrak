@@ -2,15 +2,12 @@
 const LINGER_MS = 60_000;
 
 /**
- * Time left in the raid as mm:ss, from the log's GameStarted moment and the map's raid length in
- * minutes. Whole seconds, rounded down like the in-game watch. 00:00 for a minute after the end;
- * null after that, without a start or a length, or for a start still in the future.
+ * Time left in the raid as mm:ss, from the epoch ms the game says it ends. Whole seconds, rounded down
+ * like the in-game watch. 00:00 for a minute after the end; null after that or without an end.
  */
-export function raidTimeLeft(startedAt: number | null, durationMin: number | undefined, now: number): string | null {
-  if (startedAt === null || !durationMin || durationMin <= 0) return null;
-  const elapsed = now - startedAt;
-  if (elapsed < 0) return null;
-  const left = durationMin * 60_000 - elapsed;
+export function raidTimeLeft(endsAt: number | null, now: number): string | null {
+  if (endsAt === null) return null;
+  const left = endsAt - now;
   if (left <= -LINGER_MS) return null;
   const s = Math.max(0, Math.floor(left / 1000));
   const mm = String(Math.floor(s / 60)).padStart(2, "0");

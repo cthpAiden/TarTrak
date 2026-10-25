@@ -187,7 +187,7 @@
         </div>
       {/if}
       <div class="row">
-        <label for="set-raid-timer" title="Time left in the raid, counted from the moment the log says the raid started. PMC raids only: a Scav raid joins late and reads too high.">Raid timer</label>
+        <label for="set-raid-timer" title="Time left in the raid, read from the game's own raid clock: PMC and Scav raids, late spawns included.">Raid timer</label>
         <input id="set-raid-timer" class="switch" type="checkbox" checked={settings.raidTimer} onchange={(e) => onChange({ raidTimer: e.currentTarget.checked })} />
       </div>
       <div class="row place">

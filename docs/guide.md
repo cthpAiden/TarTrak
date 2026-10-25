@@ -33,9 +33,10 @@ the held key: the game ignores its screenshot key while Ctrl is held.
 ## Raid timer
 
 The status bar and the overlay (a chip on the circle's rim, or a pill in the box's bottom-right corner) count down the time left in the
-raid (mm:ss), from the moment the game log says the raid started against the map's raid length. It lets clicks
-through, shows 00:00 for a minute after the end, and Settings > Raid timer turns it off. PMC raids only: a Scav
-raid joins mid-raid and the log does not say how much time is left, so it would read too high.
+raid (mm:ss). It reads the game's own raid clock from its output log, so it matches the in-game watch in PMC and
+Scav raids alike: a Scav raid joined 20 minutes in, a late spawn, a map whose raid is shorter than usual, and a
+raid whose end the game moves are all counted right. It lets clicks through, hides when you leave the raid, shows
+00:00 for a minute after the end, and Settings > Raid timer turns it off.
 
 
 ## Your own markers

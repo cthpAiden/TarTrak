@@ -27,7 +27,7 @@ export interface Settings {
   lineLengthM: number;
   /** Pan the map to my marker on every screenshot. */
   followMe: boolean;
-  /** Overlay pill with the time left in the raid, counted from the log's GameStarted line. */
+  /** Overlay pill with the time left in the raid, read from the game's own raid clock in its output log. */
   raidTimer: boolean;
   /** Hide quests, in the list and on the map, whose prerequisite quests are not done yet. */
   questsAvailableOnly: boolean;

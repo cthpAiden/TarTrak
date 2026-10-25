@@ -165,15 +165,15 @@
   });
   // tarkov.dev's entry for the map on screen: raid length, player count, bosses.
   const mapInfo = $derived(def && app.questData ? (app.questData.maps.find((m) => m.normalizedName === def.key) ?? null) : null);
-  // The raid clock ticks once a second while a raid start is known (the status bar and the overlay show it).
+  // The raid clock ticks once a second while a raid's end is known (the status bar and the overlay show it).
   let now = $state(Date.now());
   $effect(() => {
-    if (app.raidStartedAt === null) return;
+    if (app.raidEndsAt === null) return;
     now = Date.now();
     const id = setInterval(() => (now = Date.now()), 1000);
     return () => clearInterval(id);
   });
-  const raidLeft = $derived(settings?.raidTimer === false ? null : raidTimeLeft(app.raidStartedAt, mapInfo?.raidDuration, now));
+  const raidLeft = $derived(settings?.raidTimer === false ? null : raidTimeLeft(app.raidEndsAt, now));
   const routeDistance = $derived(routePoint && app.ownPos ? distanceM(app.ownPos, routePoint) : null);
   // Teammates drawn on my map, the map view's filter, for the overlay's compass and distance pill.
   const overlayMates = $derived.by(() => {
