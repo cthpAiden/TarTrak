@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.14.1 - 2026-10-26
+
+### Fixed
+- **The raid timer is right in every raid.** It used to count the map's usual raid length from the moment you spawned, so Scav raids (joined 10 to 30 minutes in) read far too high, a PMC spawn a few seconds late read a few seconds high, and Woods and Ground Zero read 5 minutes high. The game logs its own raid clock (time already past and raid length) to `output_000.log` as you spawn; TarTrak now reads that, follows any change the game makes to the raid's end, and hides the timer when you leave the raid. Checked against 106 raids in the game's logs.
+
 ## 0.14.0 - 2026-10-22
 
 ### Squad
