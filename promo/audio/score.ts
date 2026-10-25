@@ -14,9 +14,9 @@ const BEAT = 60 / BPM, BAR = 4 * BEAT;
 /**
  * One bar. `chord` is the pad (the last bar's chord holds to the end); `root` plays bass 8ths; `drums`:
  * "muffled" 8th ticks or "groove" (kick 4/4, offbeat hats); `clap` on beats 2 and 4; `openHat` on the
- * last offbeat; `extraHat` adds 16th hats that many dB under the hat.
+ * last offbeat; `extraHat` adds 16th hats that many dB under the hat; `beats` shortens the bar (default 4).
  */
-export type Bar = { chord: readonly string[]; root?: string; drums?: "muffled" | "groove"; clap?: boolean; openHat?: boolean; extraHat?: number };
+export type Bar = { chord: readonly string[]; root?: string; drums?: "muffled" | "groove"; clap?: boolean; openHat?: boolean; extraHat?: number; beats?: number };
 export type Arrangement = { durationFrames: number; bars: readonly Bar[]; cues: readonly Cue[] };
 
 export const AM9 = ["A2", "E3", "G3", "B3", "C4"] as const;
@@ -106,12 +106,15 @@ function renderBuses(arr: Arrangement, len: number): Buses {
   const kick = I.kick(), hat = I.hat(), openHat = I.hat(true), clap = I.clap();
   const muffled = I.muffledTick();
   const kicks: number[] = [];
+  const starts: number[] = [];
+  bars.reduce((t, bar) => (starts.push(t), t + (bar.beats ?? 4) * BEAT), 0);
 
   bars.forEach((bar, b) => {
-    const t0 = b * BAR;
-    if (bar.drums === "muffled") for (let e = 0; e < 8; e++) mix(drums, muffled, t0 + (e * BEAT) / 2, dbToGain(DB.muffledTick));
+    const t0 = starts[b];
+    const beats = bar.beats ?? 4;
+    if (bar.drums === "muffled") for (let e = 0; e < 2 * beats; e++) mix(drums, muffled, t0 + (e * BEAT) / 2, dbToGain(DB.muffledTick));
     if (bar.drums === "groove") {
-      for (let q = 0; q < 4; q++) {
+      for (let q = 0; q < beats; q++) {
         const t = t0 + q * BEAT;
         kicks.push(t);
         mix(drums, kick, t, dbToGain(DB.kick));
@@ -122,9 +125,9 @@ function renderBuses(arr: Arrangement, len: number): Buses {
       }
     }
     if (bar.root) {
-      for (let e = 0; e < 8; e++) {
+      for (let e = 0; e < 2 * beats; e++) {
         const t = t0 + (e * BEAT) / 2;
-        const hz = noteHz(bar.root) * (e === 7 ? 2 : 1);
+        const hz = noteHz(bar.root) * (e === 2 * beats - 1 ? 2 : 1);
         // Gate plus the 40 ms release fill the 8th exactly, so notes never overlap.
         mix(bass, I.bass(hz, BEAT / 2 - 0.04, t), t, dbToGain(DB.bass + (e === 0 || e === 4 ? 3 : 0)));
       }
@@ -134,7 +137,7 @@ function renderBuses(arr: Arrangement, len: number): Buses {
   // Pad: one chord per bar, -30 dB rising to -18 dB over bar 1.
   bars.forEach((bar, b) => {
     const last = b === bars.length - 1;
-    mixStereo(pad, I.padChord(bar.chord, last ? len - b * BAR : BAR), b * BAR);
+    mixStereo(pad, I.padChord(bar.chord, last ? len - starts[b] : (bar.beats ?? 4) * BEAT), starts[b]);
   });
   for (let i = 0; i < n; i++) {
     const t = i / SR;
@@ -153,7 +156,7 @@ function renderBuses(arr: Arrangement, len: number): Buses {
   }
 
   // One sound per cue.
-  const chordAt = (sec: number) => bars[Math.min(bars.length - 1, Math.floor(sec / BAR + 1e-9))].chord;
+  const chordAt = (sec: number) => bars[Math.max(0, starts.filter((t) => t <= sec + 1e-9).length - 1)].chord;
   for (const c of arr.cues) {
     const s = cueSound(c, chordAt);
     if (s instanceof Float32Array) mix(sfx, s, frameToSec(c.at), 1, c.pan ?? 0);

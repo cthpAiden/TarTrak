@@ -106,11 +106,14 @@ function layoutFor(W: number, H: number, portrait: boolean): Layout {
 const pop = (frame: number, at: number) => (frame < at ? 0 : spring({ frame: frame - at, fps: 60, config: SPRING_POP }));
 const amber = (a: number) => rgba(C.amber, a);
 
-/** Characters of the name behind the read head (fractional while it crosses one). */
+/** Characters of the name behind the read head (fractional while it crosses one): it runs to each field's end and rests there. */
 const headAt = (frame: number) =>
   track(frame, [
-    [SAFE.scan, 0, linear],
-    ...FIELDS.map((f, k) => [SAFE.fields[k], f.end, linear] as const),
+    [SAFE.scan, 0, easeInOutCubic],
+    ...FIELDS.flatMap((f, k) => [
+      [SAFE.fields[k], f.end, linear] as const,
+      k < 3 ? ([SAFE.fields[k + 1] - SAFE.move, f.end, easeInOutCubic] as const) : ([SAFE.fields[k] + 2, f.end, linear] as const),
+    ]),
     [SAFE.scanEnd, NAME.length],
   ]);
 
@@ -533,10 +536,10 @@ const Compass = ({ x, y, r, angle, lit, opacity }: { x: number; y: number; r: nu
   );
 };
 
-/** Needle angle: two and a half turns spinning down onto the heading as the rotation cell translates, then a wobble. */
+/** Needle angle: resting on north, then two turns spinning down onto the heading as the rotation cell translates, then a wobble. */
 function needleAt(frame: number): number {
   const r = SAFE.resolve[3];
-  const spin = 900 * (1 - easeOutCubic(prog(frame, SAFE.drop[1], r)));
+  const spin = (720 + HEADING) * (1 - easeOutCubic(prog(frame, r - SAFE.spin, r)));
   const wobble = frame > r ? 7 * Math.exp(-(frame - r) / 5) * Math.sin((frame - r) * 0.9) : 0;
   return HEADING - spin + wobble;
 }
@@ -696,7 +699,7 @@ const Status = ({ frame, L }: { frame: number; L: Layout }) => {
 };
 
 /**
- * Scene 5, HOW IT WORKS (local 0-359). In raid, PRT SC goes down and the shutter freezes the view into a
+ * Scene 5, HOW IT WORKS (local 0-659). In raid, PRT SC goes down and the shutter freezes the view into a
  * screenshot whose filename decodes; a read head picks out X, Y, Z and the rotation, the rest of the name
  * falls away, and the fields drop into decoder cells that translate them (metres, ground level, a compass
  * spinning onto 048°). X and Z swing out into a grid's axes, their lines meet on the compass, the reticle

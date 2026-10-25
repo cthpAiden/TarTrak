@@ -1,13 +1,13 @@
 /**
- * The 45 s reel's timeline: the showreel's shots 1-4 as they are (0-479), six new scenes (480-2279),
- * then shots 5-7 shifted 1800 frames later (2280-2699). The video and the synth (audio/reel45.ts) both
- * import this file. No imports beyond ../timeline.ts: Node runs it as-is.
+ * The reel's timeline (50 s since "how it works" grew to 11 s): the showreel's shots 1-4 as they are
+ * (0-479), six new scenes (480-2579), then shots 5-7 shifted 2100 frames later (2580-2999). The video and
+ * the synth (audio/reel45.ts) both import this file. No imports beyond ../timeline.ts: Node runs it as-is.
  */
 import { CUES, type Cue } from "../timeline.ts";
 
-export const DURATION_FRAMES = 2700;
+export const DURATION_FRAMES = 3000;
 /** Shots 5-7 play this many frames later than in the 15 s cut. */
-export const SHIFT = 1800;
+export const SHIFT = 2100;
 
 export type SceneId =
   | "snap" | "map" | "squad" | "app"
@@ -20,15 +20,15 @@ export const SCENES: Record<SceneId, Scene> = {
   map: { from: 120, to: 240, index: 2, name: "ON THE MAP" },
   squad: { from: 240, to: 360, index: 3, name: "SQUAD" },
   app: { from: 360, to: 480, index: 4, name: "THE APP" },
-  safe: { from: 480, to: 840, index: 5, name: "HOW IT WORKS" },
-  maps: { from: 840, to: 1080, index: 6, name: "MAPS" },
-  exits: { from: 1080, to: 1380, index: 7, name: "EXTRACTS" },
-  clock: { from: 1380, to: 1620, index: 8, name: "RAID CLOCK" },
-  share: { from: 1620, to: 1980, index: 9, name: "SHARED MARKERS" },
-  keys: { from: 1980, to: 2280, index: 10, name: "HOTKEYS" },
-  montage: { from: 2280, to: 2400, index: 11, name: "MONTAGE" },
-  overlay: { from: 2400, to: 2520, index: 12, name: "OVERLAY" },
-  end: { from: 2520, to: 2700, index: 13, name: "END" },
+  safe: { from: 480, to: 1140, index: 5, name: "HOW IT WORKS" },
+  maps: { from: 1140, to: 1380, index: 6, name: "MAPS" },
+  exits: { from: 1380, to: 1680, index: 7, name: "EXTRACTS" },
+  clock: { from: 1680, to: 1920, index: 8, name: "RAID CLOCK" },
+  share: { from: 1920, to: 2280, index: 9, name: "SHARED MARKERS" },
+  keys: { from: 2280, to: 2580, index: 10, name: "HOTKEYS" },
+  montage: { from: 2580, to: 2700, index: 11, name: "MONTAGE" },
+  overlay: { from: 2700, to: 2820, index: 12, name: "OVERLAY" },
+  end: { from: 2820, to: 3000, index: 13, name: "END" },
 };
 export const SCENE_IDS = Object.keys(SCENES) as SceneId[];
 export function sceneAt(frame: number): SceneId {
@@ -37,7 +37,7 @@ export function sceneAt(frame: number): SceneId {
 }
 
 /** Hard cuts that get the RGB-split glitch: the showreel's (shifted) plus the new scenes' hard cuts. */
-export const GLITCHES = [480, 840, 1080, 1620, 2280, 2310, 2340, 2370, 2400, 2520] as const;
+export const GLITCHES = [480, 1140, 1380, 1920, 2580, 2610, 2640, 2670, 2700, 2820] as const;
 const GLITCH_SHAPE: Record<number, number> = { [-1]: 0.35, 0: 1, 1: 0.7, 2: 0.4, 3: 0.15 };
 export function glitchAt(frame: number): number {
   for (const g of GLITCHES) {
@@ -59,26 +59,32 @@ export const SAFE = {
   /** The shutter fires; under its flash the frozen frame shrinks into a file card while its filename decodes. */
   shutter: 34,
   shrink: [36, 58],
-  decode: [44, 64],
-  /** The read head runs the filename from `scan`, leaving X, Y, Z and the rotation at `fields`, off the end at `scanEnd`. */
-  scan: 66,
-  fields: [74, 80, 86, 96],
-  scanEnd: 100,
-  /** The rest of the filename falls away; the four fields drop into their cells, landing on beat 5. */
-  fall: 102,
-  drop: [104, 120],
-  /** Each cell translates its field, an 8-frame step apart; the compass needle lands on beat 6. */
-  resolve: [126, 134, 142, 150],
-  /** X and Z swing round into a grid's axes and throw lines that meet; the lock lands on beat 8. */
-  axes: [158, 180],
-  project: [182, 204],
-  lock: 210,
+  decode: [44, 70],
+  /**
+   * The read head runs the filename from `scan` and rests a beat on each of X, Y, Z and the rotation: it
+   * reaches each field's end on its `fields` frame, `move` frames after leaving the last, and runs off the
+   * end at `scanEnd`. The brackets then hold for half a bar.
+   */
+  scan: 90,
+  fields: [120, 150, 180, 210],
+  move: 14,
+  scanEnd: 222,
+  /** The rest of the filename falls away; the four fields drop into their cells, landing on beat 10. */
+  fall: 252,
+  drop: [254, 270],
+  /** Each cell translates its field a beat apart; the compass needle spins `spin` frames down onto the heading on beat 14. */
+  resolve: [300, 330, 360, 390],
+  spin: 36,
+  /** All four translations hold for two beats; X and Z swing round into a grid's axes and throw lines that meet; the lock lands on beat 18. */
+  axes: [450, 478],
+  project: [480, 504],
+  lock: 510,
   /** The map comes up under the lock and its name pops. */
-  map: [210, 240],
-  tag: 226,
-  headline: [244, 252],
-  caption: 264,
-  out: 338,
+  map: [510, 540],
+  tag: 526,
+  headline: [544, 552],
+  caption: 564,
+  out: 638,
 } as const;
 export const MAPS = { spinFrom: 4, land: 150, headline: [8, 16], out: 224 } as const;
 export const EXITS = { pops: [18, 30, 42, 54, 66], route: [104, 146], headline: [120, 128], out: 284 } as const;
@@ -129,13 +135,15 @@ const newCues: Cue[] = [
   cue("safe", SAFE.shutter, { kind: "shutter" }),
   cue("safe", SAFE.shrink[0], { kind: "whoosh", dur: 20, pan: 0 }),
   cue("safe", SAFE.decode[0], { kind: "chirps", dur: SAFE.decode[1] - SAFE.decode[0] }),
-  cue("safe", SAFE.scan, { kind: "dashTicks", dur: SAFE.scanEnd - SAFE.scan }),
+  cue("safe", SAFE.scan, { kind: "dashTicks", dur: SAFE.fields[0] - SAFE.scan }),
+  ...SAFE.fields.slice(1).map((f) => cue("safe", f - SAFE.move, { kind: "dashTicks", dur: SAFE.move })),
+  cue("safe", SAFE.fields[3] + 2, { kind: "dashTicks", dur: SAFE.scanEnd - SAFE.fields[3] - 2 }),
   ...SAFE.fields.map((f, k) => cue("safe", f, { kind: "pluck", note: ["A4", "C5", "E5", "A5"][k] })),
   cue("safe", SAFE.fall, { kind: "whoosh", dur: 18, pan: -0.3 }),
   cue("safe", SAFE.drop[1], { kind: "thud" }),
   cue("safe", SAFE.drop[1], { kind: "stab", gain: 0.55 }),
   ...SAFE.resolve.map((r, k) => cue("safe", r, { kind: "tick", note: ["E6", "D6", "C6", "A5"][k] })),
-  cue("safe", SAFE.drop[1] + 4, { kind: "ratchet", dur: SAFE.resolve[3] - SAFE.drop[1] - 10 }),
+  cue("safe", SAFE.resolve[3] - SAFE.spin, { kind: "ratchet", dur: SAFE.spin - 6 }),
   cue("safe", SAFE.resolve[3], { kind: "stab", gain: 0.55 }),
   cue("safe", SAFE.axes[0], { kind: "whoosh", dur: 22, pan: 0.4 }),
   cue("safe", SAFE.project[0], { kind: "dashTicks", dur: SAFE.project[1] - SAFE.project[0] }),
@@ -145,8 +153,8 @@ const newCues: Cue[] = [
   cue("safe", SAFE.tag, { kind: "pop", note: "E6" }),
   cue("safe", SAFE.headline[0], { kind: "impactLite" }),
   cue("safe", SAFE.caption, { kind: "typing", dur: 30 }),
-  cue("safe", 240, { kind: "riser", dur: 120 }),
-  cue("safe", 300, { kind: "snareRoll", dur: 60 }),
+  cue("safe", 540, { kind: "riser", dur: 120 }),
+  cue("safe", 600, { kind: "snareRoll", dur: 60 }),
   cue("safe", SAFE.out - 6, { kind: "whoosh", dur: 22, pan: 0.6 }),
   // 6 MAPS: the drop; the reel ratchets, slows and lands.
   cue("maps", 0, { kind: "impact" }),

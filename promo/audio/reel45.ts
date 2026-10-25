@@ -1,6 +1,7 @@
 /**
- * The 45 s reel's arrangement: the showreel's first four bars, a two-bar breakdown under "hands off"
- * (no drums; the struck rows are the rhythm), a muffled build, the drop at 840, Am-F-C-G grooves through
+ * The reel's arrangement: the showreel's first four bars, a four-bar breakdown under "how it works"
+ * (no drums; its key, shutter and decoder are the rhythm), a bar and a half of muffled build (the half
+ * bar keeps the drop on the picture's cut), the drop at 1140, Am-F-C-G grooves through
  * the feature scenes, the showreel's last groove bars under the montage and overlay, Am held to the end.
  */
 import { CUES_45, DURATION_FRAMES } from "../src/reel45/timeline.ts";
@@ -28,7 +29,10 @@ export const REEL45: Arrangement = {
     { chord: CMAJ, root: "C2", drums: "groove", clap: true, openHat: true },
     { chord: FMAJ },
     { chord: GMAJ, root: "G1" },
-    { chord: AM9, root: "A1", drums: "muffled" },
+    { chord: AM9, root: "A1" },
+    { chord: FMAJ, root: "F1" },
+    { chord: GMAJ, root: "G1", drums: "muffled" },
+    { chord: AM9, root: "A1", drums: "muffled", beats: 2 },
     ...Array.from({ length: 11 }, (_, i) => loop(i)),
     { chord: FMAJ, root: "F1", drums: "groove", clap: true, openHat: true, extraHat: -2 },
     { chord: GMAJ, root: "G1", drums: "groove", clap: true, extraHat: -2 },
