@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.14.2 - 2026-10-26
+
+### Squad
+- **Lighter on the relay.** Your position goes out only while someone else is in the room; when a teammate joins, they get your newest one at once. Your to-do list goes out only when it changes, once you stop ticking quests, instead of on every settings change and every reconnect. Clicking out of the name box without changing it no longer re-announces you.
+- **No fast reconnect loop.** The wait between retries starts over only after a connection has held for 30 s, so a relay that keeps dropping you right away is retried less and less often.
+
+### Fixed
+- **The window could freeze at start** while folder detection probed a network drive that was offline. Detection now runs in the background.
+
+### Other
+- Room codes come from the system's secure random generator.
+- The release build's GitHub Actions are pinned to exact versions.
+
 ## 0.14.1 - 2026-10-26
 
 ### Fixed
