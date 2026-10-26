@@ -93,7 +93,12 @@ export function isValidRoomCode(code: string): boolean {
   return ROOM_CODE_RE.test(code);
 }
 
-export function generateRoomCode(rand: () => number = Math.random): string {
+/** Uniform in [0, 1) from the platform's secure generator: the code is the only key to a room. */
+function secureRandom(): number {
+  return crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32;
+}
+
+export function generateRoomCode(rand: () => number = secureRandom): string {
   let out = "";
   for (let i = 0; i < 6; i++) {
     const idx = Math.min(CODE_ALPHABET.length - 1, Math.floor(rand() * CODE_ALPHABET.length));

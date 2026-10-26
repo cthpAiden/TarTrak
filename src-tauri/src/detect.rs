@@ -111,7 +111,9 @@ fn screenshots_dir() -> Option<PathBuf> {
     first_existing_dir([docs.join("Escape from Tarkov").join("Screenshots")])
 }
 
-#[tauri::command]
+/// `async`: off the main thread. Probing a mapped network drive that is offline can block for many
+/// seconds, and the app calls this every 10 s until the Screenshots folder exists.
+#[tauri::command(async)]
 pub fn detect_dirs() -> DetectedDirs {
     let to_s = |p: PathBuf| p.to_string_lossy().to_string();
     DetectedDirs {
