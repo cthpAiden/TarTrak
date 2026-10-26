@@ -134,6 +134,26 @@ describe("RoomClient", () => {
     expect(ws.sent.map((s) => JSON.parse(s).type)).toEqual(["hello", "pos"]);
   });
 
+  it("holds positions while nobody else is in the room and sends the newest once someone arrives", () => {
+    const { client } = make();
+    client.setAudience(false);
+    client.connect();
+    const ws = FakeWs.instances[0];
+    ws.open();
+    expect(ws.sent.map((s) => JSON.parse(s).type)).toEqual(["hello"]);
+    ws.sent.length = 0;
+    client.sendPosition("customs", { x: 1, y: 0, z: 0, yaw: 0 });
+    vi.advanceTimersByTime(500);
+    client.sendPosition("customs", { x: 2, y: 0, z: 0, yaw: 0 });
+    vi.advanceTimersByTime(500);
+    expect(ws.sent).toHaveLength(0);
+    client.setAudience(true);
+    expect(ws.sent).toHaveLength(1);
+    expect(JSON.parse(ws.sent[0])).toMatchObject({ type: "pos", x: 2 });
+    client.setAudience(true);
+    expect(ws.sent).toHaveLength(1);
+  });
+
   it("re-sends the last position after a reconnect", () => {
     const { client } = make();
     client.connect();
@@ -212,8 +232,17 @@ describe("RoomClient", () => {
       vi.advanceTimersByTime(1);
       expect(FakeWs.instances).toHaveLength(i + 1);
     }
-    // a successful open resets the backoff to 1 s
+    // a connection the relay drops at once is no recovery: the backoff stays at 2 min
     FakeWs.instances.at(-1)!.open();
+    vi.advanceTimersByTime(29_999);
+    FakeWs.instances.at(-1)!.drop();
+    vi.advanceTimersByTime(119_999);
+    expect(FakeWs.instances).toHaveLength(10);
+    vi.advanceTimersByTime(1);
+    expect(FakeWs.instances).toHaveLength(11);
+    // one that lasted 30 s resets it to 1 s
+    FakeWs.instances.at(-1)!.open();
+    vi.advanceTimersByTime(30_000);
     FakeWs.instances.at(-1)!.drop();
     const before = FakeWs.instances.length;
     vi.advanceTimersByTime(1000);

@@ -12,6 +12,7 @@ export interface RoomClientLike {
   sendPosition(map: string | null, p: Position): void;
   send(msg: ActionMsg): boolean;
   setIdentity(name: string, color: string): void;
+  setAudience(present: boolean): void;
 }
 
 export class RoomController {
@@ -23,6 +24,8 @@ export class RoomController {
   /** The colour my own marker is drawn in: a teammate who sends it needs a stand-in. */
   private color = "";
   private errorToasted = false;
+  /** The to-do list this connection last sent, joined; a fresh socket holds none on the relay. */
+  private todoSent = "";
   private wasOpen = false;
   private outageToasted = false;
   /** Teammate names already warned about a version mismatch; once per room. */
@@ -58,9 +61,13 @@ export class RoomController {
       name,
       color,
       version: APP_VERSION,
-      onMessage: (m) => this.handle(m),
+      onMessage: (m) => {
+        this.handle(m);
+        this.syncAudience();
+      },
       onStatus: (s) => {
         this.status = s;
+        if (s !== "open") this.todoSent = "";
         if (s === "open") {
           this.errorToasted = false;
           if (!this.wasOpen && this.outageToasted) app.toast("Back in the room");
@@ -80,13 +87,20 @@ export class RoomController {
         app.toast(`Relay connection failed: ${e}`);
       },
     });
+    this.syncAudience();
     this.client.connect();
     // Without this the room only learns where we are on our next screenshot.
     if (app.ownPos) this.client.sendPosition(app.currentMap, app.ownPos);
   }
 
+  /** Positions go out only while someone else is in the room; a squad of one costs the relay nothing per screenshot. */
+  private syncAudience(): void {
+    this.client?.setAudience(Object.values(app.teammates).some((t) => !t.left));
+  }
+
   /** A name or colour picked while in a room: the room learns it now instead of on the next join. */
   setIdentity(name: string, color: string): void {
+    if (name === this.name && color === this.color) return;
     this.name = name;
     // My colour is one nobody else may be drawn in, so the stand-ins are worked out again.
     if (color !== this.color) this.shownColors = new Map();
@@ -98,6 +112,7 @@ export class RoomController {
     // Reset first: close() reports "closed" synchronously, which must not read as an outage.
     this.wasOpen = false;
     this.outageToasted = false;
+    this.todoSent = "";
     this.client?.close();
     this.client = null;
     this.code = null;
@@ -130,9 +145,13 @@ export class RoomController {
     this.client?.send({ type: "cleardraw", map });
   }
 
-  /** My whole to-do list; false when not connected. */
+  /** My whole to-do list, sent only when it differs from what this connection last sent; false when not connected. */
   shareTodo(tasks: string[]): boolean {
-    return this.client?.send({ type: "todo", tasks }) ?? false;
+    const key = tasks.join(",");
+    if (key === this.todoSent) return true;
+    const sent = this.client?.send({ type: "todo", tasks }) ?? false;
+    if (sent) this.todoSent = key;
+    return sent;
   }
 
   onOwnPosition(map: string | null, p: Position): void {

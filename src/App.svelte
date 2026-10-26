@@ -75,6 +75,8 @@
 
   const DIR_RETRY_MS = 10_000;
   const QUEST_RETRY_MS = 300_000;
+  /** Quests ticked one after another go to the room as one list; the relay drops stored messages past 2 a second. */
+  const TODO_SEND_DELAY_MS = 1_000;
   /** One sticky toast carries the update download's progress; a fresh line after it is taken down starts a new one. */
   const updateUi = (() => {
     let id: number | null = null;
@@ -586,13 +588,15 @@
   }
 
   // My to-do list goes to the room on every change while sharing is on, and again after a reconnect;
-  // turning sharing off withdraws it. untrack: sending must not make this depend on the room client.
+  // turning sharing off withdraws it. The controller skips a list the room already has, so the other
+  // settings changes that re-run this cost nothing.
   $effect(() => {
     const status = room.status;
     const share = settings?.shareTodo ?? false;
     const ids = Object.keys(todoQuests);
     if (status !== "open") return;
-    untrack(() => room.shareTodo(share ? ids : []));
+    const timer = setTimeout(() => room.shareTodo(share ? ids : []), TODO_SEND_DELAY_MS);
+    return () => clearTimeout(timer);
   });
 
   // Every screenshot recentres the map on me while follow is on; a small overlay would otherwise

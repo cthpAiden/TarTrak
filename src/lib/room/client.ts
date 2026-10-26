@@ -52,6 +52,8 @@ export const PONG_TIMEOUT_MS = 10_000;
 const BACKOFF_MIN_MS = 1_000;
 /** Each retry is a relay request, which the free plan counts; an app left open in a dead room stays cheap. */
 const BACKOFF_MAX_MS = 120_000;
+/** A connection must last this long before the backoff starts over: one the relay drops at once keeps backing off. */
+const STABLE_MS = 30_000;
 const WS_OPEN = 1;
 
 export function roomUrl(relayUrl: string, code: string): string {
@@ -76,6 +78,13 @@ export class RoomClient {
   private pending: PosMsg | null = null;
   private lastPos: PosMsg | null = null;
   private lastSentAt = -Infinity;
+  /** When the current socket opened; null while it has not. */
+  private openedAt: number | null = null;
+  /**
+   * False while nobody else is in the room: positions wait, and only the newest goes out once someone
+   * arrives. Every incoming message counts against the relay's free plan, and a squad of one sees nothing.
+   */
+  private audience = true;
   private stopped = false;
   private currentStatus: RoomStatus = "closed";
 
@@ -98,6 +107,7 @@ export class RoomClient {
     this.throttleTimer = null;
     this.stopHeartbeat();
     this.pending = null;
+    this.openedAt = null;
     const ws = this.ws;
     this.ws = null;
     ws?.close(1000, "leave");
@@ -138,6 +148,13 @@ export class RoomClient {
     this.flush();
   }
 
+  /** Whether anyone else is in the room to see my position; the held newest one goes out when someone is. */
+  setAudience(present: boolean): void {
+    if (this.audience === present) return;
+    this.audience = present;
+    if (present) this.flush();
+  }
+
   /** Sent at once, unthrottled; false while the socket is down so the caller can say so. */
   send(msg: ActionMsg): boolean {
     if (!this.ws || this.ws.readyState !== WS_OPEN) return false;
@@ -156,7 +173,7 @@ export class RoomClient {
   }
 
   private flush(): void {
-    if (!this.pending || !this.ws || this.ws.readyState !== WS_OPEN) return;
+    if (!this.pending || !this.audience || !this.ws || this.ws.readyState !== WS_OPEN) return;
     const elapsed = this.now() - this.lastSentAt;
     if (elapsed >= SEND_INTERVAL_MS) {
       this.ws.send(JSON.stringify(this.pending));
@@ -213,6 +230,8 @@ export class RoomClient {
   /** Shared by onclose and by a failed socket construction, so a bad URL cannot kill the loop. */
   private scheduleReconnect(): void {
     if (this.stopped || this.reconnectTimer) return;
+    if (this.openedAt !== null && this.now() - this.openedAt >= STABLE_MS) this.backoff = BACKOFF_MIN_MS;
+    this.openedAt = null;
     // Half to all of the backoff: after a relay outage the squad's clients spread out instead of
     // all knocking at the same instant.
     const delay = this.backoff * (0.5 + 0.5 * (this.opts.random ?? Math.random)());
@@ -240,7 +259,7 @@ export class RoomClient {
 
     ws.onopen = () => {
       if (this.ws !== ws) return;
-      this.backoff = BACKOFF_MIN_MS;
+      this.openedAt = this.now();
       this.setStatus("open");
       this.startHeartbeat(ws);
       this.sendHello(ws);

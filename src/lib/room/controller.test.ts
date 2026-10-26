@@ -32,6 +32,10 @@ class FakeClient implements RoomClientLike {
   setIdentity(name: string, color: string) {
     this.identity = { name, color };
   }
+  audience: boolean | null = null;
+  setAudience(present: boolean) {
+    this.audience = present;
+  }
   open = true;
   sentPins: unknown[] = [];
   send(msg: unknown) {
@@ -125,6 +129,44 @@ describe("RoomController", () => {
     expect(client.sentPins).toEqual([{ type: "todo", tasks: ["t1"] }]);
     room.leave();
     expect(room.shareTodo(["t1"])).toBe(false);
+  });
+
+  it("sends my to-do only when it differs from what this connection last told the room", () => {
+    const { room, client } = makeController();
+    // A fresh connection holds no list on the relay, so an empty one needs no message.
+    expect(room.shareTodo([])).toBe(true);
+    expect(client.sentPins).toEqual([]);
+    room.shareTodo(["t1"]);
+    room.shareTodo(["t1"]);
+    expect(client.sentPins).toEqual([{ type: "todo", tasks: ["t1"] }]);
+    // A reconnect is a new socket the relay knows nothing about.
+    client.opts.onStatus("closed");
+    client.opts.onStatus("open");
+    room.shareTodo(["t1"]);
+    room.shareTodo([]);
+    expect(client.sentPins).toEqual([
+      { type: "todo", tasks: ["t1"] },
+      { type: "todo", tasks: ["t1"] },
+      { type: "todo", tasks: [] },
+    ]);
+  });
+
+  it("holds my positions until someone else is in the room", () => {
+    const { client } = makeController();
+    expect(client.audience).toBe(false);
+    client.onMessage(hello("aaaaaaaa", "Bob"));
+    expect(client.audience).toBe(true);
+    client.onMessage(leave("aaaaaaaa"));
+    expect(app.teammates.aaaaaaaa.left).toBe(true);
+    expect(client.audience).toBe(false);
+    client.onMessage(hello("bbbbbbbb", "Bob"));
+    expect(client.audience).toBe(true);
+  });
+
+  it("does not re-announce an identity that did not change", () => {
+    const { room: controller, client } = makeController();
+    controller.setIdentity("Me", "#fff");
+    expect(client.identity).toBeNull();
   });
 
   it("adds a teammate's stroke, removes it on undraw, wipes a map on cleardraw, and drops shared strokes on leave", () => {
