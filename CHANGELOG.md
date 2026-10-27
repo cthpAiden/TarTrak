@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.14.3 - 2026-10-28
 
 ### Security
 - **The window stays on TarTrak's own pages.** A link or redirect can no longer load a web page inside the app, which runs elevated.
@@ -8,7 +8,7 @@
 - **Map SVGs are cleaned harder.** HTML tags hidden in a downloaded map (a `<meta refresh>`, an `<img>`) are dropped along with scripts and handlers. Checked against all ten maps: nothing real is lost.
 - **Encrypted relays only.** The relay field takes `wss://` addresses; plain `ws://` only for a relay on `localhost`. Quest wiki links must be https.
 - **The relay turns away strangers.** Web pages can no longer open rooms from a visitor's browser, and each IP may make 30 room requests a minute, which makes guessing room codes slow. Takes effect for every version once the relay is deployed.
-- Vite updated to 6.4.4 (dev server advisories); CI fails on any high-severity advisory in what ships; Dependabot watches npm, Cargo and Actions; `SECURITY.md` says how to report a problem.
+- Vite updated to 6.4.4 (dev server advisories), and the app and relay tests moved to Vitest 4 (test runner advisories); CI fails on any high-severity advisory in what ships; Dependabot watches npm, Cargo and Actions; `SECURITY.md` says how to report a problem.
 
 ## 0.14.2 - 2026-10-26
 
