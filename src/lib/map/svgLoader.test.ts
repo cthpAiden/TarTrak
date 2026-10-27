@@ -116,6 +116,19 @@ describe("buildSvgElement sanitizing", () => {
     expect(el("ok").getAttribute("href")).toBe("#Ground_Level");
   });
 
+  it("removes HTML that breaks out of the SVG, such as a meta refresh", () => {
+    const s = buildSvgElement(
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">
+         <g id="Ground_Level"><rect width="1" height="1"/></g>
+         <g id="First_Floor"><meta http-equiv="refresh" content="0;url=https://evil.example"><img src="https://evil.example/x.png"><embed src="https://evil.example/x"></g>
+       </svg>`,
+    );
+    expect(s.element.querySelector("meta, img, embed")).toBe(null);
+    for (const el of s.element.querySelectorAll("*")) expect(el.namespaceURI).toBe("http://www.w3.org/2000/svg");
+    expect(s.element.querySelectorAll("rect")).toHaveLength(1);
+    expect(s.groupIds).toEqual(["Ground_Level", "First_Floor"]);
+  });
+
   it("removes foreignObject and animation elements", () => {
     const s = buildSvgElement(
       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">

@@ -56,14 +56,28 @@ const BACKOFF_MAX_MS = 120_000;
 const STABLE_MS = 30_000;
 const WS_OPEN = 1;
 
-export function roomUrl(relayUrl: string, code: string): string {
+function relayBase(relayUrl: string): string {
   // A pasted host without a scheme is the common case; `new WebSocket` would throw on it.
   const withScheme = relayUrl.includes("://") ? relayUrl : `wss://${relayUrl}`;
-  const base = withScheme
+  return withScheme
     .replace(/^http:/, "ws:")
     .replace(/^https:/, "wss:")
     .replace(/\/+$/, "");
-  return `${base}/room/${code.toUpperCase()}`;
+}
+
+export function roomUrl(relayUrl: string, code: string): string {
+  return `${relayBase(relayUrl)}/room/${code.toUpperCase()}`;
+}
+
+/** Live positions go over this, so it must be encrypted; plain ws only reaches a relay on this PC (the CSP allows no other). */
+export function isRelayUrl(relayUrl: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(relayBase(relayUrl));
+  } catch {
+    return false;
+  }
+  return url.protocol === "wss:" || (url.protocol === "ws:" && url.hostname === "localhost");
 }
 
 export class RoomClient {

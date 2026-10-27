@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { PING_INTERVAL_MS, PONG_TIMEOUT_MS, RoomClient, roomUrl, type WebSocketLike } from "./client";
+import { PING_INTERVAL_MS, PONG_TIMEOUT_MS, RoomClient, isRelayUrl, roomUrl, type WebSocketLike } from "./client";
 import type { ServerMsg } from "./protocol";
 
 class FakeWs implements WebSocketLike {
@@ -65,6 +65,27 @@ describe("roomUrl", () => {
 
   it("assumes wss for a pasted host with no scheme", () => {
     expect(roomUrl("relay.example.workers.dev", "abc123")).toBe("wss://relay.example.workers.dev/room/ABC123");
+  });
+});
+
+describe("isRelayUrl", () => {
+  it("takes an encrypted relay, with or without a scheme", () => {
+    expect(isRelayUrl("wss://tartrak-relay.example.workers.dev")).toBe(true);
+    expect(isRelayUrl("https://relay.test/")).toBe(true);
+    expect(isRelayUrl("relay.example.workers.dev")).toBe(true);
+  });
+
+  it("takes plain ws only for a relay on this PC", () => {
+    expect(isRelayUrl("http://localhost:8787")).toBe(true);
+    expect(isRelayUrl("ws://localhost:8787")).toBe(true);
+    expect(isRelayUrl("ws://relay.example")).toBe(false);
+    expect(isRelayUrl("http://192.168.1.5:8787")).toBe(false);
+  });
+
+  it("refuses anything that is not a relay address", () => {
+    for (const bad of ["javascript:alert(1)", "file:///C:/x", "ftp://relay.example", "wss://", "wss://a b"]) {
+      expect(isRelayUrl(bad)).toBe(false);
+    }
   });
 });
 

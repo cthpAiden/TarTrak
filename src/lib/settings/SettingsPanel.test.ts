@@ -90,6 +90,15 @@ describe("SettingsPanel relay URL", () => {
     unmount(panel);
   });
 
+  it("refuses an unencrypted relay and puts the field back", () => {
+    const { target, panel, changes, invalid } = open({ relayUrl: "wss://mine.example" });
+    blurWith(target, "set-relay", "ws://relay.example");
+    expect(changes).toEqual([]);
+    expect(invalid).toEqual(["Relay URL must use wss:// (plain ws:// only for localhost): ws://relay.example"]);
+    expect(target.querySelector<HTMLInputElement>("#set-relay")!.value).toBe("wss://mine.example");
+    unmount(panel);
+  });
+
   it("does not report an unchanged URL", () => {
     const { target, panel, changes } = open({ relayUrl: "wss://mine.example" });
     blurWith(target, "set-relay", " wss://mine.example ");
