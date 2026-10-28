@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.14.4 - 2026-10-28
 
 ### Added
 - **Range marks on the heading line.** Small split ticks sit either side of the line 50, 100 and 150 m ahead of every player, on the same bearing as the heading line even past its end. The gap keeps them off the dashes; they stay a few pixels long at any zoom and hide when zoomed out too far to tell apart.
