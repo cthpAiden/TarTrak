@@ -3,7 +3,7 @@
 ## Unreleased
 
 ### Added
-- **Range marks on the heading line.** Small crossbars sit 50, 100 and 150 m ahead of every player, on the same bearing as the heading line even past its end. They stay 8 px wide at any zoom and hide when zoomed out too far to tell apart.
+- **Range marks on the heading line.** Small split ticks sit either side of the line 50, 100 and 150 m ahead of every player, on the same bearing as the heading line even past its end. The gap keeps them off the dashes; they stay a few pixels long at any zoom and hide when zoomed out too far to tell apart.
 
 ### Changed
 - The heading line is 100 m long by default (was 125 m), so it ends on the 100 m mark. Installs that have saved settings keep their saved length; change it under Settings.

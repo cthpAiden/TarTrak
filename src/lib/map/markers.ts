@@ -71,8 +71,12 @@ export function inkFor(color: string): "#000" | "#fff" {
 
 /** Range marks across the heading line, in metres ahead of the player. */
 export const RANGE_MARKS_M = [50, 100, 150] as const;
-/** Half the width of a range mark in screen pixels, so it stays small at any zoom. */
-const MARK_HALF_PX = 4;
+/**
+ * Each range mark is two stubs either side of the line, from MARK_INNER_PX to MARK_OUTER_PX off it in
+ * screen pixels: the gap keeps them off the dashes, and pixels keep them small at any zoom.
+ */
+const MARK_INNER_PX = 4;
+const MARK_OUTER_PX = 8;
 /** Below this many pixels per 50 m the marks would crowd the dot, so they hide. */
 const MARK_MIN_SPACING_PX = 16;
 const MARK_OPACITY = 0.7;
@@ -95,7 +99,7 @@ export class PositionMarker {
   /** The capsule's visible span: digits, colour and the counter-rotation all live on it. */
   private readonly capsuleEl: HTMLSpanElement | null;
   readonly line: L.Polyline;
-  /** Short crossbars at RANGE_MARKS_M along the heading; past the line's end they float on the same bearing. */
+  /** Split ticks at RANGE_MARKS_M along the heading; past the line's end they float on the same bearing. */
   readonly marks: L.Polyline;
   /** Stroke gradient from full colour at the player to transparent at the tip, in layer pixels. */
   readonly gradient: SVGLinearGradientElement;
@@ -143,7 +147,7 @@ export class PositionMarker {
     }
     // Dashed and fading: a line of sight that hides as little of the map as it can.
     this.line = L.polyline([], { pane, color: style.color, weight: 4, opacity: 0.85, dashArray: "5 10", lineCap: "round" });
-    this.marks = L.polyline([], { pane, color: style.color, weight: 2, opacity: MARK_OPACITY, interactive: false });
+    this.marks = L.polyline([], { pane, color: style.color, weight: 1.5, opacity: MARK_OPACITY, interactive: false });
     this.gradient = document.createElementNS(SVG_NS, "linearGradient");
     this.gradient.setAttribute("id", this.gradientId);
     this.gradient.setAttribute("gradientUnits", "userSpaceOnUse");
@@ -260,7 +264,7 @@ export class PositionMarker {
     this.marks.setLatLngs(this.markSegments(rad));
   }
 
-  /** One crossbar per range mark: the game point that many metres ahead, widened sideways in screen pixels. */
+  /** Two stubs per range mark, either side of the game point that many metres ahead, offset sideways in screen pixels. */
   private markSegments(rad: number): L.LatLng[][] {
     const zoom = this.map.getZoom();
     const origin = this.map.project(this.center(), zoom);
@@ -268,10 +272,14 @@ export class PositionMarker {
     const step = ahead(RANGE_MARKS_M[0]).subtract(origin);
     const spacing = Math.hypot(step.x, step.y);
     if (!(spacing >= MARK_MIN_SPACING_PX)) return [];
-    const side = L.point(-step.y, step.x).multiplyBy(MARK_HALF_PX / spacing);
-    return RANGE_MARKS_M.map((m) => {
+    const side = L.point(-step.y, step.x).divideBy(spacing);
+    const at = (p: L.Point, px: number) => this.map.unproject(p.add(side.multiplyBy(px)), zoom);
+    return RANGE_MARKS_M.flatMap((m) => {
       const p = ahead(m);
-      return [this.map.unproject(p.subtract(side), zoom), this.map.unproject(p.add(side), zoom)];
+      return [
+        [at(p, -MARK_OUTER_PX), at(p, -MARK_INNER_PX)],
+        [at(p, MARK_INNER_PX), at(p, MARK_OUTER_PX)],
+      ];
     });
   }
 }
