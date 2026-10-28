@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- **Range marks on the heading line.** Small crossbars sit 50, 100 and 150 m ahead of every player, on the same bearing as the heading line even past its end. They stay 8 px wide at any zoom and hide when zoomed out too far to tell apart.
+
 ## 0.14.3 - 2026-10-28
 
 ### Security

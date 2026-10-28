@@ -69,6 +69,14 @@ export function inkFor(color: string): "#000" | "#fff" {
   return lum > 0.55 ? "#000" : "#fff";
 }
 
+/** Range marks across the heading line, in metres ahead of the player. */
+export const RANGE_MARKS_M = [50, 100, 150] as const;
+/** Half the width of a range mark in screen pixels, so it stays small at any zoom. */
+const MARK_HALF_PX = 4;
+/** Below this many pixels per 50 m the marks would crowd the dot, so they hide. */
+const MARK_MIN_SPACING_PX = 16;
+const MARK_OPACITY = 0.7;
+
 /** Tooltip offset that clears the capsule (9 px half height, 1.5 px border) or the 6 px dot. */
 const CAPSULE_LABEL_OFFSET = -12;
 const DOT_LABEL_OFFSET = -8;
@@ -87,6 +95,8 @@ export class PositionMarker {
   /** The capsule's visible span: digits, colour and the counter-rotation all live on it. */
   private readonly capsuleEl: HTMLSpanElement | null;
   readonly line: L.Polyline;
+  /** Short crossbars at RANGE_MARKS_M along the heading; past the line's end they float on the same bearing. */
+  readonly marks: L.Polyline;
   /** Stroke gradient from full colour at the player to transparent at the tip, in layer pixels. */
   readonly gradient: SVGLinearGradientElement;
   private readonly gradientId = `tt-fade-${++gradientSeq}`;
@@ -133,6 +143,7 @@ export class PositionMarker {
     }
     // Dashed and fading: a line of sight that hides as little of the map as it can.
     this.line = L.polyline([], { pane, color: style.color, weight: 4, opacity: 0.85, dashArray: "5 10", lineCap: "round" });
+    this.marks = L.polyline([], { pane, color: style.color, weight: 2, opacity: MARK_OPACITY, interactive: false });
     this.gradient = document.createElementNS(SVG_NS, "linearGradient");
     this.gradient.setAttribute("id", this.gradientId);
     this.gradient.setAttribute("gradientUnits", "userSpaceOnUse");
@@ -156,6 +167,7 @@ export class PositionMarker {
       });
     }
     this.line.addTo(map);
+    this.marks.addTo(map);
     this.applyGradient();
     this.dot.addTo(map);
     map.on("zoomend", this.onZoom);
@@ -192,6 +204,7 @@ export class PositionMarker {
     if (this.circle) this.circle.setStyle({ opacity: o, fillOpacity: o });
     else this.capsule!.setOpacity(o);
     this.line.setStyle({ opacity: o });
+    this.marks.setStyle({ opacity: o * MARK_OPACITY });
     this.applyGradient();
     const tt = this.dot.getTooltip();
     if (tt) tt.setOpacity(o);
@@ -201,6 +214,7 @@ export class PositionMarker {
     if (this.circle) this.circle.setStyle({ fillColor: color });
     else paintCapsule(this.capsuleEl!, color);
     this.line.setStyle({ color });
+    this.marks.setStyle({ color });
     this.applyGradient();
     for (const stop of Array.from(this.gradient.children)) stop.setAttribute("stop-color", color);
   }
@@ -223,6 +237,7 @@ export class PositionMarker {
     this.map.off("zoomend", this.onZoom);
     this.dot.remove();
     this.line.remove();
+    this.marks.remove();
     this.gradient.remove();
   }
 
@@ -242,5 +257,21 @@ export class PositionMarker {
     this.gradient.setAttribute("y1", String(a.y));
     this.gradient.setAttribute("x2", String(b.x));
     this.gradient.setAttribute("y2", String(b.y));
+    this.marks.setLatLngs(this.markSegments(rad));
+  }
+
+  /** One crossbar per range mark: the game point that many metres ahead, widened sideways in screen pixels. */
+  private markSegments(rad: number): L.LatLng[][] {
+    const zoom = this.map.getZoom();
+    const origin = this.map.project(this.center(), zoom);
+    const ahead = (m: number) => this.map.project(toLatLng(this.x + Math.sin(rad) * m, this.z + Math.cos(rad) * m), zoom);
+    const step = ahead(RANGE_MARKS_M[0]).subtract(origin);
+    const spacing = Math.hypot(step.x, step.y);
+    if (!(spacing >= MARK_MIN_SPACING_PX)) return [];
+    const side = L.point(-step.y, step.x).multiplyBy(MARK_HALF_PX / spacing);
+    return RANGE_MARKS_M.map((m) => {
+      const p = ahead(m);
+      return [this.map.unproject(p.subtract(side), zoom), this.map.unproject(p.add(side), zoom)];
+    });
   }
 }

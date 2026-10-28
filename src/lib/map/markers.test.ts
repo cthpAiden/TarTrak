@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import L from "leaflet";
-import { OWN_PANE, PLAYER_PANE, PositionMarker, ageText, inkFor } from "./markers";
+import { OWN_PANE, PLAYER_PANE, PositionMarker, RANGE_MARKS_M, ageText, inkFor } from "./markers";
 import { makeCrs, boundsOf, toLatLng } from "./crs";
 import { getMapDef } from "./mapsData";
 import { upright } from "./labels";
@@ -293,6 +293,57 @@ describe("PositionMarker age capsule", () => {
     m.setLabel("Bob [2F]");
     expect(tt.getContent()).toBe(upright("Bob [2F]"));
     m.remove();
+  });
+
+  it("crosses the heading at 50, 100 and 150 m with short bars, even past the line's end", () => {
+    const m = new PositionMarker(map, { color: "#f0b429", radius: 6, lineLengthM: 28 });
+    for (const yaw of [0, 90, 217]) {
+      m.update(100, -50, yaw);
+      const bars = m.marks.getLatLngs() as L.LatLng[][];
+      expect(bars).toHaveLength(RANGE_MARKS_M.length);
+      const u = headingUnit(map, 100, -50, yaw);
+      const perMetre = metrePx(map, 100, -50, yaw);
+      const start = px(map, 100, -50);
+      bars.forEach(([a, b], i) => {
+        const pa = map.project(a, map.getZoom());
+        const pb = map.project(b, map.getZoom());
+        const mid = pa.add(pb).divideBy(2);
+        const want = start.add(u.multiplyBy(perMetre * RANGE_MARKS_M[i]));
+        expect(mid.x).toBeCloseTo(want.x, 3);
+        expect(mid.y).toBeCloseTo(want.y, 3);
+        // 8 px wide whatever the zoom, and square to the heading.
+        expect(pa.distanceTo(pb)).toBeCloseTo(8, 3);
+        const across = pb.subtract(pa);
+        expect(across.x * u.x + across.y * u.y).toBeCloseTo(0, 3);
+      });
+    }
+    expect(m.marks.options.interactive).toBe(false);
+    m.remove();
+  });
+
+  it("hides the range marks when 50 m is too short on screen to keep them apart", () => {
+    const m = new PositionMarker(map, { color: "#fff", radius: 6, lineLengthM: 28 });
+    m.update(100, -50, 0);
+    const fitZoom = map.getZoom();
+    while (metrePx(map, 100, -50, 0) * 50 >= 16) map.setZoom(map.getZoom() - 1, { animate: false });
+    map.fire("zoomend");
+    expect(m.marks.getLatLngs()).toHaveLength(0);
+    map.setZoom(fitZoom + 2, { animate: false });
+    map.fire("zoomend");
+    expect(metrePx(map, 100, -50, 0) * 50).toBeGreaterThanOrEqual(16);
+    expect(m.marks.getLatLngs()).toHaveLength(RANGE_MARKS_M.length);
+    m.remove();
+  });
+
+  it("recolours, fades and removes the range marks with the marker", () => {
+    const m = new PositionMarker(map, { color: "#fff", radius: 6, lineLengthM: 28 });
+    m.update(0, 0, 0);
+    m.setColor("#00ff00");
+    expect(m.marks.options.color).toBe("#00ff00");
+    m.setOpacity(0.5);
+    expect(m.marks.options.opacity).toBeCloseTo(0.35, 6);
+    m.remove();
+    expect(map.hasLayer(m.marks)).toBe(false);
   });
 
   it("setAge is a no-op on a dot marker", () => {
