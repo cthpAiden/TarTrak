@@ -23,7 +23,7 @@ export interface Settings {
   markKeyVk: number;
   lastMap: string | null;
   lastRoom: string;
-  /** Heading line length in metres, at most 50. */
+  /** Heading line length in metres, 5 to 125. */
   lineLengthM: number;
   /** Pan the map to my marker on every screenshot. */
   followMe: boolean;
@@ -84,7 +84,7 @@ export const DEFAULT_SETTINGS: Settings = {
   markKeyVk: DEFAULT_MARK_KEY_VK,
   lastMap: null,
   lastRoom: "",
-  lineLengthM: 125,
+  lineLengthM: 100,
   followMe: true,
   raidTimer: true,
   questsAvailableOnly: false,
