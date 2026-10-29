@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- **Finer mouse wheel zoom.** One wheel notch used to zoom the map about three quarters of a level (more when you spin fast), which overshot when you only wanted a little. A notch is now a quarter level; spinning faster still zooms more.
+
 ## 0.14.4 - 2026-10-28
 
 ### Added

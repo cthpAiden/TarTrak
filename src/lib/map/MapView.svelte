@@ -165,6 +165,8 @@
       minZoom: d.minZoom - 1,
       maxZoom: d.maxZoom + 1,
       zoomSnap: 0.25,
+      // Leaflet's default 60 zoomed a notch about 0.75 levels (1.25 when notches merge); 200 makes it 0.25.
+      wheelPxPerZoomLevel: 200,
       attributionControl: false,
       zoomControl: false,
     });
