@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>TarTrak · B · Field manual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Stencil+Display:wght@800;900&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Reenie+Beanie&family=Sofia+Sans+Extra+Condensed:wght@700;800&display=swap">
+<style>
+/* Layout: an Army technical manual. Olive cover, then binder pages with a margin column for paragraph numbers and pencil notes. */
+:root {
+  color-scheme: light;
+  --od: #4a5133;
+  --od-deep: #353b24;
+  --paint: #e4dcc0;
+  --paper: #e7e6dd;
+  --ink: #1c1e19;
+  --ink-2: #4f5248;
+  --rule: #b6b5a8;
+  --stamp: #4636b0;
+  --amber: #f0b429;
+  --pencil: #4d5157;
+  --stencil: "Big Shoulders Stencil Display", Impact, sans-serif;
+  --head: "Sofia Sans Extra Condensed", "Arial Narrow", sans-serif;
+  --type: "Courier Prime", "Courier New", monospace;
+  --hand: "Reenie Beanie", "Comic Sans MS", cursive;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--paper); color: var(--ink); font: 17px/1.6 var(--type); -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--stamp); outline-offset: 3px; }
+
+/* ---------- cover ---------- */
+.cover { position: relative; overflow: hidden; background: var(--od); color: var(--paint); }
+.cover::before { content: ""; position: absolute; inset: 0; background: var(--grain); opacity: 0.32; mix-blend-mode: multiply; pointer-events: none; }
+.cover-in { position: relative; max-width: 1180px; margin: 0 auto; padding: calc(28px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 40px max(16px, env(safe-area-inset-left, 0px)); }
+.cover-top { display: flex; justify-content: space-between; gap: 16px; padding-bottom: 14px; border-bottom: 3px solid var(--paint); font: 800 clamp(18px, 2.2vw, 24px)/1 var(--head); letter-spacing: 0.06em; }
+.cover-main { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px 48px; align-items: center; padding: clamp(36px, 6vw, 72px) 0 clamp(28px, 4vw, 48px); }
+.ops { margin: 0 0 6px; font: 800 clamp(22px, 3vw, 34px)/1 var(--head); letter-spacing: 0.12em; }
+.stencil { margin: 0; font: 900 clamp(84px, 17vw, 236px)/0.82 var(--stencil); letter-spacing: 0.01em; color: var(--paint); }
+.nomen { margin: 22px 0 0; font: 700 clamp(15px, 1.6vw, 19px)/1.5 var(--type); letter-spacing: 0.06em; }
+.cover-ring { width: clamp(150px, 22vw, 300px); height: auto; }
+.cover-act { display: flex; flex-wrap: wrap; align-items: center; gap: 22px 36px; padding: 10px 0 36px; }
+.tag {
+  --cut: 26px; position: relative; display: grid; gap: 2px; min-height: 92px; padding: 16px 30px 16px 58px; text-decoration: none; color: var(--ink);
+  background: #d8b878; clip-path: polygon(var(--cut) 0, 100% 0, 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut)), 0 var(--cut));
+  transform-origin: 18px 50%; transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 6px 0 rgba(0, 0, 0, 0.18));
+}
+.tag::before { content: ""; position: absolute; left: 16px; top: 50%; width: 16px; height: 16px; margin-top: -8px; border-radius: 50%; background: var(--od); box-shadow: 0 0 0 4px #c9a865, inset 1px 1px 2px rgba(0, 0, 0, 0.5); }
+.tag small { font: 700 12px/1.2 var(--type); letter-spacing: 0.14em; }
+.tag strong { font: 800 clamp(24px, 3vw, 30px)/1 var(--head); letter-spacing: 0.02em; text-transform: uppercase; }
+.tag span { font: 13px/1.2 var(--type); }
+.tag:hover, .tag:focus-visible { transform: rotate(-4deg); }
+.src { font: 700 15px/1.4 var(--type); color: var(--paint); text-underline-offset: 4px; }
+.cover-bot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 32px; padding-top: 14px; border-top: 3px solid var(--paint); font: 700 13px/1.5 var(--type); letter-spacing: 0.04em; }
+.cover-bot p { margin: 0; max-width: 46em; }
+
+.stamp { position: absolute; right: clamp(8px, 7vw, 110px); bottom: 120px; width: clamp(190px, 22vw, 290px); color: var(--stamp); transform: rotate(-11deg); pointer-events: none; mix-blend-mode: hard-light; }
+.stamp svg { display: block; width: 100%; height: auto; }
+.stamp.slam { animation: slam 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.2) 0.5s both; }
+@keyframes slam { 0% { opacity: 0; transform: rotate(-4deg) scale(1.9); } 70% { opacity: 1; transform: rotate(-12deg) scale(0.96); } 100% { opacity: 1; transform: rotate(-11deg) scale(1); } }
+.cover.shake .cover-in { animation: shake 0.3s linear 0.78s; }
+@keyframes shake { 25% { transform: translate(2px, 1px); } 50% { transform: translate(-2px, -1px); } 75% { transform: translate(1px, -1px); } }
+
+/* ---------- pages ---------- */
+.paper { position: relative; background: var(--paper); }
+.paper::before { content: ""; position: absolute; inset: 0; background: var(--grain); opacity: 0.12; pointer-events: none; }
+.page { position: relative; max-width: 1180px; margin: 0 auto; padding: 36px max(16px, env(safe-area-inset-right, 0px)) 40px max(16px, env(safe-area-inset-left, 0px)); }
+.page + .page { border-top: 2px dashed var(--rule); }
+.runhead { display: flex; justify-content: space-between; gap: 16px; padding: 0 0 8px 140px; border-bottom: 1.5px solid var(--ink); font: 700 14px/1 var(--type); letter-spacing: 0.04em; }
+.folio { margin: 56px 0 0 140px; text-align: center; font: 700 15px/1 var(--type); }
+.chapter { margin: 48px 0 40px 140px; text-align: center; }
+.chapter p { margin: 0; font: 800 22px/1 var(--head); letter-spacing: 0.16em; }
+.chapter h2 { margin: 6px 0 0; font: 800 clamp(40px, 6vw, 72px)/0.95 var(--head); letter-spacing: 0.02em; text-transform: uppercase; text-wrap: balance; }
+.sect { margin: 34px 0 18px 140px; font: 800 20px/1 var(--head); letter-spacing: 0.1em; text-transform: uppercase; text-align: center; }
+
+.row { display: grid; grid-template-columns: 140px minmax(0, 640px) minmax(0, 1fr); align-items: start; margin-bottom: 22px; }
+.row > .num { padding-right: 18px; text-align: right; font-weight: 700; }
+.row > .body { min-width: 0; }
+.row > .body p { margin: 0 0 12px; }
+.row b.lead { text-transform: uppercase; }
+.note {
+  margin: -6px 0 0 28px; font: 30px/0.95 var(--hand); color: var(--pencil); transform: rotate(-4deg); transform-origin: left top; max-width: 250px;
+}
+.note svg { display: block; width: 90px; height: 40px; margin-top: 2px; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.steps li { display: grid; grid-template-columns: 2.2em minmax(0, 1fr); }
+
+.hl { background: linear-gradient(transparent 52%, rgba(240, 180, 41, 0.75) 52%, rgba(240, 180, 41, 0.75) 92%, transparent 92%) no-repeat 0 0 / 100% 100%; -webkit-box-decoration-break: clone; box-decoration-break: clone; padding: 0 2px; }
+
+figure { margin: 34px 0 40px 140px; }
+figcaption { margin-top: 16px; text-align: center; font: 700 15px/1.4 var(--type); }
+.fig-card { border: 1.5px solid var(--ink); background: #edece4; padding: clamp(18px, 3vw, 36px); }
+.fname { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 18px 0; font: 700 clamp(15px, 2.1vw, 25px)/1.3 var(--type); }
+.part { display: inline-flex; flex-direction: column; align-items: stretch; }
+.part > span:first-child { white-space: pre; }
+.part .br { position: relative; height: 12px; margin: 8px 3px 0; border: 1.5px solid var(--ink); border-top: 0; transform-origin: center; }
+.part .br::after { content: ""; position: absolute; left: 50%; bottom: -12px; width: 1.5px; height: 12px; background: var(--ink); }
+.part .ball { align-self: center; display: grid; place-items: center; width: 30px; height: 30px; margin-top: 12px; border: 1.5px solid var(--ink); border-radius: 50%; font: 700 14px/1 var(--type); background: var(--paper); }
+.part.dim > span:first-child { color: #8a8c80; }
+.legend { list-style: none; margin: 28px 0 0; padding: 18px 0 0; border-top: 1.5px solid var(--ink); display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px 28px; font-size: 15px; }
+.legend li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 8px; }
+.legend b { display: grid; place-items: center; width: 24px; height: 24px; border: 1.5px solid var(--ink); border-radius: 50%; font-size: 12px; }
+
+.caution { margin: 34px 0 40px 140px; max-width: 760px; border: 4px double var(--ink); background: #efeee6; }
+.caution h3 { margin: 0; padding: 10px 16px; text-align: center; font: 800 26px/1 var(--head); letter-spacing: 0.3em; color: var(--ink);
+  background: repeating-linear-gradient(-45deg, var(--amber) 0 14px, var(--ink) 14px 28px); }
+.caution h3 span { display: inline-block; padding: 6px 16px 4px 20px; background: #efeee6; }
+.caution .in { padding: 20px 24px 22px; }
+.caution p { margin: 0 0 14px; }
+.caution ol { margin: 0 0 16px; padding-left: 1.6em; display: grid; gap: 8px; }
+.never { display: flex; flex-wrap: wrap; gap: 10px 14px; margin: 0 0 16px; padding: 0; list-style: none; }
+.never li { padding: 4px 10px; border: 1.5px solid var(--ink); font-weight: 700; font-size: 14px; text-decoration: line-through; text-decoration-color: #c2412d; text-decoration-thickness: 2px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 15.5px; }
+.tbl { margin: 30px 0 40px 140px; max-width: 760px; overflow-x: auto; }
+.tbl caption { caption-side: top; padding-bottom: 12px; font: 700 15px/1.4 var(--type); }
+th, td { border: 1.5px solid var(--ink); padding: 10px 14px; text-align: left; vertical-align: top; }
+th { font: 800 17px/1.1 var(--head); letter-spacing: 0.1em; text-transform: uppercase; background: #dcdbd0; }
+kbd { display: inline-block; min-width: 30px; padding: 3px 8px 2px; border: 1.5px solid var(--ink); border-bottom-width: 4px; border-radius: 5px; background: #f3f2ec; font: 700 14px/1.2 var(--type); text-align: center; white-space: nowrap; }
+
+#squadfig { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; border: 1.5px solid var(--ink); background: #edece4; }
+
+/* ---------- back cover ---------- */
+.back { position: relative; overflow: hidden; background: var(--od-deep); color: var(--paint); }
+.back::before { content: ""; position: absolute; inset: 0; background: var(--grain); opacity: 0.3; mix-blend-mode: multiply; pointer-events: none; }
+.back-in { position: relative; max-width: 1180px; margin: 0 auto; padding: 64px max(16px, env(safe-area-inset-right, 0px)) calc(80px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px 64px; }
+.order { font: 700 15px/1.6 var(--type); }
+.order h3 { margin: 0 0 18px; font: 800 30px/1 var(--head); letter-spacing: 0.08em; }
+.order p { margin: 0 0 12px; }
+.sig { margin-top: 26px !important; font: 34px/1 var(--hand); color: var(--paint); }
+.fine { font: 13px/1.6 var(--type); opacity: 0.85; }
+.fine p { margin: 0 0 10px; }
+
+/* scroll-driven drawing, where supported; everything is fully drawn otherwise */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .hl { animation: swipe linear both; animation-timeline: view(); animation-range: entry 30% cover 42%; }
+    @keyframes swipe { from { background-size: 0% 100%; } }
+    .part .br { animation: br linear both; animation-timeline: view(); animation-range: entry 20% cover 40%; }
+    @keyframes br { from { transform: scaleX(0); } }
+    .note { animation: write linear both; animation-timeline: view(); animation-range: entry 40% cover 45%; }
+    @keyframes write { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+  }
+}
+@media (max-width: 860px) {
+  .cover-main { grid-template-columns: minmax(0, 1fr); }
+  .cover-ring { display: none; }
+  .runhead, .folio, .chapter, .sect { padding-left: 0; margin-left: 0; }
+  .row { grid-template-columns: 3.2em minmax(0, 1fr); }
+  .row > .note { grid-column: 2; margin: 8px 0 0 6px; }
+  figure, .caution, .tbl { margin-left: 0; }
+  .back-in { grid-template-columns: minmax(0, 1fr); }
+  .stamp { bottom: auto; top: 96px; right: 6px; width: 150px; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="cover" id="cover">
+  <div class="cover-in">
+    <div class="cover-top"><span>TM 0.14.5-10</span><span>TECHNICAL MANUAL</span></div>
+    <div class="cover-main">
+      <div>
+        <p class="ops">OPERATOR'S MANUAL</p>
+        <h1 class="stencil">TARTRAK</h1>
+        <p class="nomen">SQUAD MAP, SCREENSHOT-POSITIONED<br>FOR ESCAPE FROM TARKOV<br>WINDOWS 10 AND 11</p>
+      </div>
+      <svg class="cover-ring" viewBox="0 0 300 300" aria-hidden="true">
+        <defs><mask id="bridges"><rect width="300" height="300" fill="#fff"/><rect x="0" y="143" width="300" height="14" fill="#000"/><rect x="143" y="160" width="14" height="140" fill="#000"/></mask></defs>
+        <g fill="none" stroke="#f0b429" stroke-width="30" mask="url(#bridges)"><circle cx="150" cy="160" r="100"/></g>
+        <rect x="138" y="8" width="24" height="94" fill="#f0b429"/>
+      </svg>
+    </div>
+    <div class="cover-act">
+      <a class="tag" href="https://github.com/cthpAiden/TarTrak/releases/latest">
+        <small>ISSUE TO OPERATOR</small>
+        <strong>Download v0.14.5</strong>
+        <span>Installer for Windows 10 and 11</span>
+      </a>
+      <a class="src" href="https://github.com/cthpAiden/TarTrak">Source: github.com/cthpAiden/TarTrak</a>
+    </div>
+    <div class="cover-bot">
+      <p>DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited.</p>
+      <p>FREE OF CHARGE · MIT LICENSE · 29 OCTOBER 2026</p>
+    </div>
+  </div>
+  <div class="stamp" id="stamp" aria-hidden="true">
+    <svg viewBox="0 0 300 130">
+      <defs>
+        <filter id="ink" x="-5%" y="-5%" width="110%" height="110%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" result="n"/>
+          <feDisplacementMap in="SourceGraphic" in2="n" scale="3"/>
+          <feComponentTransfer result="d"><feFuncA type="linear" slope="1"/></feComponentTransfer>
+          <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="2" seed="8" result="blot"/>
+          <feColorMatrix in="blot" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1.3 1.45" result="m"/>
+          <feComposite in="d" in2="m" operator="in"/>
+        </filter>
+      </defs>
+      <g filter="url(#ink)" fill="none" stroke="currentColor">
+        <rect x="6" y="6" width="288" height="118" rx="8" stroke-width="7"/>
+        <rect x="18" y="18" width="264" height="94" rx="3" stroke-width="2.5"/>
+        <text x="150" y="70" text-anchor="middle" fill="currentColor" stroke="none" font-family="Big Shoulders Stencil Display, Impact, sans-serif" font-weight="900" font-size="52" letter-spacing="4">FREE ISSUE</text>
+        <text x="150" y="99" text-anchor="middle" fill="currentColor" stroke="none" font-family="Courier Prime, monospace" font-weight="700" font-size="15" letter-spacing="3">NO ACCOUNT · NO TELEMETRY</text>
+      </g>
+    </svg>
+  </div>
+</header>
+
+<main class="paper">
+  <article class="page">
+    <div class="runhead"><span>TM 0.14.5-10</span><span>CHAPTER 1</span></div>
+    <div class="chapter"><p>CHAPTER 1</p><h2>Introduction</h2></div>
+    <p class="sect">Section I. General</p>
+
+    <div class="row">
+      <span class="num">1-1.</span>
+      <div class="body"><p><b class="lead">Scope.</b> This manual tells the operator how to put themselves and their squad on a map of the raid, what each control does, and everything the program reads from the computer.</p></div>
+    </div>
+    <div class="row">
+      <span class="num">1-2.</span>
+      <div class="body">
+        <p><b class="lead">Equipment description.</b> TarTrak is a free squad map for Escape from Tarkov. <span class="hl">Each time you take a screenshot in raid, it puts your position and heading on an interactive map.</span> Teammates in the same room appear on the same map. Quests, extracts, bosses and loot are drawn, with a filter for each.</p>
+        <p>It runs as an overlay on top of the game in borderless windowed mode, as a round minimap with a compass bezel or as a box.</p>
+      </div>
+      <p class="note">the position is in the filename. that's the whole trick
+        <svg viewBox="0 0 90 40" aria-hidden="true"><path d="M6 6c10 22 40 30 72 24m0 0l-10-8m10 8l-12 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </p>
+    </div>
+
+    <figure>
+      <div class="fig-card">
+        <div class="fname" role="img" aria-label="Screenshot filename with its parts numbered 1 to 5">
+          <span class="part"><span>2026-10-30[21-14]_</span><span class="br"></span><span class="ball">1</span></span>
+          <span class="part"><span>-182.40, </span><span class="br"></span><span class="ball">2</span></span>
+          <span class="part"><span>2.10, </span><span class="br"></span><span class="ball">3</span></span>
+          <span class="part"><span>-71.03_</span><span class="br"></span><span class="ball">4</span></span>
+          <span class="part"><span>0.00000, 0.40674, 0.00000, 0.91355</span><span class="br"></span><span class="ball">5</span></span>
+          <span class="part dim"><span> (0).png</span></span>
+        </div>
+        <ul class="legend">
+          <li><b>1</b><span>Date and time of the screenshot.</span></li>
+          <li><b>2</b><span>X position, metres east-west.</span></li>
+          <li><b>3</b><span>Y position, metres of elevation. Picks the floor.</span></li>
+          <li><b>4</b><span>Z position, metres north-south.</span></li>
+          <li><b>5</b><span>Camera rotation. TarTrak turns it into your heading, here 048°.</span></li>
+        </ul>
+      </div>
+      <figcaption>Figure 1-1. Screenshot filename, parts identified.</figcaption>
+    </figure>
+
+    <p class="sect">Section II. What the program reads</p>
+    <section class="caution" aria-labelledby="caution-h">
+      <h3 id="caution-h"><span>CAUTION</span></h3>
+      <div class="in">
+        <p>TarTrak never touches the game process. It reads three things:</p>
+        <ol>
+          <li>The filenames of the screenshots the game saves. It can delete those screenshots afterwards, and only the ones named with coordinates.</li>
+          <li>The game's text log, to learn which map you loaded.</li>
+          <li>Whether your mark-here key is held down, using the same Windows call push-to-talk apps use.</li>
+        </ol>
+        <p>It does not do any of the following:</p>
+        <ul class="never">
+          <li>Read memory</li><li>Inject code</li><li>Hook the keyboard</li><li>Send keystrokes</li><li>Accounts</li><li>Telemetry</li>
+        </ul>
+        <p>The author cannot speak for Battlestate's anti-cheat. The list above is everything TarTrak does.</p>
+      </div>
+    </section>
+    <p class="folio">1-1</p>
+  </article>
+
+  <article class="page">
+    <div class="runhead"><span>TM 0.14.5-10</span><span>CHAPTER 2</span></div>
+    <div class="chapter"><p>CHAPTER 2</p><h2>Operating instructions</h2></div>
+    <p class="sect">Section I. Setup</p>
+    <div class="row">
+      <span class="num">2-1.</span>
+      <div class="body">
+        <p><b class="lead">Installation.</b></p>
+        <ol class="steps">
+          <li><span>a.</span><span>Download the installer from the latest release and run it.</span></li>
+          <li><span>b.</span><span>Set Tarkov to borderless windowed.</span></li>
+          <li><span>c.</span><span>In raid, press PrintScreen. <span class="hl">Your marker shows up on the map.</span></span></li>
+        </ol>
+        <p style="margin-top:16px"><b>NOTE</b> TarTrak asks for administrator rights because the game runs as administrator too. Without them, Windows hides the game's key state and the mark-here key only works after an Alt+Tab.</p>
+      </div>
+    </div>
+
+    <div class="tbl">
+      <table>
+        <caption>Table 2-1. Controls and indicators.</caption>
+        <thead><tr><th scope="col">Control</th><th scope="col">Function</th></tr></thead>
+        <tbody>
+          <tr><td><kbd>F5</kbd></td><td>Switch overlay mode.</td></tr>
+          <tr><td><kbd>F6</kbd></td><td>Change overlay opacity.</td></tr>
+          <tr><td><kbd>F7</kbd></td><td>Hide the window until you press it again.</td></tr>
+          <tr><td><kbd>Alt</kbd> + drag</td><td>Move the overlay.</td></tr>
+          <tr><td><kbd>Left Alt</kbd> + <kbd>PrtSc</kbd></td><td>Drop a private marker where you stand.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="sect">Section II. Squad operations</p>
+    <div class="row">
+      <span class="num">2-2.</span>
+      <div class="body">
+        <p><b class="lead">Forming a room.</b></p>
+        <ol class="steps">
+          <li><span>a.</span><span>One player clicks <b>Create</b> and shares the six-character code.</span></li>
+          <li><span>b.</span><span>Everyone else types it in and clicks <b>Join</b>.</span></li>
+          <li><span>c.</span><span>Positions go through a small relay server that <span class="hl">keeps nothing and logs nothing.</span> You can run your own.</span></li>
+        </ol>
+      </div>
+      <p class="note">room K7Q2XM. VEX always runs ahead</p>
+    </div>
+    <figure>
+      <canvas id="squadfig" role="img" aria-label="Line drawing of four players on a contour map, each with a heading line and range marks"></canvas>
+      <figcaption>Figure 2-1. Squad of four, positions and headings shown.</figcaption>
+    </figure>
+    <p class="folio">2-1</p>
+  </article>
+</main>
+
+<footer class="back">
+  <div class="back-in">
+    <div class="order">
+      <h3>BY ORDER OF THE SQUAD:</h3>
+      <p>TarTrak is free. If it helps your raids, you can chip in through <a href="https://paypal.me/HeyAiden">PayPal</a>. Tips go toward keeping the map working after each patch.</p>
+      <p>Bugs and requests: <a href="https://github.com/cthpAiden/TarTrak/issues">github.com/cthpAiden/TarTrak/issues</a></p>
+      <p class="sig">Aiden</p>
+    </div>
+    <div class="fine">
+      <p>Maps in the app: tarkov-dev-svg-maps, CC BY-NC-SA 4.0, fetched at runtime. Map transforms and quest data: tarkov.dev (MIT). The map drawing on this page is made up.</p>
+      <p>Escape from Tarkov is a trademark of Battlestate Games. TarTrak is not affiliated with or endorsed by them.</p>
+      <p>MIT licensed. Fonts on this page: Big Shoulders Stencil, Sofia Sans Extra Condensed, Courier Prime, Reenie Beanie.</p>
+    </div>
+  </div>
+</footer>
+
+<script src="kit.js"></script>
+<script>
+(() => {
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // stamp slams once the stencil face is in
+  document.fonts.ready.then(() => {
+    if (reduce) return;
+    document.getElementById("stamp").classList.add("slam");
+    document.getElementById("cover").classList.add("shake");
+  });
+
+  // Figure 2-1, drawn in ink
+  const cv = document.getElementById("squadfig"), ctx = cv.getContext("2d");
+  const field = TT.noise(5);
+  function draw() {
+    const W = cv.clientWidth, H = cv.clientHeight, D = Math.min(2, devicePixelRatio || 1);
+    cv.width = W * D; cv.height = H * D;
+    ctx.setTransform(D, 0, 0, D, 0, 0);
+    const ink = "#1c1e19", s = 640 / W;
+    const k = 1 / 260 * s;
+    const p = TT.contours((x, y) => field(x * k, y * k), W, H, 6, TT.range(-0.7, 0.7, 0.1), 3);
+    ctx.lineWidth = 0.8; ctx.strokeStyle = "rgba(28,30,25,0.28)"; ctx.stroke(p.minor);
+    ctx.lineWidth = 1.3; ctx.strokeStyle = "rgba(28,30,25,0.5)"; ctx.stroke(p.major);
+    const u = W / 640;
+    const ppl = [
+      { x: 0.42, y: 0.56, h: 48, tag: "A", text: "OPERATOR (YOU)", you: true },
+      { x: 0.3, y: 0.34, h: 130, tag: "B", text: "GHOST, 47 M" },
+      { x: 0.58, y: 0.74, h: 20, tag: "C", text: "NOMAD [2F], 84 M" },
+      { x: 0.77, y: 0.3, h: 75, tag: "D", text: "VEX, 132 M" },
+    ];
+    for (const q of ppl) {
+      const x = q.x * W, y = q.y * H, a = (q.h - 90) * Math.PI / 180, cs = Math.cos(a), sn = Math.sin(a);
+      const len = 120 * u;
+      ctx.strokeStyle = ink; ctx.lineWidth = 1.6; ctx.setLineDash([6, 4]);
+      ctx.beginPath(); ctx.moveTo(x + cs * 9, y + sn * 9); ctx.lineTo(x + cs * len, y + sn * len); ctx.stroke(); ctx.setLineDash([]);
+      for (const m of [0.5, 1, 1.5]) {
+        const cx = x + cs * len * m / 1.5, cy = y + sn * len * m / 1.5;
+        ctx.beginPath();
+        ctx.moveTo(cx - sn * 3, cy + cs * 3); ctx.lineTo(cx - sn * 8, cy + cs * 8);
+        ctx.moveTo(cx + sn * 3, cy - cs * 3); ctx.lineTo(cx + sn * 8, cy - cs * 8);
+        ctx.stroke();
+      }
+      if (q.you) { ctx.beginPath(); ctx.arc(x, y, 14, 0, Math.PI * 2); ctx.fillStyle = "rgba(240,180,41,0.8)"; ctx.fill(); }
+      ctx.beginPath(); ctx.arc(x, y, 5.5, 0, Math.PI * 2); ctx.fillStyle = ink; ctx.fill();
+      // leader to label
+      const lx = x - 34 * u - 10, ly = y + 30 * u + 12;
+      ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x - 5, y + 5); ctx.lineTo(lx + 10, ly - 8); ctx.stroke();
+      ctx.beginPath(); ctx.arc(lx, ly, 11, 0, Math.PI * 2); ctx.fillStyle = "#edece4"; ctx.fill(); ctx.lineWidth = 1.4; ctx.stroke();
+      ctx.fillStyle = ink; ctx.font = '700 12px "Courier Prime", monospace'; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(q.tag, lx, ly + 1);
+      ctx.textAlign = "left"; ctx.font = `700 ${W < 500 ? 10 : 12}px "Courier Prime", monospace`;
+      ctx.fillText(q.text, lx + 16, ly + 1);
+    }
+    // north arrow and scale bar
+    const nx = W - 34, ny = 30;
+    ctx.fillStyle = ink; ctx.beginPath(); ctx.moveTo(nx, ny - 14); ctx.lineTo(nx + 7, ny + 8); ctx.lineTo(nx, ny + 3); ctx.lineTo(nx - 7, ny + 8); ctx.closePath(); ctx.fill();
+    ctx.font = '700 12px "Courier Prime", monospace'; ctx.textAlign = "center"; ctx.fillText("N", nx, ny + 22);
+    const bx = 18, by = H - 20, bw = 80 * u;
+    ctx.lineWidth = 1.5; ctx.strokeStyle = ink; ctx.beginPath(); ctx.moveTo(bx, by - 5); ctx.lineTo(bx, by); ctx.lineTo(bx + bw, by); ctx.lineTo(bx + bw, by - 5); ctx.stroke();
+    ctx.textAlign = "left"; ctx.fillText("0", bx - 3, by - 12); ctx.fillText("50 M", bx + bw - 14, by - 12);
+  }
+  document.fonts.ready.then(draw);
+  let t; addEventListener("resize", () => { clearTimeout(t); t = setTimeout(draw, 150); });
+  TT.switcher("B");
+})();
+</script>
+</body>
+</html>

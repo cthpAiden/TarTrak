@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>TarTrak · A · Live map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: the hero IS the product, a live map you click to "screenshot"; below it, quiet sections in the app's own panels. */
+:root {
+  color-scheme: dark;
+  --deep: #0b0d10;
+  --bg: #12151a;
+  --panel: #161a20;
+  --raised: #1c2129;
+  --line: #2a313b;
+  --fg: #e8eaed;
+  --fg-2: #c5ccd5;
+  --muted: #9aa4b1;
+  --amber: #f0b429;
+  --on-amber: #1a1405;
+  --ok: #3ecf8e;
+  --ghost: #00e5ff;
+  --nomad: #b388ff;
+  --vex: #ff4081;
+  --display: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+  --sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", Consolas, ui-monospace, monospace;
+  --gutter: max(16px, env(safe-area-inset-left, 0px));
+  --gutter-r: max(16px, env(safe-area-inset-right, 0px));
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--deep); color: var(--fg); font: 16px/1.6 var(--sans); -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-left: var(--gutter); padding-right: var(--gutter-r); }
+
+/* ---------- nav ---------- */
+.nav {
+  position: absolute; z-index: 5; inset: 0 0 auto; display: flex; align-items: center; gap: 28px;
+  padding: calc(18px + env(safe-area-inset-top, 0px)) var(--gutter-r) 40px var(--gutter);
+  background: linear-gradient(rgba(11, 13, 16, 0.9), rgba(11, 13, 16, 0));
+  pointer-events: none;
+}
+.nav > * { pointer-events: auto; }
+.brand { display: flex; align-items: center; gap: 10px; font: 700 20px/1 var(--display); letter-spacing: 0.06em; text-transform: uppercase; text-decoration: none; }
+.brand svg { width: 26px; height: 26px; }
+.nav .links { display: flex; gap: 24px; margin-left: auto; font-size: 14px; color: var(--fg-2); }
+.nav .links a { text-decoration: none; }
+.nav .links a:hover { color: var(--fg); }
+.btn {
+  display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 20px; border-radius: 8px;
+  font: 600 15px/1 var(--sans); text-decoration: none; border: 1px solid transparent; cursor: pointer; white-space: nowrap;
+}
+.btn-amber { background: var(--amber); color: var(--on-amber); box-shadow: 0 0 0 0 rgba(240, 180, 41, 0.4); transition: box-shadow 0.2s, transform 0.2s; }
+.btn-amber:hover { box-shadow: 0 0 0 6px rgba(240, 180, 41, 0.16); transform: translateY(-1px); }
+.btn-ghost { border-color: #3a434e; color: var(--fg); background: rgba(11, 13, 16, 0.5); }
+.btn-ghost:hover { border-color: var(--muted); }
+.btn svg { width: 16px; height: 16px; }
+
+/* ---------- hero ---------- */
+.hero { position: relative; height: clamp(660px, 90vh, 920px); overflow: hidden; background: #20251d; }
+.map-wrap { position: absolute; inset: 0; }
+#map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; touch-action: manipulation; }
+.flash { position: absolute; inset: 0; pointer-events: none; background: #fff; opacity: 0; }
+.flash.on { animation: flash 0.32s ease-out; }
+@keyframes flash { 0% { opacity: 0.22; } 100% { opacity: 0; } }
+
+.hero-copy { position: absolute; z-index: 3; left: 0; bottom: 64px; width: min(700px, 100%); padding: 120px 40px 0 var(--gutter); }
+.hero-copy::before {
+  content: ""; position: absolute; z-index: -1; left: -10%; right: -30%; top: 0; bottom: -64px;
+  background: radial-gradient(ellipse at 0% 100%, rgba(11, 13, 16, 0.94) 0%, rgba(11, 13, 16, 0.78) 38%, rgba(11, 13, 16, 0) 72%);
+  pointer-events: none;
+}
+.eyebrow { margin: 0 0 18px; font: 500 13px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--amber); }
+h1 { margin: 0; font: 700 clamp(46px, 7.4vw, 108px)/0.92 var(--display); text-transform: uppercase; letter-spacing: -0.01em; text-wrap: balance; }
+h1 .squad { color: var(--amber); }
+kbd.cap {
+  display: inline-block; font: 600 0.46em/1 var(--mono); text-transform: none; padding: 0.2em 0.3em 0.24em; margin: 0 0.04em; vertical-align: 0.3em;
+  border: 2px solid #4a5460; border-bottom-width: 7px; border-radius: 0.14em; background: #1c2129; color: var(--fg);
+  transition: transform 0.08s, border-bottom-width 0.08s;
+}
+kbd.cap.down { transform: translateY(5px); border-bottom-width: 2px; border-color: var(--amber); color: var(--amber); }
+.lede { margin: 22px 0 28px; max-width: 34em; color: var(--fg-2); font-size: 17px; }
+.ctas { display: flex; flex-wrap: wrap; gap: 12px; }
+.meta { margin: 16px 0 0; font-size: 12.5px; color: var(--muted); }
+
+.log {
+  position: absolute; z-index: 3; top: 92px; right: var(--gutter-r); width: 360px; padding: 14px 16px 6px;
+  background: rgba(11, 13, 16, 0.84); border: 1px solid var(--line); border-radius: 10px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+.log-head { display: flex; justify-content: space-between; gap: 12px; margin: 0 0 10px; font: 500 11px/1.3 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.log-head b { color: var(--amber); font-weight: 500; }
+.log ol { list-style: none; margin: 0; padding: 0; }
+.log li { padding: 9px 0; border-top: 1px solid #1f252d; font: 11.5px/1.5 var(--mono); color: #7f8995; word-break: break-all; }
+.log li:first-child { color: var(--fg-2); animation: drop 0.45s cubic-bezier(0.16, 1, 0.3, 1); }
+.log li em { font-style: normal; color: var(--amber); }
+.log li:not(:first-child) em { color: #b48a2a; }
+@keyframes drop { from { opacity: 0; transform: translateY(-8px); } }
+.log .relay { display: block; margin-top: 4px; color: var(--ok); }
+
+.status {
+  position: absolute; z-index: 4; left: 0; right: 0; bottom: 0; display: flex; flex-wrap: wrap; gap: 6px 26px; align-items: center;
+  min-height: 44px; padding: 10px var(--gutter-r) calc(10px + env(safe-area-inset-bottom, 0px)) var(--gutter);
+  background: rgba(11, 13, 16, 0.9); border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted);
+}
+.status b { color: var(--fg); font-weight: 500; }
+.status .live { color: var(--ok); }
+.status .live::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px rgba(62, 207, 142, 0.18); }
+.status .grow { flex: 1; }
+
+/* ---------- sections ---------- */
+section.block { padding-block: clamp(72px, 10vw, 128px); border-top: 1px solid #191e24; }
+.kicker { margin: 0 0 14px; font: 500 12px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--amber); }
+h2 { margin: 0; font: 700 clamp(34px, 4.6vw, 60px)/1 var(--display); text-transform: uppercase; letter-spacing: -0.005em; text-wrap: balance; max-width: 16em; }
+.sub { max-width: 36em; margin: 18px 0 0; color: var(--fg-2); font-size: 17px; }
+
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin-top: 56px; border-top: 1px solid var(--line); }
+.step { padding: 26px 28px 0 0; min-width: 0; }
+.step + .step { padding-left: 28px; border-left: 1px solid var(--line); }
+.step .n { font: 500 13px/1 var(--mono); color: var(--amber); }
+.step h3 { margin: 14px 0 8px; font: 600 20px/1.25 var(--sans); }
+.step p { margin: 0; color: var(--muted); font-size: 15px; }
+
+.anatomy { margin-top: 64px; padding: 34px 32px 30px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow-x: auto; }
+.anatomy .path { margin: 0 0 18px; font: 12px/1.4 var(--mono); color: var(--muted); }
+.fname { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0 2px; font: 500 clamp(14px, 1.9vw, 22px)/1.5 var(--mono); color: #6f7a87; }
+.grp { display: inline-flex; flex-direction: column; }
+.grp .t { padding: 2px 4px; border-radius: 4px; transition: background 0.3s, color 0.3s; }
+.grp .lbl { position: relative; margin-top: 8px; padding-top: 10px; font: 500 11px/1.3 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: #59636f; transition: color 0.3s; }
+.grp .lbl::before { content: ""; position: absolute; top: 0; left: 4px; right: 4px; height: 6px; border: 1px solid currentColor; border-top: 0; }
+.grp.hot .t { background: rgba(240, 180, 41, 0.14); color: var(--amber); }
+.grp.hot .lbl { color: var(--amber); }
+.anatomy .result { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+.chip { display: inline-flex; gap: 8px; align-items: baseline; padding: 8px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--deep); font: 13px/1 var(--mono); }
+.chip span { color: var(--muted); }
+
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(32px, 6vw, 96px); align-items: center; }
+.facts { list-style: none; padding: 0; margin: 32px 0 0; display: grid; gap: 14px; }
+.facts li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 12px; color: var(--fg-2); font-size: 15.5px; }
+.facts svg { width: 18px; height: 18px; margin-top: 4px; color: var(--amber); }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45); }
+.panel-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font: 600 13px/1 var(--sans); color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.code { display: flex; gap: 8px; }
+.code span {
+  flex: 1; max-width: 56px; aspect-ratio: 4 / 5; display: grid; place-items: center; border-radius: 8px; background: #0f1216; border: 1px solid #2e3640;
+  font: 600 clamp(22px, 3vw, 30px)/1 var(--mono); color: var(--amber); animation: flip 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.code span:nth-child(2) { animation-delay: 0.06s; } .code span:nth-child(3) { animation-delay: 0.12s; }
+.code span:nth-child(4) { animation-delay: 0.18s; } .code span:nth-child(5) { animation-delay: 0.24s; } .code span:nth-child(6) { animation-delay: 0.3s; }
+@keyframes flip { from { transform: rotateX(80deg); } }
+.code-actions { display: flex; gap: 8px; margin: 14px 0 20px; }
+.mini { min-height: 36px; padding: 0 14px; border-radius: 6px; border: 1px solid #2e3640; background: var(--raised); color: var(--fg); font: 500 13px/1 var(--sans); cursor: pointer; }
+.mini:hover { border-color: var(--muted); }
+.mates { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.mates li { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 12px 2px; border-bottom: 1px solid #20262e; font-size: 14px; }
+.mates .dot { width: 10px; height: 10px; border-radius: 50%; }
+.mates .m { font: 13px/1 var(--mono); color: var(--fg); }
+.mates .age { font: 12px/1 var(--mono); color: var(--muted); min-width: 52px; text-align: right; }
+
+.ledger { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; margin-top: 52px; }
+.ledger > div { padding: 26px 28px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); min-width: 0; }
+.ledger h3 { margin: 0 0 18px; font: 500 12px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; }
+.reads h3 { color: var(--ok); } .never h3 { color: var(--vex); }
+.ledger ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+.ledger li { font-size: 15.5px; color: var(--fg-2); }
+.ledger li b { display: block; color: var(--fg); font-weight: 600; }
+.never li { display: flex; gap: 12px; align-items: baseline; }
+.never li s { text-decoration-color: var(--vex); text-decoration-thickness: 2px; color: var(--fg); }
+.quote { margin: 40px 0 0; max-width: 40em; font: 500 19px/1.5 var(--sans); color: var(--fg); }
+.quote cite { display: block; margin-top: 8px; font: 13px/1 var(--mono); color: var(--muted); font-style: normal; }
+
+footer { padding-block: clamp(80px, 12vw, 140px) 96px; border-top: 1px solid #191e24; background: radial-gradient(ellipse at 50% 120%, rgba(240, 180, 41, 0.1), transparent 60%), var(--deep); }
+footer .big { font: 700 clamp(40px, 7vw, 92px)/0.95 var(--display); text-transform: uppercase; margin: 0 0 28px; text-wrap: balance; }
+footer .fine { margin-top: 64px; display: grid; gap: 6px; font-size: 13px; color: var(--muted); max-width: 60em; }
+footer .fine a { color: var(--fg-2); }
+
+@media (max-width: 900px) {
+  .log { display: none; }
+  .split, .ledger { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .nav { position: relative; background: var(--deep); padding-bottom: 14px; }
+  .nav .links { display: none; }
+  .nav .btn { margin-left: auto; min-height: 40px; padding: 0 14px; }
+  .hero { height: auto; display: flex; flex-direction: column; background: var(--deep); }
+  .map-wrap { position: relative; height: 440px; }
+  .hero-copy { position: relative; bottom: auto; padding: 32px var(--gutter-r) 56px var(--gutter); }
+  .hero-copy::before { display: none; }
+  .status { font-size: 11.5px; gap: 4px 16px; }
+  .status .hide-sm { display: none; }
+  .steps { grid-template-columns: minmax(0, 1fr); }
+  .step, .step + .step { padding: 22px 0; border-left: 0; border-bottom: 1px solid var(--line); }
+  .anatomy { padding: 24px 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+<section class="hero" id="top">
+  <header class="nav">
+    <a class="brand" href="#top" aria-label="TarTrak home">
+      <svg viewBox="0 0 512 512" aria-hidden="true"><circle cx="256" cy="256" r="170" fill="none" stroke="#f0b429" stroke-width="44"/><rect x="238" y="30" width="36" height="140" fill="#f0b429"/></svg>
+      TarTrak
+    </a>
+    <nav class="links" aria-label="Sections">
+      <a href="#how">How it works</a>
+      <a href="#squad">Squad</a>
+      <a href="#safe">Is it safe?</a>
+      <a href="https://github.com/cthpAiden/TarTrak">GitHub</a>
+    </nav>
+    <a class="btn btn-amber" href="https://github.com/cthpAiden/TarTrak/releases/latest">Download</a>
+  </header>
+
+  <div class="map-wrap">
+    <canvas id="map" role="img" aria-label="A topographic map with your amber marker and three teammates, each with a heading line"></canvas>
+    <div class="flash" id="flash"></div>
+    <aside class="log" aria-label="Recent screenshots">
+      <p class="log-head"><span>Screenshots/</span><b>Click the map to take one</b></p>
+      <ol id="log"></ol>
+    </aside>
+    <div class="status mono" aria-label="Status bar">
+      <span class="live">Squad</span>
+      <span>ROOM <b>K7Q2XM</b></span>
+      <span class="hide-sm">PLAYERS <b>4</b></span>
+      <span class="grow"></span>
+      <span>X <b id="sx">-182.4</b></span>
+      <span>Z <b id="sz">-71.0</b></span>
+      <span>HDG <b id="sh">048°</b></span>
+      <span>RAID <b id="raid">31:42</b></span>
+    </div>
+  </div>
+
+  <div class="hero-copy">
+    <p class="eyebrow">Free squad map for Escape from Tarkov</p>
+    <h1>Press <kbd class="cap" id="cap">PrtSc</kbd>.<br>Your <span class="squad">squad</span> sees you.</h1>
+    <p class="lede">TarTrak puts you and your teammates on a live map, using the coordinates Tarkov already writes into every screenshot's filename. Free, open source, and nothing touches the game.</p>
+    <div class="ctas">
+      <a class="btn btn-amber" href="https://github.com/cthpAiden/TarTrak/releases/latest">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8m0 0L4.5 6.5M8 10l3.5-3.5M2.5 13.5h11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Download for Windows
+      </a>
+      <a class="btn btn-ghost" href="https://github.com/cthpAiden/TarTrak">View the source</a>
+    </div>
+    <p class="meta mono">v0.14.5 · Windows 10 and 11 · MIT licence</p>
+  </div>
+</section>
+
+<section class="block" id="how">
+  <div class="wrap">
+    <p class="kicker">How it works</p>
+    <h2>Tarkov already writes your position down. TarTrak reads it.</h2>
+    <div class="steps">
+      <div class="step"><span class="n">1</span><h3>Install</h3><p>Download the installer from the latest release and run it. It needs Windows 10 or 11.</p></div>
+      <div class="step"><span class="n">2</span><h3>Borderless windowed</h3><p>Set the game to borderless windowed so the overlay can sit on top of it.</p></div>
+      <div class="step"><span class="n">3</span><h3>Press PrtSc in raid</h3><p>Your marker lands on the map with the way you are facing. Every screenshot moves it.</p></div>
+    </div>
+
+    <div class="anatomy" aria-label="Parts of a screenshot filename">
+      <p class="path">Documents\Escape from Tarkov\Screenshots\</p>
+      <div class="fname" id="fname">
+        <span class="grp"><span class="t">2026-10-30[21-14]_</span><span class="lbl">Date, time</span></span>
+        <span class="grp" data-g="1"><span class="t">-182.40, 2.10, -71.03</span><span class="lbl">Position in metres</span></span>
+        <span class="grp"><span class="t">_</span></span>
+        <span class="grp" data-g="2"><span class="t">0.00000, 0.40674, 0.00000, 0.91355</span><span class="lbl">Rotation, becomes your heading</span></span>
+        <span class="grp"><span class="t">&nbsp;(0).png</span></span>
+      </div>
+      <div class="result">
+        <span class="chip"><span>X</span>-182.4</span>
+        <span class="chip"><span>Z</span>-71.0</span>
+        <span class="chip"><span>Elevation</span>2.1 m</span>
+        <span class="chip"><span>Heading</span>048°</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="squad">
+  <div class="wrap split">
+    <div>
+      <p class="kicker">Squad</p>
+      <h2>Six characters and everyone is on your map.</h2>
+      <p class="sub">One player clicks Create and shares the code. Everyone else types it in. You see each other's position, heading and floor, plus shared markers, routes and live drawings.</p>
+      <ul class="facts">
+        <li><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 9.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Up to 12 players per room. The room ends when the last one leaves.</span></li>
+        <li><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 9.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>The relay keeps nothing and logs nothing. You can run your own.</span></li>
+        <li><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 9.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Markers never vanish. A teammate who goes quiet stays on the map, slowly dimming.</span></li>
+      </ul>
+    </div>
+    <div class="panel" aria-label="The app's squad panel">
+      <div class="panel-title"><span>Room</span><span class="mono" style="color:var(--ok)">connected</span></div>
+      <div class="code mono" aria-label="Room code K7Q2XM"><span>K</span><span>7</span><span>Q</span><span>2</span><span>X</span><span>M</span></div>
+      <div class="code-actions"><button class="mini" type="button" id="copy">Copy</button><button class="mini" type="button">Hide</button><button class="mini" type="button">Leave</button></div>
+      <ul class="mates" id="mates">
+        <li><span class="dot" style="background:var(--ghost)"></span><span>GHOST</span><span class="m">47 m</span><span class="age" data-age="2">2s ago</span></li>
+        <li><span class="dot" style="background:var(--nomad)"></span><span>NOMAD <span class="mono" style="color:var(--muted)">[2F]</span></span><span class="m">84 m</span><span class="age" data-age="6">6s ago</span></li>
+        <li><span class="dot" style="background:var(--vex)"></span><span>VEX</span><span class="m">132 m</span><span class="age" data-age="1">1s ago</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="safe">
+  <div class="wrap">
+    <p class="kicker">Is it safe?</p>
+    <h2>It never touches the game process.</h2>
+    <p class="sub">Here is the complete list of what TarTrak reads, and what it does not do.</p>
+    <div class="ledger">
+      <div class="reads">
+        <h3>Reads</h3>
+        <ul>
+          <li><b>Screenshot filenames</b>They hold your coordinates and rotation. It can delete those screenshots afterwards, only the ones named with coordinates.</li>
+          <li><b>The game's text log</b>To learn which map you loaded and read the raid clock.</li>
+          <li><b>Whether your mark-here key is held</b>The same Windows call push-to-talk apps use.</li>
+        </ul>
+      </div>
+      <div class="never">
+        <h3>Never</h3>
+        <ul>
+          <li><s>Reads game memory</s></li>
+          <li><s>Injects code</s></li>
+          <li><s>Installs keyboard hooks</s></li>
+          <li><s>Sends keystrokes to the game</s></li>
+          <li><s>Accounts or telemetry</s></li>
+        </ul>
+      </div>
+    </div>
+    <p class="quote">"I can't speak for Battlestate's anti-cheat, but that is everything TarTrak does."<cite>From the README</cite></p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p class="big">Free. Open source.<br>One key.</p>
+    <div class="ctas">
+      <a class="btn btn-amber" href="https://github.com/cthpAiden/TarTrak/releases/latest">Download v0.14.5 for Windows</a>
+      <a class="btn btn-ghost" href="https://paypal.me/HeyAiden">Chip in on PayPal</a>
+    </div>
+    <div class="fine">
+      <span>Map art on this page is made up. In the app, maps come from <a href="https://github.com/the-hideout/tarkov-dev-svg-maps">tarkov-dev-svg-maps</a> and data from <a href="https://tarkov.dev">tarkov.dev</a>.</span>
+      <span>Escape from Tarkov is a trademark of Battlestate Games. TarTrak is not affiliated with or endorsed by them.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="kit.js"></script>
+<script>
+(() => {
+  const C = { ground: "#20251d", contour: "#343d2e", major: "#465140", water: "#18252a", waterEdge: "#2c4046",
+    road: "#6a705f", roadEdge: "#2b3026", roof: "#3a4136", wall: "#262b23", amber: "#f0b429", fg: "#e8eaed", deep: "#0b0d10" };
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const cv = document.getElementById("map"), ctx = cv.getContext("2d");
+  const wrap = cv.parentElement;
+  const field = TT.noise(11);
+  let W = 0, H = 0, DPR = 1, mpp = 1, base = null, born = performance.now();
+  const rnd = TT.rng(4);
+
+  // world features, in fractions of the map box
+  const river = [[-0.05, 0.82], [0.2, 0.7], [0.38, 0.76], [0.55, 0.58], [0.72, 0.52], [0.86, 0.3], [1.05, 0.22]];
+  const road = [[-0.05, 0.38], [0.25, 0.42], [0.48, 0.34], [0.7, 0.4], [1.05, 0.36]];
+  const road2 = [[0.62, -0.05], [0.6, 0.3], [0.66, 0.6], [0.6, 1.05]];
+  const clusters = [[0.72, 0.24, "SAWMILL"], [0.88, 0.62, "DEPOT"], [0.44, 0.22, "RAIL YARD"], [0.3, 0.6, "RIVERSIDE"]];
+  const extracts = [[0.86, 0.86, "NORTH GATE", "#3ecf8e"], [0.5, 0.9, "PIER 4", "#4fb3ff"], [0.12, 0.2, "TUNNEL", "#f0b429"]];
+
+  function smooth(g, pts) {
+    const P = pts.map(([x, y]) => [x * W, y * H]);
+    g.moveTo(P[0][0], P[0][1]);
+    for (let i = 1; i < P.length - 1; i++) {
+      const mx = (P[i][0] + P[i + 1][0]) / 2, my = (P[i][1] + P[i + 1][1]) / 2;
+      g.quadraticCurveTo(P[i][0], P[i][1], mx, my);
+    }
+    g.lineTo(P[P.length - 1][0], P[P.length - 1][1]);
+  }
+
+  function build() {
+    const r = wrap.getBoundingClientRect();
+    W = r.width; H = r.height; DPR = Math.min(2, devicePixelRatio || 1);
+    cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+    mpp = Math.max(0.5, Math.min(1.25, 760 / W));
+    base = document.createElement("canvas");
+    base.width = cv.width; base.height = cv.height;
+    const b = base.getContext("2d");
+    b.scale(DPR, DPR);
+    b.fillStyle = C.ground; b.fillRect(0, 0, W, H);
+    // terrain
+    const k = mpp / 300;
+    const paths = TT.contours((x, y) => field(x * k + 3, y * k + 7), W, H, 7, TT.range(-0.75, 0.75, 0.075), 4);
+    b.lineWidth = 1; b.strokeStyle = C.contour; b.stroke(paths.minor);
+    b.lineWidth = 1.5; b.strokeStyle = C.major; b.stroke(paths.major);
+    // 100 m grid
+    b.strokeStyle = "rgba(255,255,255,0.035)"; b.lineWidth = 1;
+    const step = 100 / mpp;
+    b.beginPath();
+    for (let x = W / 2 % step; x < W; x += step) { b.moveTo(x, 0); b.lineTo(x, H); }
+    for (let y = H / 2 % step; y < H; y += step) { b.moveTo(0, y); b.lineTo(W, y); }
+    b.stroke();
+    // river
+    b.lineCap = "round"; b.lineJoin = "round";
+    b.beginPath(); smooth(b, river); b.strokeStyle = C.waterEdge; b.lineWidth = 24 / mpp; b.stroke();
+    b.beginPath(); smooth(b, river); b.strokeStyle = C.water; b.lineWidth = 20 / mpp; b.stroke();
+    // roads
+    for (const rd of [road, road2]) {
+      b.beginPath(); smooth(b, rd); b.strokeStyle = C.roadEdge; b.lineWidth = 9 / mpp + 2; b.stroke();
+      b.beginPath(); smooth(b, rd); b.strokeStyle = C.road; b.lineWidth = 2; b.setLineDash([10, 8]); b.stroke(); b.setLineDash([]);
+    }
+    // buildings
+    const br = TT.rng(9);
+    for (const [cx, cy] of clusters) {
+      for (let i = 0; i < 9; i++) {
+        const x = cx * W + (br() - 0.5) * 150 / mpp, y = cy * H + (br() - 0.5) * 110 / mpp;
+        const w = (10 + br() * 26) / mpp, h = (8 + br() * 18) / mpp, a = (br() - 0.5) * 0.5;
+        b.save(); b.translate(x, y); b.rotate(a);
+        b.fillStyle = C.roof; b.fillRect(-w / 2, -h / 2, w, h);
+        b.strokeStyle = C.wall; b.lineWidth = 2; b.strokeRect(-w / 2, -h / 2, w, h);
+        b.restore();
+      }
+    }
+    // area labels
+    b.font = `600 ${Math.round(13 / Math.sqrt(mpp))}px "IBM Plex Sans Condensed", sans-serif`;
+    b.fillStyle = "rgba(232,234,237,0.3)"; b.textAlign = "center";
+    for (const [cx, cy, name] of clusters) b.fillText(name.split("").join(String.fromCharCode(8202)), cx * W, cy * H - 70 / mpp);
+    // edge ticks
+    b.font = '10px "IBM Plex Mono", monospace'; b.fillStyle = "rgba(232,234,237,0.28)"; b.textAlign = "left";
+    for (let x = W / 2 % step, i = 0; x < W; x += step, i++) b.fillText(String((Math.round((x - W / 2) * mpp / 100)) * 100), x + 4, H - 56);
+  }
+
+  // entities
+  const deg = (a) => (a * Math.PI) / 180;
+  const you = { x: 0, y: 0, h: 48, ping: -9, label: "YOU", color: C.amber };
+  const mates = [
+    { label: "GHOST", color: "#00e5ff", off: [-60, -40] },
+    { label: "NOMAD", color: "#b388ff", off: [70, 30], floor: "2F" },
+    { label: "VEX", color: "#ff4081", off: [-40, 110] },
+  ];
+  let lastClick = 0, pointer = null;
+
+  function place() {
+    you.x = W > 760 ? W * 0.66 : W * 0.5;
+    you.y = H * 0.48;
+    for (const m of mates) {
+      m.tx = m.x = you.x + m.off[0] / mpp; m.ty = m.y = you.y + m.off[1] / mpp;
+      m.h = Math.round(rnd() * 360); m.ping = -9; m.next = performance.now() + 600 + rnd() * 1800;
+      pickWaypoint(m);
+    }
+  }
+  const clampX = (x) => Math.max(W > 760 ? W * 0.44 : 24, Math.min(W - 24, x));
+  const clampY = (y) => Math.max(110, Math.min(H - 70, y));
+  function pickWaypoint(m) {
+    const a = rnd() * Math.PI * 2, d = (40 + rnd() * 120) / mpp;
+    m.wx = clampX(you.x + Math.cos(a) * d); m.wy = clampY(you.y + Math.sin(a) * d);
+  }
+
+  const bearing = (dx, dy) => ((Math.atan2(dx, -dy) * 180) / Math.PI + 360) % 360;
+  const toWorld = (x, y) => ({ X: -182.4 + (x - you.x0) * mpp, Z: -71.0 - (y - you.y0) * mpp });
+
+  function headingLine(e, alpha) {
+    const a = deg(e.h - 90), len = 100 / mpp, cs = Math.cos(a), sn = Math.sin(a);
+    const g = ctx.createLinearGradient(e.x, e.y, e.x + cs * len, e.y + sn * len);
+    g.addColorStop(0, TT.hexA(e.color, 0.95 * alpha)); g.addColorStop(1, TT.hexA(e.color, 0));
+    ctx.strokeStyle = g; ctx.lineWidth = 2; ctx.setLineDash([7, 5]);
+    ctx.beginPath(); ctx.moveTo(e.x + cs * 9, e.y + sn * 9); ctx.lineTo(e.x + cs * len, e.y + sn * len); ctx.stroke();
+    ctx.setLineDash([]);
+    // range marks at 50, 100, 150 m: split ticks either side of the line
+    if (len > 40) {
+      ctx.lineWidth = 1.5;
+      for (const [m, o] of [[50, 0.8], [100, 0.55], [150, 0.35]]) {
+        const d = m / mpp, cx = e.x + cs * d, cy = e.y + sn * d;
+        ctx.strokeStyle = TT.hexA(e.color, o * alpha);
+        ctx.beginPath();
+        ctx.moveTo(cx - sn * 3.5, cy + cs * 3.5); ctx.lineTo(cx - sn * 8, cy + cs * 8);
+        ctx.moveTo(cx + sn * 3.5, cy - cs * 3.5); ctx.lineTo(cx + sn * 8, cy - cs * 8);
+        ctx.stroke();
+      }
+    }
+  }
+  function dot(e, alpha, r) {
+    ctx.beginPath(); ctx.arc(e.x, e.y, r + 2.5, 0, Math.PI * 2); ctx.fillStyle = TT.hexA("#0b0d10", 0.9 * alpha); ctx.fill();
+    ctx.beginPath(); ctx.arc(e.x, e.y, r, 0, Math.PI * 2); ctx.fillStyle = TT.hexA(e.color, alpha); ctx.fill();
+  }
+  function ping(e, now) {
+    const t = (now - e.ping) / 900;
+    if (t < 0 || t > 1) return;
+    ctx.beginPath(); ctx.arc(e.x, e.y, 8 + t * 46, 0, Math.PI * 2);
+    ctx.strokeStyle = TT.hexA(e.color, 0.7 * (1 - t)); ctx.lineWidth = 2; ctx.stroke();
+  }
+  function label(e, text, sub) {
+    ctx.font = '600 11px "IBM Plex Mono", monospace';
+    const w1 = ctx.measureText(text).width, w2 = sub ? ctx.measureText(sub).width + 8 : 0;
+    const x = e.x + 13, y = e.y - 22, w = w1 + w2 + 14;
+    ctx.fillStyle = "rgba(11,13,16,0.86)"; ctx.strokeStyle = TT.hexA(e.color, 0.55); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(x, y, w, 19, 4); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = e.color; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(text, x + 7, y + 10);
+    if (sub) { ctx.fillStyle = C.fg; ctx.fillText(sub, x + 7 + w1 + 8, y + 10); }
+  }
+
+  function draw(now) {
+    const dt = Math.min(50, now - (draw.last || now)); draw.last = now;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.drawImage(base, 0, 0, W, H);
+    const age = reduce ? 99 : (now - born) / 1000;
+    const R = Math.hypot(W, H) * (1 - Math.pow(2, -6 * Math.min(1, age / 1.8)));
+    const revealing = age < 1.8;
+    ctx.save();
+    if (revealing) {
+      ctx.fillStyle = C.deep; ctx.fillRect(0, 0, W, H);
+      ctx.beginPath(); ctx.arc(you.x, you.y, R, 0, Math.PI * 2); ctx.clip();
+      ctx.drawImage(base, 0, 0, W, H);
+    }
+    // route to the first extract
+    const ex = extracts[0], exX = ex[0] * W, exY = ex[1] * H;
+    ctx.strokeStyle = "rgba(62,207,142,0.5)"; ctx.lineWidth = 1.5; ctx.setLineDash([2, 6]); ctx.lineDashOffset = -now / 40;
+    ctx.beginPath(); ctx.moveTo(you.x, you.y); ctx.lineTo(exX, exY); ctx.stroke(); ctx.setLineDash([]);
+    // extracts
+    ctx.font = '600 11px "IBM Plex Mono", monospace'; ctx.textBaseline = "middle";
+    for (const [fx, fy, name, col] of extracts) {
+      const x = fx * W, y = fy * H;
+      ctx.fillStyle = "rgba(11,13,16,0.85)"; ctx.strokeStyle = col; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.roundRect(x - 9, y - 9, 18, 18, 4); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x - 3, y + 4); ctx.lineTo(x + 4, y - 3); ctx.moveTo(x - 1, y - 3); ctx.lineTo(x + 4, y - 3); ctx.lineTo(x + 4, y + 2);
+      ctx.strokeStyle = col; ctx.stroke();
+      const right = x < W - 120;
+      ctx.textAlign = right ? "left" : "right"; ctx.fillStyle = col;
+      const dist = name === ex[2] ? `  ${Math.round(Math.hypot(exX - you.x, exY - you.y) * mpp)} m` : "";
+      ctx.fillText(name + dist, right ? x + 15 : x - 15, y);
+    }
+    // teammates
+    for (const m of mates) {
+      if (!reduce) {
+        const sp = (2.6 / mpp) * (dt / 1000) * 3;
+        const dx = m.wx - m.tx, dy = m.wy - m.ty, d = Math.hypot(dx, dy);
+        if (d < 4) pickWaypoint(m); else { m.tx += (dx / d) * sp; m.ty += (dy / d) * sp; m.dir = bearing(dx, dy); }
+        if (now > m.next) {
+          m.x = m.tx; m.y = m.ty; m.h = (m.dir ?? m.h) + (rnd() - 0.5) * 70; m.ping = now;
+          m.next = now + 1600 + rnd() * 2600;
+        }
+      }
+      const stale = Math.min(1, Math.max(0, (now - m.ping) / 1000 - 30) / 270);
+      const a = 1 - 0.65 * stale;
+      headingLine(m, a); ping(m, now); dot(m, a, 6);
+      label(m, m.floor ? `${m.label} [${m.floor}]` : m.label, `${Math.round(Math.hypot(m.x - you.x, m.y - you.y) * mpp)} m`);
+    }
+    // you
+    headingLine(you, 1); ping(you, now); dot(you, 1, 7.5);
+    if (revealing) {
+      ctx.restore(); ctx.save();
+      ctx.beginPath(); ctx.arc(you.x, you.y, R, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(240,180,41,0.75)"; ctx.lineWidth = 2; ctx.stroke();
+    }
+    ctx.restore();
+    // cursor readout
+    if (pointer) {
+      const w = toWorld(pointer.x, pointer.y);
+      ctx.strokeStyle = "rgba(240,180,41,0.9)"; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(pointer.x, pointer.y, 11, 0, Math.PI * 2); ctx.stroke();
+      ctx.font = '500 11px "IBM Plex Mono", monospace'; ctx.textAlign = "left"; ctx.textBaseline = "top";
+      const t = `X ${w.X.toFixed(1)}  Z ${w.Z.toFixed(1)}`;
+      ctx.fillStyle = "rgba(11,13,16,0.86)"; ctx.fillRect(pointer.x + 16, pointer.y + 12, ctx.measureText(t).width + 12, 34);
+      ctx.fillStyle = C.fg; ctx.fillText(t, pointer.x + 22, pointer.y + 16);
+      ctx.fillStyle = C.amber; ctx.fillText("click = PrtSc", pointer.x + 22, pointer.y + 31);
+    }
+    // idle demo: you take a screenshot now and then
+    if (!reduce && now - lastClick > 5200 && age > 2.4) {
+      const a = deg(you.h - 90 + (rnd() - 0.5) * 80), d = (50 + rnd() * 70) / mpp;
+      snap(clampX(you.x + Math.cos(a) * d), clampY(you.y + Math.sin(a) * d), now, true);
+    }
+    if (!reduce) requestAnimationFrame(draw);
+  }
+
+  const logEl = document.getElementById("log"), cap = document.getElementById("cap"), flash = document.getElementById("flash");
+  function logShot() {
+    const w = toWorld(you.x, you.y);
+    const elev = 2 + field(you.x * 0.01, you.y * 0.01) * 6;
+    const f = TT.filename(w.X, elev, w.Z, you.h);
+    const li = document.createElement("li");
+    const em = (t) => { const e = document.createElement("em"); e.textContent = t; return e; };
+    li.append(f.stamp + "_", em(f.pos.join(", ")), "_", em(f.rot.join(", ")), " (0).png");
+    const relay = document.createElement("span"); relay.className = "relay"; relay.textContent = "→ sent to room K7Q2XM (3 teammates)";
+    li.append(relay);
+    logEl.prepend(li);
+    while (logEl.children.length > 3) logEl.lastChild.remove();
+    for (const r of logEl.querySelectorAll("li:not(:first-child) .relay")) r.remove();
+    document.getElementById("sx").textContent = w.X.toFixed(1);
+    document.getElementById("sz").textContent = w.Z.toFixed(1);
+    document.getElementById("sh").textContent = String(Math.round(you.h) % 360).padStart(3, "0") + "°";
+  }
+  function snap(x, y, now, auto) {
+    const dx = x - you.x, dy = y - you.y;
+    if (Math.hypot(dx, dy) > 3) you.h = bearing(dx, dy);
+    you.x = x; you.y = y; you.ping = now; lastClick = now;
+    logShot();
+    if (!auto) { flash.classList.remove("on"); void flash.offsetWidth; flash.classList.add("on"); }
+    cap.classList.add("down"); setTimeout(() => cap.classList.remove("down"), 140);
+  }
+
+  cv.addEventListener("pointermove", (e) => { const r = cv.getBoundingClientRect(); pointer = { x: e.clientX - r.left, y: e.clientY - r.top }; if (reduce) requestAnimationFrame(draw); });
+  cv.addEventListener("pointerleave", () => { pointer = null; if (reduce) requestAnimationFrame(draw); });
+  cv.addEventListener("click", (e) => { const r = cv.getBoundingClientRect(); snap(e.clientX - r.left, e.clientY - r.top, performance.now()); if (reduce) requestAnimationFrame(draw); });
+
+  function init() {
+    build(); place();
+    you.x0 = you.x; you.y0 = you.y;
+    logEl.textContent = ""; logShot();
+    requestAnimationFrame(draw);
+  }
+  let t;
+  addEventListener("resize", () => { clearTimeout(t); t = setTimeout(() => { const ox = you.x / W, oy = you.y / H; build(); you.x = ox * W; you.y = oy * H; requestAnimationFrame(draw); }, 150); });
+  document.fonts.ready.then(init);
+
+  // raid clock
+  let left = 31 * 60 + 42;
+  setInterval(() => { left = Math.max(0, left - 1); document.getElementById("raid").textContent = `${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`; }, 1000);
+
+  // anatomy: light the two groups in turn
+  const groups = [...document.querySelectorAll("#fname .grp[data-g]")];
+  let gi = 0;
+  if (!reduce) setInterval(() => { groups.forEach((g, i) => g.classList.toggle("hot", i === gi % 2)); gi++; }, 1800);
+  else groups.forEach((g) => g.classList.add("hot"));
+
+  // squad panel: ages tick and reset like real updates
+  const ages = [...document.querySelectorAll(".age")];
+  setInterval(() => ages.forEach((a) => { let n = +a.dataset.age + 1; if (n > 4 + Math.random() * 6) n = 0; a.dataset.age = n; a.textContent = n === 0 ? "now" : `${n}s ago`; }), 1000);
+  document.getElementById("copy").addEventListener("click", (e) => {
+    navigator.clipboard?.writeText("K7Q2XM").then(() => { e.target.textContent = "Copied"; }, () => {});
+  });
+
+  TT.switcher("A");
+})();
+</script>
+</body>
+</html>
