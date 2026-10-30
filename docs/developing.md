@@ -41,3 +41,13 @@ comes from the file, one the file does not know is left off (tarkov.dev's Septem
 lost five of Lighthouse's extracts and filed Woods' UN Roadblock under Ground Zero, among others). A map the
 file does not cover takes tarkov.dev's list as it comes. `npm run snapshot` prints what the file restored and
 what upstream lists that the file left off, so it can be kept current when a patch changes a map.
+
+## Website
+
+`site/` is the promo page at https://cthpaiden.github.io/TarTrak/, plain HTML, CSS and JS with no build step.
+`.github/workflows/pages.yml` publishes it whenever `site/` changes on `main`; Pages must be set to
+"GitHub Actions" once, under Settings > Pages > Source. Preview it locally with
+`python -m http.server -d site`. The page asks the GitHub API for the latest release and shows its version,
+date and installer link, so it needs no edit per release; the numbers written in the HTML are only the
+fallback. `site/media/showreel.mp4` and `poster.jpg` come from `promo/` (`npm run render`, the web copy
+and the last frame). Fonts are self-hosted with their OFL licences in `site/fonts/`.
