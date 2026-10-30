@@ -271,5 +271,6 @@
 
   document.fonts.ready.then(() => { build(); requestAnimationFrame(frame); });
   let rt;
-  addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(build, 150); });
+  // phones fire resize when the address bar slides; only a new width or pixel ratio needs new contours
+  addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if (cv.clientWidth !== size || Math.min(2, devicePixelRatio || 1) !== D) build(); }, 150); });
 })();
