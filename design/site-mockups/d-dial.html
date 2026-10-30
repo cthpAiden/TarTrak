@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>TarTrak · D · The dial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500;600&family=Michroma&display=swap">
+<style>
+/* Layout: an instrument catalogue page. The overlay's compass bezel is the hero, then a spec sheet, controls and a wiring diagram. */
+:root {
+  color-scheme: dark;
+  --ground: #171a14;
+  --plate: #1f231b;
+  --plate-2: #282d23;
+  --line: #363c30;
+  --engrave: #dcd8c6;
+  --engrave-2: #a3a693;
+  --lume: #f0b429;
+  --on-lume: #1a1405;
+  --north: #e8513f;
+  --wide: "Archivo", "Arial", sans-serif;
+  --dial: "Michroma", "Arial", sans-serif;
+  --mono: "IBM Plex Mono", Consolas, monospace;
+  --gl: max(16px, env(safe-area-inset-left, 0px));
+  --gr: max(16px, env(safe-area-inset-right, 0px));
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--ground); color: var(--engrave); font: 400 16.5px/1.6 var(--wide); font-variation-settings: "wdth" 100; -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--lume); outline-offset: 3px; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-left: var(--gl); padding-right: var(--gr); }
+.label { font: 400 11px/1.2 var(--dial); letter-spacing: 0.16em; text-transform: uppercase; color: var(--engrave-2); }
+
+/* ---------- nav ---------- */
+.nav { display: flex; align-items: center; gap: 24px; padding-block: calc(22px + env(safe-area-inset-top, 0px)) 10px; }
+.brand { display: flex; align-items: center; gap: 12px; font: 400 15px/1 var(--dial); letter-spacing: 0.24em; text-decoration: none; }
+.brand svg { width: 24px; height: 24px; }
+.nav .links { margin-left: auto; display: flex; gap: 26px; font-size: 14px; color: var(--engrave-2); }
+.nav .links a { text-decoration: none; }
+.nav .links a:hover { color: var(--engrave); }
+
+/* ---------- hero ---------- */
+.hero { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 32px 40px; align-items: center; padding-block: 24px 72px; }
+.hero h1 { margin: 18px 0 0; font: 700 clamp(40px, 5.2vw, 78px)/0.98 var(--wide); font-variation-settings: "wdth" 125; letter-spacing: -0.02em; text-wrap: balance; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6); }
+.hero h1 em { font-style: normal; color: var(--lume); }
+.lede { margin: 24px 0 30px; max-width: 30em; color: var(--engrave-2); font-size: 17.5px; }
+.btns { display: flex; flex-wrap: wrap; gap: 12px; }
+.btn { display: inline-flex; align-items: center; min-height: 48px; padding: 0 24px; border-radius: 999px; font: 600 15px/1 var(--wide); font-variation-settings: "wdth" 112; text-decoration: none; white-space: nowrap; }
+.btn-lume { background: var(--lume); color: var(--on-lume); box-shadow: 0 0 24px rgba(240, 180, 41, 0.25); }
+.btn-lume:hover { box-shadow: 0 0 36px rgba(240, 180, 41, 0.45); }
+.btn-line { box-shadow: inset 0 0 0 1.5px var(--line); }
+.btn-line:hover { box-shadow: inset 0 0 0 1.5px var(--engrave-2); }
+.facts { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--line); }
+.facts div { display: grid; gap: 6px; }
+.facts b { font: 500 15px/1 var(--mono); color: var(--engrave); }
+
+.dialcol { display: grid; justify-items: center; gap: 14px; }
+.dial { position: relative; width: min(100%, 700px); aspect-ratio: 1; max-width: 100%; touch-action: manipulation; }
+.dial::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle, rgba(240, 180, 41, 0.07), transparent 62%); }
+.knurl { position: absolute; inset: 6%; border-radius: 50%; background: repeating-conic-gradient(#11130e 0 0.6deg, #3c4235 0.6deg 1.2deg); box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55), 0 0 0 1px #0c0e0a; }
+.bezel { position: absolute; inset: 7.6%; border-radius: 50%; background: conic-gradient(from 200deg, #262a20, #474e3d 10%, #23271d 26%, #3c4234 48%, #22261c 68%, #41483a 84%, #262a20); box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.06), inset 0 -3px 6px rgba(0, 0, 0, 0.5); }
+.well { position: absolute; inset: 17.2%; border-radius: 50%; background: #0c0e0a; box-shadow: 0 0 0 3px #0c0e0a, inset 0 0 0 1px rgba(255, 255, 255, 0.06); }
+#dmap { position: absolute; inset: 17.4%; width: 65.2%; height: 65.2%; border-radius: 50%; cursor: crosshair; }
+#dsvg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.rim { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; border: 1px solid #0c0e0a; background: radial-gradient(circle at 35% 30%, #4a5140, #262a20 70%); color: var(--engrave); font: 400 12px/1 var(--dial); cursor: pointer; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); display: grid; place-items: center; }
+.rim:hover { color: var(--lume); }
+.rim[aria-pressed="true"] { color: var(--lume); box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), 0 0 0 2px rgba(240, 180, 41, 0.5); }
+.rim svg { width: 18px; height: 18px; }
+.chip { position: absolute; display: flex; gap: 8px; align-items: center; padding: 6px 10px; border-radius: 6px; background: rgba(12, 14, 10, 0.92); border: 1px solid var(--line); font: 500 12px/1 var(--mono); white-space: nowrap; transform: translateY(-50%); }
+.chip i { width: 8px; height: 8px; border-radius: 50%; }
+.chip span { color: var(--engrave-2); }
+.seg { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--plate); border: 1px solid var(--line); }
+.seg button { min-height: 38px; padding: 0 16px; border: 0; border-radius: 999px; background: transparent; color: var(--engrave-2); font: 400 11px/1 var(--dial); letter-spacing: 0.12em; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--plate-2); color: var(--lume); box-shadow: inset 0 0 0 1px var(--line); }
+.hint { font: 13px/1.4 var(--mono); color: var(--engrave-2); text-align: center; }
+
+/* ---------- sections ---------- */
+section.sheet { padding-block: clamp(72px, 10vw, 128px); border-top: 1px solid var(--line); }
+.two { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: 32px 64px; align-items: start; }
+h2 { margin: 14px 0 0; font: 700 clamp(30px, 3.6vw, 48px)/1.02 var(--wide); font-variation-settings: "wdth" 125; letter-spacing: -0.015em; text-wrap: balance; }
+.two .intro { color: var(--engrave-2); margin: 16px 0 0; max-width: 24em; }
+dl.spec { margin: 0; display: grid; grid-template-columns: minmax(0, 15em) minmax(0, 1fr); border-top: 1px solid var(--line); }
+dl.spec dt, dl.spec dd { margin: 0; padding: 15px 0; border-bottom: 1px solid var(--line); }
+dl.spec dt { font: 400 11px/1.9 var(--dial); letter-spacing: 0.14em; text-transform: uppercase; color: var(--engrave-2); padding-right: 20px; }
+dl.spec dd { font-size: 16px; }
+dl.spec dd .mono { font: 500 15px/1.5 var(--mono); color: var(--lume); }
+
+.keys { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; margin-top: 8px; }
+.key { display: grid; gap: 14px; justify-items: start; padding: 22px; border-radius: 14px; background: var(--plate); border: 1px solid var(--line); min-width: 0; }
+.caps { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; color: var(--engrave-2); font: 14px/1 var(--mono); }
+kbd { display: inline-grid; place-items: center; min-width: 46px; height: 46px; padding: 0 10px; border-radius: 9px; background: linear-gradient(#3a4033, #2a2f24); border: 1px solid #0c0e0a; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 3px 0 #0c0e0a; font: 400 12px/1 var(--dial); color: var(--engrave); }
+.key p { margin: 0; font-size: 15px; color: var(--engrave-2); }
+.key p b { display: block; color: var(--engrave); font-weight: 600; }
+
+.wire { display: grid; grid-template-columns: minmax(0, 1fr) 56px minmax(0, 1.2fr) 56px minmax(0, 1fr); grid-template-rows: repeat(3, auto); gap: 14px 0; align-items: center; margin-top: 8px; }
+.node { padding: 18px 20px; border-radius: 12px; background: var(--plate); border: 1px solid var(--line); min-width: 0; }
+.node b { display: block; font-weight: 600; }
+.node span { font: 13px/1.5 var(--mono); color: var(--engrave-2); }
+.node.big { grid-row: 1 / 4; align-self: stretch; display: grid; align-content: center; gap: 6px; }
+.node.game { grid-column: 1; border-style: dashed; }
+.node.tt { grid-column: 5; border-color: rgba(240, 180, 41, 0.5); box-shadow: 0 0 30px rgba(240, 180, 41, 0.08); }
+.node.tt b { color: var(--lume); }
+.arrow { height: 2px; margin: 0 6px; background: var(--engrave-2); position: relative; opacity: 0.7; }
+.arrow::after { content: ""; position: absolute; right: -1px; top: -4px; border: 5px solid transparent; border-left: 7px solid var(--engrave-2); border-right: 0; }
+.arrow.none { background: none; }
+.arrow.none::after { display: none; }
+.cut { margin-top: 26px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; color: var(--engrave-2); font: 13.5px/1.4 var(--mono); }
+.cut s { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); text-decoration-color: var(--north); text-decoration-thickness: 2px; color: var(--engrave); }
+
+footer { padding-block: 96px calc(96px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); background: radial-gradient(ellipse at 80% 0%, rgba(240, 180, 41, 0.08), transparent 55%); }
+footer .end { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 28px 48px; align-items: end; }
+footer h2 { margin: 0; font-size: clamp(36px, 5vw, 68px); }
+.fine { margin-top: 56px; display: grid; gap: 6px; font-size: 13px; color: var(--engrave-2); max-width: 62em; }
+
+@media (max-width: 980px) {
+  .hero, .two, footer .end { grid-template-columns: minmax(0, 1fr); }
+  .keys { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .wire { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+  .wire .arrow { display: none; }
+  .wire > * { grid-column: auto !important; }
+  .node.tt { order: 9; }
+  .node.big { grid-row: auto; }
+  .node.game, .node.tt { grid-column: auto; }
+}
+@media (max-width: 620px) {
+  .nav .links { display: none; }
+  .chip.mate { display: none; }
+  dl.spec { grid-template-columns: minmax(0, 1fr); }
+  dl.spec dt { padding-bottom: 0; border-bottom: 0; }
+  .keys { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="wrap nav">
+  <a class="brand" href="#top" aria-label="TarTrak home">
+    <svg viewBox="0 0 512 512" aria-hidden="true"><circle cx="256" cy="256" r="170" fill="none" stroke="#f0b429" stroke-width="44"/><rect x="238" y="30" width="36" height="140" fill="#f0b429"/></svg>
+    TARTRAK
+  </a>
+  <nav class="links" aria-label="Sections">
+    <a href="#spec">Specifications</a>
+    <a href="#controls">Controls</a>
+    <a href="#wiring">What it reads</a>
+    <a href="https://github.com/cthpAiden/TarTrak">GitHub</a>
+  </nav>
+</header>
+
+<section class="wrap hero" id="top">
+  <div>
+    <p class="label">Overlay minimap for Escape from Tarkov</p>
+    <h1>The whole squad, on <em>one dial.</em></h1>
+    <p class="lede">A round minimap that sits on top of the game. Your position and heading come from your own screenshots, your squad's from theirs, joined by a six-character room code.</p>
+    <div class="btns">
+      <a class="btn btn-lume" href="https://github.com/cthpAiden/TarTrak/releases/latest">Download for Windows</a>
+      <a class="btn btn-line" href="https://github.com/cthpAiden/TarTrak">Source on GitHub</a>
+    </div>
+    <div class="facts">
+      <div><span class="label">Version</span><b>0.14.5</b></div>
+      <div><span class="label">Price</span><b>Free</b></div>
+      <div><span class="label">Licence</span><b>MIT</b></div>
+      <div><span class="label">System</span><b>Win 10, 11</b></div>
+    </div>
+  </div>
+
+  <div class="dialcol">
+    <div class="dial" id="dial">
+      <div class="knurl"></div>
+      <div class="bezel"></div>
+      <div class="well"></div>
+      <canvas id="dmap" role="img" aria-label="Round minimap: you at the centre with a heading line, three teammates around you"></canvas>
+      <svg id="dsvg" viewBox="0 0 1000 1000" aria-hidden="true">
+        <g id="ring"></g>
+        <g id="hbox">
+          <path d="M500 110 l-9 -12 h18 z" fill="#f0b429"/>
+          <g id="hlabel">
+          <rect x="452" y="40" width="96" height="46" rx="5" fill="#0c0e0a" stroke="#f0b429" stroke-width="2"/>
+          <text id="htext" x="500" y="72" text-anchor="middle" fill="#f0b429" font-family="IBM Plex Mono, monospace" font-weight="600" font-size="26">048°</text>
+          </g>
+        </g>
+      </svg>
+      <button class="rim" id="rot" type="button" aria-pressed="false" aria-label="Heading-up rotation" style="left:20.7%;top:79.3%">N</button>
+      <button class="rim" id="zin" type="button" aria-label="Zoom in" style="left:93%;top:43%"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M9 3v12M3 9h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+      <button class="rim" id="zout" type="button" aria-label="Zoom out" style="left:93%;top:55%"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 9h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+      <div id="chips"></div>
+    </div>
+    <div class="seg" role="group" aria-label="Map rotation">
+      <button type="button" id="mn" aria-pressed="true">NORTH-UP</button>
+      <button type="button" id="mh" aria-pressed="false">HEADING-UP</button>
+    </div>
+    <p class="hint">Click the map to take a screenshot. The heading only changes when you do.</p>
+  </div>
+</section>
+
+<section class="sheet" id="spec">
+  <div class="wrap two">
+    <div>
+      <p class="label">Data sheet</p>
+      <h2>Specifications</h2>
+      <p class="intro">What TarTrak 0.14.5 does, in numbers and plain words.</p>
+    </div>
+    <dl class="spec">
+      <dt>Position source</dt><dd>The screenshot filename: <span class="mono">X, Y, Z</span> and rotation</dd>
+      <dt>Map detection</dt><dd>The game's text log, with a manual picker as fallback</dd>
+      <dt>Overlay</dt><dd>Circle with compass bezel, or box. Size, bezel and rim buttons adjustable</dd>
+      <dt>Rotation</dt><dd>North-up by default, heading-up as a toggle</dd>
+      <dt>Heading line</dt><dd><span class="mono">100 m</span>, range marks at <span class="mono">50 / 100 / 150 m</span></dd>
+      <dt>Squad</dt><dd>Up to <span class="mono">12</span> players per room, joined by a <span class="mono">6</span>-character code</dd>
+      <dt>Relay</dt><dd>Keeps nothing, logs nothing. You can run your own</dd>
+      <dt>Old markers</dt><dd>Full for <span class="mono">30 s</span>, settle at <span class="mono">35%</span> after <span class="mono">5 min</span>. Never hidden</dd>
+      <dt>Raid timer</dt><dd>Read from the game's own raid clock, PMC and Scav</dd>
+      <dt>Map data</dt><dd>tarkov.dev, PvP or PvE</dd>
+      <dt>Accounts, telemetry</dt><dd>None, none</dd>
+    </dl>
+  </div>
+</section>
+
+<section class="sheet" id="controls">
+  <div class="wrap">
+    <p class="label">Controls</p>
+    <h2>Five keys. Every one rebindable.</h2>
+    <div class="keys" style="margin-top:40px">
+      <div class="key"><div class="caps"><kbd>F5</kbd></div><p><b>Overlay mode</b>Switch between the full window and the overlay.</p></div>
+      <div class="key"><div class="caps"><kbd>F6</kbd></div><p><b>Opacity</b>Change how see-through the overlay is.</p></div>
+      <div class="key"><div class="caps"><kbd>F7</kbd></div><p><b>Hide</b>Hide the window until you press it again.</p></div>
+      <div class="key"><div class="caps"><kbd>ALT</kbd>+ drag</div><p><b>Move</b>Drag the overlay where you want it.</p></div>
+      <div class="key"><div class="caps"><kbd>L ALT</kbd>+<kbd>PRTSC</kbd></div><p><b>Mark here</b>Drop a private marker where you stand.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="sheet" id="wiring">
+  <div class="wrap">
+    <p class="label">What it reads</p>
+    <h2>Three inputs. No line to the game.</h2>
+    <div class="wire" style="margin-top:44px" role="img" aria-label="Diagram: the game writes screenshots and a text log; Windows reports one key's state; TarTrak reads those three and has no connection to the game process">
+      <div class="node big game"><b>Escape from Tarkov</b><span>The game process. TarTrak never opens it.</span></div>
+      <div class="arrow"></div>
+      <div class="node"><b>Screenshots folder</b><span>Filenames hold position and rotation</span></div>
+      <div class="arrow"></div>
+      <div class="node big tt"><b>TarTrak</b><span>Map, squad, overlay</span></div>
+      <div class="arrow" style="grid-column:2"></div>
+      <div class="node" style="grid-column:3"><b>Text log</b><span>Which map you loaded, the raid clock</span></div>
+      <div class="arrow" style="grid-column:4"></div>
+      <div class="arrow none" style="grid-column:2"></div>
+      <div class="node" style="grid-column:3"><b>Windows key state</b><span>Is the mark-here key held? Same call as push-to-talk apps</span></div>
+      <div class="arrow" style="grid-column:4"></div>
+    </div>
+    <div class="cut"><span>Never:</span><s>memory reads</s><s>code injection</s><s>keyboard hooks</s><s>keystrokes to the game</s></div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="end">
+      <h2>Free, and staying that way.</h2>
+      <div class="btns">
+        <a class="btn btn-lume" href="https://github.com/cthpAiden/TarTrak/releases/latest">Download v0.14.5</a>
+        <a class="btn btn-line" href="https://paypal.me/HeyAiden">Chip in</a>
+      </div>
+    </div>
+    <div class="fine">
+      <span>The map on this page is made up. In the app, maps come from tarkov-dev-svg-maps and data from tarkov.dev.</span>
+      <span>Escape from Tarkov is a trademark of Battlestate Games. TarTrak is not affiliated with or endorsed by them.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="kit.js"></script>
+<script>
+(() => {
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const NS = "http://www.w3.org/2000/svg";
+  const svgEl = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; };
+  const ring = document.getElementById("ring"), hbox = document.getElementById("hbox"), hlabel = document.getElementById("hlabel"), htext = document.getElementById("htext");
+
+  // engraved degree ring: ticks every 2°, numbers every 30°, cardinals
+  const tickEls = [];
+  for (let d = 0; d < 360; d += 2) {
+    const a = d * Math.PI / 180, s = Math.sin(a), c = -Math.cos(a);
+    const len = d % 30 === 0 ? 26 : d % 10 === 0 ? 17 : 9;
+    tickEls.push(svgEl("line", { x1: 500 + s * 420, y1: 500 + c * 420, x2: 500 + s * (420 - len), y2: 500 + c * (420 - len),
+      stroke: d === 0 ? "#e8513f" : "#dcd8c6", "stroke-width": d % 30 === 0 ? 3.5 : d % 10 === 0 ? 2.2 : 1.2, opacity: d % 10 === 0 ? 1 : 0.7 }, ring));
+  }
+  for (let d = 0; d < 360; d += 30) {
+    const a = d * Math.PI / 180, card = { 0: "N", 90: "E", 180: "S", 270: "W" }[d];
+    svgEl("text", { x: 500 + Math.sin(a) * 365, y: 500 - Math.cos(a) * 365, "text-anchor": "middle", "dominant-baseline": "central",
+      transform: `rotate(${d} ${500 + Math.sin(a) * 365} ${500 - Math.cos(a) * 365})`,
+      fill: d === 0 ? "#e8513f" : "#dcd8c6", "font-family": "Michroma, sans-serif", "font-size": card ? 34 : 19 }, ring).textContent = card || String(d / 10).padStart(2, "0");
+  }
+
+  // squad, metres from you (x east, y south)
+  const mates = [
+    { name: "GHOST", color: "#00e5ff", x: -28, y: -38, h: 330 },
+    { name: "NOMAD", floor: "2F", color: "#b388ff", x: 62, y: 57, h: 120 },
+    { name: "VEX", color: "#ff4081", x: -96, y: 91, h: 210 },
+  ];
+  for (const m of mates) {
+    m.d = Math.round(Math.hypot(m.x, m.y));
+    m.b = (Math.atan2(m.x, -m.y) * 180 / Math.PI + 360) % 360;
+    m.ping = -9;
+    const g = svgEl("g", { transform: `rotate(${m.b} 500 500)` }, ring);
+    svgEl("path", { d: "M500 330 l-11 -18 h22 z", fill: m.color, stroke: "#0c0e0a", "stroke-width": 2 }, g);
+  }
+
+  // chips: raid timer and teammate distances step up the lower right of the rim, closest first
+  const chips = document.getElementById("chips");
+  const rows = [{ text: "RAID", val: "31:42", id: "raid" }, ...mates.slice().sort((a, b) => a.d - b.d).map((m) => ({ m }))];
+  rows.forEach((r, i) => {
+    const ang = (165 - i * 17) * Math.PI / 180, R = 0.47;
+    const c = document.createElement("div");
+    c.className = "chip" + (r.m ? " mate" : "");
+    c.style.left = (50 + Math.sin(ang) * R * 100) + "%"; c.style.top = (50 - Math.cos(ang) * R * 100) + "%";
+    if (r.m) {
+      const dotEl = document.createElement("i"); dotEl.style.background = r.m.color;
+      const s = document.createElement("span"); s.textContent = r.m.name;
+      c.append(dotEl, s, `${r.m.d} m`);
+    } else {
+      const s = document.createElement("span"); s.textContent = r.text;
+      const v = document.createElement("b"); v.id = r.id; v.style.fontWeight = 500; v.textContent = r.val;
+      c.append(s, v);
+    }
+    chips.appendChild(c);
+  });
+  let left = 31 * 60 + 42;
+  setInterval(() => { left = Math.max(0, left - 1); document.getElementById("raid").textContent = `${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`; }, 1000);
+
+  // map
+  const cv = document.getElementById("dmap"), ctx = cv.getContext("2d");
+  const field = TT.noise(31);
+  let size = 0, D = 1, span = 170, base = null;  // span: metres from centre to the edge of the map
+  function build() {
+    size = cv.clientWidth; D = Math.min(2, devicePixelRatio || 1);
+    cv.width = cv.height = Math.round(size * D);
+    const ppm = size / 2 / span, s = Math.ceil(size * 1.45);
+    base = document.createElement("canvas"); base.width = base.height = Math.round(s * D);
+    const b = base.getContext("2d"); b.scale(D, D);
+    b.fillStyle = "#1e2419"; b.fillRect(0, 0, s, s);
+    const k = 1 / (ppm * 260);
+    const p = TT.contours((x, y) => field((x - s / 2) * k + 4, (y - s / 2) * k + 2), s, s, 6, TT.range(-0.75, 0.75, 0.075), 4);
+    b.strokeStyle = "#323b2b"; b.lineWidth = 1; b.stroke(p.minor);
+    b.strokeStyle = "#45503b"; b.lineWidth = 1.5; b.stroke(p.major);
+    b.strokeStyle = "rgba(220,216,198,0.05)"; b.beginPath();
+    for (let v = (s / 2) % (50 * ppm); v < s; v += 50 * ppm) { b.moveTo(v, 0); b.lineTo(v, s); b.moveTo(0, v); b.lineTo(s, v); }
+    b.stroke();
+    // a road and a few roofs
+    b.strokeStyle = "#2b3026"; b.lineWidth = 9 * ppm + 2; b.lineCap = "round";
+    b.beginPath(); b.moveTo(0, s * 0.62); b.quadraticCurveTo(s * 0.5, s * 0.42, s, s * 0.5); b.stroke();
+    b.strokeStyle = "#6a705f"; b.lineWidth = 2; b.setLineDash([10, 8]);
+    b.beginPath(); b.moveTo(0, s * 0.62); b.quadraticCurveTo(s * 0.5, s * 0.42, s, s * 0.5); b.stroke(); b.setLineDash([]);
+    const r = TT.rng(3);
+    for (let i = 0; i < 14; i++) {
+      const x = s / 2 + (r() - 0.3) * 120 * ppm, y = s / 2 + (r() - 0.75) * 110 * ppm, w = (8 + r() * 18) * ppm, h = (8 + r() * 14) * ppm;
+      b.fillStyle = "#3a4136"; b.fillRect(x, y, w, h); b.strokeStyle = "#262b23"; b.lineWidth = 2; b.strokeRect(x, y, w, h);
+    }
+  }
+
+  const st = { ht: 48, hd: 48, mode: 0, md: 0, ping: -9, aim: null, last: performance.now(), lastShot: performance.now() };
+  const ad = (a, b) => ((a - b + 540) % 360) - 180;
+
+  function line(x, y, h, color, alpha, ppm) {
+    const a = (h - 90) * Math.PI / 180, cs = Math.cos(a), sn = Math.sin(a), len = 100 * ppm;
+    const g = ctx.createLinearGradient(x, y, x + cs * len, y + sn * len);
+    g.addColorStop(0, TT.hexA(color, alpha)); g.addColorStop(1, TT.hexA(color, 0));
+    ctx.strokeStyle = g; ctx.lineWidth = 2; ctx.setLineDash([7, 5]);
+    ctx.beginPath(); ctx.moveTo(x + cs * 9, y + sn * 9); ctx.lineTo(x + cs * len, y + sn * len); ctx.stroke(); ctx.setLineDash([]);
+    ctx.lineWidth = 1.5;
+    for (const [m, o] of [[50, 0.8], [100, 0.55], [150, 0.35]]) {
+      const d = m * ppm, px = x + cs * d, py = y + sn * d;
+      ctx.strokeStyle = TT.hexA(color, o * alpha); ctx.beginPath();
+      ctx.moveTo(px - sn * 3.5, py + cs * 3.5); ctx.lineTo(px - sn * 8, py + cs * 8);
+      ctx.moveTo(px + sn * 3.5, py - cs * 3.5); ctx.lineTo(px + sn * 8, py - cs * 8); ctx.stroke();
+    }
+  }
+
+  function frame(now) {
+    const dt = Math.min(0.05, (now - st.last) / 1000); st.last = now;
+    const k = reduce ? 1 : 1 - Math.exp(-dt * 7);
+    st.hd = (st.hd + ad(st.ht, st.hd) * k + 360) % 360;
+    st.md += (st.mode - st.md) * k;
+    const ringRot = -st.hd * st.md, boxRot = st.hd * (1 - st.md);
+    ring.setAttribute("transform", `rotate(${ringRot} 500 500)`);
+    hbox.setAttribute("transform", `rotate(${boxRot} 500 500)`);
+    hlabel.setAttribute("transform", `rotate(${-boxRot} 500 63)`);
+    htext.textContent = String(Math.round(st.ht) % 360).padStart(3, "0") + "°";
+
+    if (base) {
+      const ppm = size / 2 / span, c = size / 2, s = base.width / D;
+      ctx.setTransform(D, 0, 0, D, 0, 0);
+      ctx.clearRect(0, 0, size, size);
+      ctx.save();
+      ctx.beginPath(); ctx.arc(c, c, c, 0, Math.PI * 2); ctx.clip();
+      ctx.translate(c, c); ctx.rotate(ringRot * Math.PI / 180);
+      ctx.drawImage(base, -s / 2, -s / 2, s, s);
+      for (const m of mates) {
+        const x = m.x * ppm, y = m.y * ppm;
+        if (!reduce && now > (m.next || 0)) { m.ping = now; m.next = now + 2200 + Math.random() * 3000; m.h = (m.h + (Math.random() - 0.5) * 60 + 360) % 360; }
+        line(x, y, m.h, m.color, 1, ppm);
+        const t = (now - m.ping) / 900;
+        if (t >= 0 && t < 1) { ctx.beginPath(); ctx.arc(x, y, 7 + t * 34, 0, Math.PI * 2); ctx.strokeStyle = TT.hexA(m.color, 0.7 * (1 - t)); ctx.lineWidth = 2; ctx.stroke(); }
+        ctx.beginPath(); ctx.arc(x, y, 8, 0, Math.PI * 2); ctx.fillStyle = "#0c0e0a"; ctx.fill();
+        ctx.beginPath(); ctx.arc(x, y, 5.5, 0, Math.PI * 2); ctx.fillStyle = m.color; ctx.fill();
+        // upright label
+        ctx.save(); ctx.translate(x, y); ctx.rotate(-ringRot * Math.PI / 180);
+        ctx.font = '600 11px "IBM Plex Mono", monospace'; ctx.textBaseline = "middle";
+        const label = m.floor ? `${m.name} [${m.floor}]` : m.name, w = ctx.measureText(label).width + 12;
+        ctx.fillStyle = "rgba(12,14,10,0.88)"; ctx.fillRect(11, -24, w, 18);
+        ctx.fillStyle = m.color; ctx.fillText(label, 17, -15);
+        ctx.restore();
+      }
+      // aim preview: where a screenshot now would point you
+      if (st.aim !== null) {
+        const a = (st.aim - 90) * Math.PI / 180;
+        ctx.strokeStyle = "rgba(240,180,41,0.35)"; ctx.lineWidth = 1.5; ctx.setLineDash([2, 6]);
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * c, Math.sin(a) * c); ctx.stroke(); ctx.setLineDash([]);
+      }
+      line(0, 0, st.hd, "#f0b429", 1, ppm);
+      const t = (now - st.ping) / 900;
+      if (t >= 0 && t < 1) { ctx.beginPath(); ctx.arc(0, 0, 9 + t * 44, 0, Math.PI * 2); ctx.strokeStyle = `rgba(240,180,41,${0.75 * (1 - t)})`; ctx.lineWidth = 2; ctx.stroke(); }
+      ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fillStyle = "#0c0e0a"; ctx.fill();
+      ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2); ctx.fillStyle = "#f0b429"; ctx.fill();
+      ctx.restore();
+      // inner shadow at the rim of the well
+      const g = ctx.createRadialGradient(c, c, c * 0.82, c, c, c);
+      g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(1, "rgba(0,0,0,0.55)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(c, c, c, 0, Math.PI * 2); ctx.fill();
+    }
+    if (!reduce && now - st.lastShot > 6000) shoot((st.ht + (Math.random() - 0.5) * 100 + 360) % 360, now);
+    requestAnimationFrame(frame);
+  }
+  function shoot(h, now) { st.ht = h; st.ping = now; st.lastShot = now; }
+
+  const angleAt = (e) => {
+    const r = cv.getBoundingClientRect(), x = e.clientX - r.left - r.width / 2, y = e.clientY - r.top - r.height / 2;
+    const ringRot = -st.hd * st.md;
+    return ((Math.atan2(x, -y) * 180 / Math.PI) - ringRot + 720) % 360;
+  };
+  cv.addEventListener("pointermove", (e) => { st.aim = angleAt(e); });
+  cv.addEventListener("pointerleave", () => { st.aim = null; });
+  cv.addEventListener("click", (e) => shoot(angleAt(e), performance.now()));
+
+  // rotation: rim button and the segmented control stay in sync
+  const rot = document.getElementById("rot"), mn = document.getElementById("mn"), mh = document.getElementById("mh");
+  function setMode(m) {
+    st.mode = m;
+    rot.setAttribute("aria-pressed", String(m === 1)); rot.textContent = m ? "H" : "N";
+    mn.setAttribute("aria-pressed", String(m === 0)); mh.setAttribute("aria-pressed", String(m === 1));
+  }
+  rot.addEventListener("click", () => setMode(st.mode ? 0 : 1));
+  mn.addEventListener("click", () => setMode(0));
+  mh.addEventListener("click", () => setMode(1));
+  document.getElementById("zin").addEventListener("click", () => { span = Math.max(80, span / 1.35); build(); });
+  document.getElementById("zout").addEventListener("click", () => { span = Math.min(420, span * 1.35); build(); });
+
+  document.fonts.ready.then(() => { build(); requestAnimationFrame(frame); });
+  let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(build, 150); });
+  TT.switcher("D");
+})();
+</script>
+</body>
+</html>
