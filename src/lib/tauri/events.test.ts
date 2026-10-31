@@ -115,6 +115,24 @@ describe("handleLogLine", () => {
     expect(s.raidEndsAt).toBeNull();
   });
 
+  it("notes when a raid is first seen, for the screenshot reminder, but not again when the game moves its end", () => {
+    const s = new AppState();
+    const clock =
+      "2026-09-18 12:51:34.321|1.1.5.0.47426|Info|output|GameTimer utcNow:09/18/2026 05:51:33 start:09/18/2026 05:51:22 escape:09/18/2026 06:26:22 PastTime:00:00:10.7960000 stop:01/01/0001 00:00:00 (startTime:09/18/2026 05:51:22, sessionTime:00:35:00)";
+    try {
+      vi.spyOn(Date, "now").mockReturnValue(1000);
+      handleLogLine(clock, s);
+      expect(s.raidSeenAt).toBe(1000);
+      vi.spyOn(Date, "now").mockReturnValue(2000);
+      handleLogLine(clock, s);
+      expect(s.raidSeenAt).toBe(1000);
+      handleLogLine("2026-09-04 04:56:12.284|1.1.0.1.46911|Info|application|GameStarted:215.23(215.23) real:236.94(236.94) diff:21.71", s);
+      expect(s.raidSeenAt).toBe(2000);
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+
   it("keeps the raid's end through a map change: the clock no longer depends on the map", () => {
     const s = new AppState();
     s.setMap("factory", "log");

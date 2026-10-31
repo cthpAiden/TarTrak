@@ -45,6 +45,7 @@
     onClearDraw,
     frame = null,
     rotation = 0,
+    grey = 0,
   }: {
     def: MapDef | null;
     activeFloor: string | null;
@@ -77,6 +78,8 @@
     frame?: { left: number; top: number; size: number } | null;
     /** Degrees the map is turned anticlockwise on screen (my heading in heading-up mode), 0 for north-up. */
     rotation?: number;
+    /** Screenshot reminder: 0 shows the map in full colour, 1 fully grey; markers keep their colour. */
+    grey?: number;
   } = $props();
 
   // Before the first marker exists: 2D transforms keep the renderer from giving every marker a layer.
@@ -580,6 +583,8 @@
   style:height={frame ? `${frame.size}px` : null}
   style:transform={rotation !== 0 ? `rotate(${-rotation}deg)` : null}
   style:--counter="{rotation}deg"
+  class:greying={grey > 0}
+  style:--grey={grey > 0 ? grey : null}
   bind:this={container}
   role="application"
   aria-label="map"

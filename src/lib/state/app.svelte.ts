@@ -56,6 +56,8 @@ export class AppState {
   mapSource = $state<MapSource | null>(null);
   /** Epoch ms (this PC's clock) the current raid ends, from the game's own raid clock; null outside a raid. */
   raidEndsAt = $state<number | null>(null);
+  /** Epoch ms the current raid was first seen (spawn or raid clock): the screenshot reminder counts from here until my first screenshot. */
+  raidSeenAt = $state(0);
   /** The game's screenshot key as a virtual-key code, read from its log; null until the log says. */
   shotKeyVk = $state<number | null>(null);
   teammates = $state<Record<string, Teammate>>({});

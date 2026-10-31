@@ -4074,7 +4074,7 @@ checksum = "61c41af27dd6d1e27b1b16b489db798443478cef1f06a660c96db617ba5de3b1"
 
 [[package]]
 name = "tartrak"
-version = "0.14.5"
+version = "0.15.0"
 dependencies = [
  "dirs 6.0.0",
  "notify",

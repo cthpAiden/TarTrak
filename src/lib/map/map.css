@@ -3,6 +3,12 @@
 .leaflet-container { background: transparent; }
 .hidden-layer { display: none; }
 .off-level { opacity: 0.35; }
+/* Screenshot reminder: the map drawing (SVG or tiles, and a raster floor) turns grey and a little darker;
+   markers, labels and zones sit in other panes and keep their colour. Only while greying, so the usual
+   map carries no filter at all. */
+.map-root.greying :is(.leaflet-tile-pane, .leaflet-overlay-pane, .leaflet-floor-tiles-pane) {
+  filter: grayscale(var(--grey)) brightness(calc(1 - 0.2 * var(--grey)));
+}
 .tt-label {
   text-shadow: 0 0 3px #000, 0 0 1px #000;
   color: #fff;
