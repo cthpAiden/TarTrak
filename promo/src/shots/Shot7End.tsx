@@ -3,6 +3,7 @@ import { LogoMark } from "../components/Logo.tsx";
 import { C } from "../theme.ts";
 import { clamp, easeOutCubic, easeOutExpo, lerp, prog } from "../lib/ease.ts";
 import { HANDOFF } from "../timeline.ts";
+import { topoPath } from "../lib/topo.ts";
 import { Burst, HIT, HitFlash, K, Shockwave, TopMark, fullFrame, type Ring } from "./end/Hit.tsx";
 import { Badges, Tagline, Url, Wordmark } from "./end/Type.tsx";
 
@@ -68,6 +69,20 @@ const Logo = ({ ring }: { ring: Ring }) => {
   );
 };
 
+/** Contour lines behind the card (dim amber), computed once; they fade in as the logo lands. */
+const TOPO = topoPath({ w: 1920, h: 1080, seed: 3, scale: 380, levels: 24 });
+const Topo = () => {
+  const k = prog(useCurrentFrame(), 724, 790, easeOutCubic);
+  if (k <= 0) return null;
+  // Dimmer in the middle, where the logo and type sit.
+  const mask = "radial-gradient(ellipse 46% 52% at 50% 50%, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.5) 55%, #000 100%)";
+  return (
+    <svg width={1920} height={1080} style={{ ...fullFrame, opacity: k, maskImage: mask, WebkitMaskImage: mask }}>
+      <path d={TOPO} fill="none" stroke={C.amber} strokeOpacity={0.3} strokeWidth={2} strokeLinejoin="round" />
+    </svg>
+  );
+};
+
 /** One slow sonar ping off the logo's rim at 840, r 92 -> 520, fading out by 896 so the poster holds clean. */
 const LastPing = () => {
   const frame = useCurrentFrame();
@@ -96,6 +111,7 @@ export const Shot7End = () => {
   const ring = ringAt(frame);
   return (
     <AbsoluteFill>
+      <Topo />
       <Bloom ring={ring} />
       <LastPing />
       <Shockwave />
