@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.15.1 - 2026-10-31
+
+### Fixed
+- **Screenshot reminder on the round minimap:** the disc's dark background, seen past the map's edge, kept its green tint while the map turned grey. It now greys along with the map.
+
 ## 0.15.0 - 2026-10-31
 
 ### Map
