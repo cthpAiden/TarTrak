@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.15.0 - 2026-10-31
+
+### Map
+- **Screenshot reminder (opt-in).** Settings > Screenshot reminder. When it is on, the map slowly turns grey in a raid once you go 45 s (or 1 min, your pick) without pressing the screenshot key, fully grey 20 s later. The next screenshot brings the colour back at once. Your marker, teammates, quest markers and labels keep their colour. No sound, no popup. Off by default; it needs the game's log folder, which tells TarTrak when a raid is on.
+
 ## 0.14.2 - 2026-10-26
 
 ### Squad
