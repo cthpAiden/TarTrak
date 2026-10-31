@@ -1,7 +1,7 @@
 {
   "name": "tartrak",
   "private": true,
-  "version": "0.15.1",
+  "version": "0.15.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -22,23 +22,23 @@
     "@tauri-apps/plugin-fs": "^2",
     "@tauri-apps/plugin-global-shortcut": "^2",
     "@tauri-apps/plugin-http": "^2",
-    "@tauri-apps/plugin-opener": "^2.5.5",
+    "@tauri-apps/plugin-opener": "^2.7.2",
     "@tauri-apps/plugin-process": "^2",
     "@tauri-apps/plugin-store": "^2",
     "@tauri-apps/plugin-updater": "^2",
     "leaflet": "^1.9.4"
   },
   "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "^5",
+    "@sveltejs/vite-plugin-svelte": "^7",
     "@tauri-apps/cli": "^2",
     "@tsconfig/svelte": "^5",
     "@types/leaflet": "^1.9",
-    "@types/node": "^24.13.3",
-    "jsdom": "^26",
+    "@types/node": "^26.6.5",
+    "jsdom": "^30",
     "svelte": "^5",
     "svelte-check": "^4",
-    "typescript": "^5",
-    "vite": "^6.4.5",
-    "vitest": "^4.1.12"
+    "typescript": "^6",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
   }
 }

@@ -246,7 +246,7 @@ describe("SettingsPanel overlay", () => {
     void unmount(box.panel);
   });
 
-  it("offers the screenshot reminder delay only once the reminder is on", () => {
+  it("toggles the screenshot reminder, with no delay choice", () => {
     const off = open();
     expect(radio(off.target, "45s")).toBeUndefined();
     const toggle = off.target.querySelector<HTMLInputElement>("#set-reminder")!;
@@ -258,10 +258,7 @@ describe("SettingsPanel overlay", () => {
     document.body.innerHTML = "";
 
     const on = open({ shotReminder: true });
-    expect(radio(on.target, "45s").getAttribute("aria-checked")).toBe("true");
-    radio(on.target, "1 min").click();
-    flushSync();
-    expect(on.changes).toEqual([{ shotReminderDelay: 60 }]);
+    expect(on.target.querySelector("#set-reminder-delay-l")).toBeNull();
     void unmount(on.panel);
   });
 });

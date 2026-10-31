@@ -1,7 +1,7 @@
 /** Opt-in screenshot reminder: the map turns grey when I have gone too long without a screenshot. */
 
-/** Seconds without a screenshot before the grey starts; Settings offers these. */
-export const SHOT_REMINDER_DELAYS: readonly number[] = [45, 60];
+/** Seconds without a screenshot before the grey starts. */
+export const SHOT_REMINDER_DELAY_S = 30;
 /** How long the map takes to go from full colour to fully grey. */
 export const SHOT_FADE_MS = 20_000;
 
