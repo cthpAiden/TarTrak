@@ -1,82 +1,39 @@
+import { Img, staticFile } from "remotion";
 import { C } from "../theme.ts";
 import { clamp } from "../lib/ease.ts";
 
 /*
- * Proportions of the app icon (src-tauri/icons/icon.png, measured at 512 px), as shares of the ring's
- * outer diameter: ring stroke 0.106; tick 0.075 wide, from 0.595 to 0.238 above the centre (it clears
- * the ring's outer edge by 0.095 and reaches 0.156 inside its inner edge).
+ * The app icon (design/icon-concepts/variations/H1b-topo-amber.svg, copied to public/logo.svg) is
+ * 512 units square; its compass dial's outer edge has radius 200.5, centred.
  */
-const STROKE = 0.106;
-const TICK_W = 0.075;
-const TICK_TOP = 0.595;
-const TICK_BOTTOM = 0.238;
+const DIAL_R = 200.5;
 
 /**
- * The TarTrak mark: an amber ring with one tick at 12 o'clock. The element is `size` px square with the
- * ring's outer edge touching its sides (so its centre is the ring's centre); the tick overhangs the top
- * by 0.095 x size. `ring` 0..1 draws the ring clockwise from 12 o'clock; `tick` scales the tick's length
- * in from the ring (a spring may overshoot past 1); `glow` 0..1 is an amber bloom. `stroke` recolours
- * ring and tick; `strokeWidth` (px) overrides the ring's width, e.g. while it morphs from a thinner ring.
+ * The TarTrak mark: the app icon (topo compass). The element is `size` px square with the dial's outer
+ * edge touching its sides (so its centre is the dial's centre); the icon's tile overhangs that box by
+ * about 0.08 x size on each side. `ring` 0..1 fades and scales the icon in; `glow` 0..1 is an amber bloom.
  */
-export const LogoMark = ({
-  size,
-  ring = 1,
-  tick = 1,
-  glow = 1,
-  stroke = C.amber,
-  strokeWidth,
-}: {
-  size: number;
-  ring?: number;
-  tick?: number;
-  glow?: number;
-  stroke?: string;
-  strokeWidth?: number;
-}) => {
-  const sw = strokeWidth ?? size * STROKE;
-  const c = size / 2;
-  const r = c - sw / 2;
-  const tw = size * TICK_W;
-  const top = c - size * TICK_TOP;
-  const bottom = c - size * TICK_BOTTOM;
-  const oy = c - r;
+export const LogoMark = ({ size, ring = 1, glow = 1 }: { size: number; ring?: number; glow?: number }) => {
+  const full = (size * 256) / DIAL_R;
+  const k = clamp(ring);
   const g = clamp(glow);
-  const bloom = (blur: number, pct: number) => `drop-shadow(0 0 ${blur}px color-mix(in srgb, ${stroke} ${pct}%, transparent))`;
-  const share = clamp(ring);
+  const bloom = (blur: number, pct: number) => `drop-shadow(0 0 ${blur}px color-mix(in srgb, ${C.amber} ${pct}%, transparent))`;
+  if (k <= 0) return <div style={{ width: size, height: size }} />;
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox={`0 0 ${size} ${size}`}
-      style={{
-        display: "block",
-        overflow: "visible",
-        filter: g > 0 ? `${bloom(size * 0.03, Math.round(55 * g))} ${bloom(size * 0.12, Math.round(30 * g))}` : undefined,
-      }}
-      aria-hidden
-    >
-      {share >= 1 ? (
-        <circle cx={c} cy={c} r={r} fill="none" stroke={stroke} strokeWidth={sw} />
-      ) : share > 0 ? (
-        <path
-          d={`M${c} ${oy}A${r} ${r} 0 1 1 ${c} ${c + r}A${r} ${r} 0 1 1 ${c} ${oy}`}
-          fill="none"
-          stroke={stroke}
-          strokeWidth={sw}
-          pathLength={1}
-          strokeDasharray={`${share} 2`}
-        />
-      ) : null}
-      {tick > 0 ? (
-        <rect
-          x={c - tw / 2}
-          y={top}
-          width={tw}
-          height={bottom - top}
-          fill={stroke}
-          transform={`translate(0 ${oy}) scale(1 ${tick}) translate(0 ${-oy})`}
-        />
-      ) : null}
-    </svg>
+    <div style={{ position: "relative", width: size, height: size, overflow: "visible" }} aria-hidden>
+      <Img
+        src={staticFile("logo.svg")}
+        style={{
+          position: "absolute",
+          left: (size - full) / 2,
+          top: (size - full) / 2,
+          width: full,
+          height: full,
+          opacity: k,
+          transform: `scale(${0.85 + 0.15 * k})`,
+          filter: g > 0 ? `${bloom(size * 0.03, Math.round(35 * g))} ${bloom(size * 0.12, Math.round(18 * g))}` : undefined,
+        }}
+      />
+    </div>
   );
 };

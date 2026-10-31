@@ -66,7 +66,6 @@ const ICONS: IconName[] = ["filters", "squad", "quests", "settings", "overlay", 
 export const Gallery = () => {
   const frame = useCurrentFrame();
   const logoRing = prog(frame, 748, 778, easeInOutCubic);
-  const logoTick = frame >= 756 ? spring({ frame: frame - 756, fps: 60, config: SPRING_POP }) : 0;
   const tickCheck = frame >= 52 ? spring({ frame: frame - 52, fps: 60, config: SPRING_POP, durationInFrames: 16 }) : 0;
   const pingAt = Math.floor(frame / 30) * 30;
   return (
@@ -90,7 +89,7 @@ export const Gallery = () => {
       </Tile>
       <Tile x={1184} y={96} w={380} h={276} label="LOGOMARK  ANIMATED / STATIC">
         <div style={{ position: "absolute", left: 30, top: 92 }}>
-          <LogoMark size={140} ring={logoRing} tick={logoTick} glow={logoRing} />
+          <LogoMark size={140} ring={logoRing} glow={logoRing} />
         </div>
         <div style={{ position: "absolute", left: 210, top: 92 }}>
           <LogoMark size={140} />
