@@ -121,6 +121,8 @@
   let replayLayer: ReplayLayer | null = null;
   /** The map and line length the replay layer was made for; a change of either makes a new one. */
   let replayFor: { map: L.Map; len: number } | null = null;
+  /** The live view a replay zoomed away from, put back when it closes; a rebuilt map has its own fit. */
+  let liveView: { map: L.Map; center: L.LatLng; zoom: number } | null = null;
   const replaying = $derived(replay !== null);
   const replayId = $derived(replay?.id ?? null);
   /** Right-click menu: where it opens (container pixels) and the game point under the cursor. */
@@ -481,15 +483,24 @@
     });
   });
 
-  // A raid opened for replay: show all of its trails, once, clear of the dock.
+  // A raid opened for replay: show all of its trails, once, clear of the dock. Closed (overlay up,
+  // another tab), the map goes back to where it was, not left zoomed in on the replay's trails.
   $effect(() => {
     const id = replayId;
     const m = map;
-    if (id === null || !m) return;
+    if (!m) return;
     untrack(() => {
+      if (id === null) {
+        if (liveView?.map === m) m.setView(liveView.center, liveView.zoom, { animate: false });
+        liveView = null;
+        return;
+      }
+      if (liveView?.map !== m) liveView = { map: m, center: m.getCenter(), zoom: m.getZoom() };
       const pts = replay?.trails.flatMap((t) => t.points) ?? [];
       if (pts.length === 0) return;
       const bounds = L.latLngBounds(pts.map((p) => toLatLng(p.x, p.z)));
+      // Back from the overlay the sidebar is in again, but the size watcher has not told Leaflet yet.
+      m.invalidateSize({ animate: false });
       m.fitBounds(bounds, { paddingTopLeft: [60, 60], paddingBottomRight: [70, 60 + (replay?.padBottom ?? 0)], animate: false });
     });
   });
