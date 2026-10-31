@@ -151,6 +151,66 @@ add("H1-rose-on-map.svg", "Rose on map", "Night-map contours inside the dial, ro
   `<g clip-path="url(#dc)" fill="none" stroke="#f0b429" stroke-opacity=".22" stroke-width="4"><path d="M40 150C140 110 250 180 350 140S460 110 480 120"/><path d="M40 200C140 160 240 240 340 190S470 160 480 180"/><path d="M40 330C150 300 230 370 340 320S460 300 480 310"/><path d="M40 380C150 350 230 420 340 370S460 350 480 360"/></g>` +
   ticks(182, 72, 10, 2, "#8b95a1", 0.5) + rose8());
 
+// Topographic contours: iso-lines of a seeded random height field (marching squares, segments chained).
+function topo({ seed = 7, levels = 16, step = 3, blobs = 70 } = {}) {
+  let s = seed;
+  const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  const B = Array.from({ length: blobs }, () => [rnd() * 600 - 44, rnd() * 600 - 44, 22 + rnd() * 55, (rnd() - 0.5) * 2]);
+  const h = (x, y) => B.reduce((v, [bx, by, r, a]) => v + a * Math.exp(-((x - bx) ** 2 + (y - by) ** 2) / (2 * r * r)), 0) + 0.12 * Math.sin(x / 19 + Math.cos(y / 23) * 2) * Math.cos(y / 29 - x / 61);
+  const n = Math.ceil(512 / step) + 1, g = [];
+  for (let j = 0; j < n; j++) { g.push([]); for (let i = 0; i < n; i++) g[j].push(h(i * step, j * step)); }
+  let lo = Infinity, hi = -Infinity;
+  for (const r of g) for (const v of r) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  let d = "";
+  for (let k = 1; k <= levels; k++) {
+    const L = lo + ((hi - lo) * k) / (levels + 1), segs = [];
+    const P = (i0, j0, i1, j1) => { const a = g[j0][i0], b = g[j1][i1], t = (L - a) / (b - a); return [f((i0 + (i1 - i0) * t) * step), f((j0 + (j1 - j0) * t) * step)]; };
+    for (let j = 0; j < n - 1; j++) for (let i = 0; i < n - 1; i++) {
+      const e = [];
+      const c = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]];
+      for (let q = 0; q < 4; q++) { const [a0, a1] = c[q], [b0, b1] = c[(q + 1) % 4]; if ((g[a1][a0] > L) !== (g[b1][b0] > L)) e.push(P(a0, a1, b0, b1)); }
+      if (e.length === 2) segs.push(e); else if (e.length === 4) segs.push([e[0], e[1]], [e[2], e[3]]);
+    }
+    // chain segments into polylines
+    const key = (p) => p.join(","), ends = new Map();
+    segs.forEach((sg, idx) => sg.forEach((p) => { const kk = key(p); (ends.get(kk) ?? ends.set(kk, []).get(kk)).push(idx); }));
+    const used = new Set();
+    for (let idx = 0; idx < segs.length; idx++) {
+      if (used.has(idx)) continue;
+      used.add(idx);
+      const line = [...segs[idx]];
+      for (const dir of [1, 0]) for (;;) {
+        const p = dir ? line[line.length - 1] : line[0];
+        const nx = (ends.get(key(p)) ?? []).find((m) => !used.has(m));
+        if (nx === undefined) break;
+        used.add(nx);
+        const [a, b] = segs[nx], q = key(a) === key(p) ? b : a;
+        dir ? line.push(q) : line.unshift(q);
+      }
+      d += `M${line.map((p) => p.join(" ")).join("L")}`;
+    }
+  }
+  return d;
+}
+const topoDial = (color, op, w = 3, seed = 7) =>
+  tile() + dial() + `<g clip-path="url(#dc)"><path d="${topo({ seed })}" fill="none" stroke="${color}" stroke-opacity="${op}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"/></g>` +
+  `<circle cx="256" cy="256" r="196" fill="url(#vg)"/>` + ticks(182, 72, 10, 2, "#8b95a1", 0.5);
+const VIGNETTE = `<radialGradient id="vg"><stop offset=".55" stop-color="#0c0f13" stop-opacity="0"/><stop offset="1" stop-color="#0c0f13" stop-opacity=".55"/></radialGradient>`;
+
+add("H1b-topo-amber.svg", "Topo rose, amber", "H1 with dense organic topo loops like the reference poster, in brand amber.",
+  TILE + DIAL + VIGNETTE + `<clipPath id="dc"><circle cx="256" cy="256" r="196"/></clipPath>`,
+  topoDial("#f0b429", 0.4) + rose8());
+
+add("H1c-topo-red.svg", "Topo rose, red", "Same, with red contours and a red north point, closer to the poster.",
+  TILE + DIAL + VIGNETTE + `<clipPath id="dc"><circle cx="256" cy="256" r="196"/></clipPath>`,
+  topoDial("#e0323c", 0.55) + rose8({ n: ["#ff8a8f", "#b3141d"], hub: `<circle cx="256" cy="256" r="15" fill="#12151a" stroke="#c5ccd5" stroke-width="4"/>` }));
+
+add("H1d-topo-full.svg", "Topo tile, red", "Contours fill the whole tile (no dial), rose floats over the terrain.",
+  TILE + SHADOW + VIGNETTE,
+  tile("#0b0d10") + `<g clip-path="url(#tc)"><path d="${topo({ seed: 11 })}" fill="none" stroke="#e0323c" stroke-opacity=".6" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></g>` +
+  `<circle cx="256" cy="256" r="150" fill="#0b0d10" opacity=".55" filter="url(#s)"/>` +
+  rose8({ n: ["#ff8a8f", "#b3141d"] }));
+
 add("H2-map-rose.svg", "Map with rose", "The folded field map with a compass rose stamped in the corner instead of a pin.",
   TILE + AMBER + SHADOW + PAPER + clipPanels + DIAL,
   tile() + `<g transform="${scaleAt(0.8, 256, 268)}">${fieldMap({ pin: "" })}</g>` +
