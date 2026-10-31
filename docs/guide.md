@@ -39,6 +39,26 @@ raid whose end the game moves are all counted right. It lets clicks through, hid
 00:00 for a minute after the end, and Settings > Raid timer turns it off.
 
 
+## Raid replay
+
+TarTrak records each raid you take a screenshot in: your screenshots, and the positions your squad room passes on
+for each teammate on your map. When you leave the raid, a toast says how many screenshots you took and the
+**Raids** tab gets a dot. Open it to pick one of your last 10 raids; the map switches to that raid's map and shows
+only the replay.
+
+- Every trail is drawn in its player's colour: faint for the whole raid, bright for the last 3 minutes before the
+  playhead, with each player's marker and heading where their last screenshot put them.
+- The dock under the map plays the raid at 1×, 4×, 16× or 64×, steps to your previous or next screenshot, and has
+  one lane per player with a tick for each position. Drag across the lanes to jump to any moment. Your gaps of
+  more than a minute without a screenshot are shaded.
+- The card in the top left counts your screenshots, how often you took one, and your longest gap.
+
+Teammates keep being recorded after you leave, until the raid's clock runs out or your next raid starts. Their
+trails only hold what reached you: a teammate who joined the room late or dropped out has a shorter trail. The line
+between two screenshots is straight, so it is not the exact way anyone walked. Raids are kept in `raids.json` in
+the app's data folder.
+
+
 ## Your own markers
 
 Right-click anywhere on the map, type a label if you want one, and pick **Marker for

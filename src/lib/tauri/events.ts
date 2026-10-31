@@ -15,7 +15,17 @@ export function handleScreenshot(name: string, state: AppState = app, onPosition
 /** The tail replays the whole log at startup, so an unknown map is reported once, not per line. */
 const warnedMaps = new Set<string>();
 
-export function handleLogLine(line: string, state: AppState = app): void {
+/** A raid's start, its end moving, and my leaving it: what the raid recorder follows. */
+export interface RaidHooks {
+  /** I spawned at `at` (epoch ms) into a raid that ends at `endsAt`. */
+  onRaidStart?: (at: number, endsAt: number) => void;
+  /** The raid's end moved, or the game logged its clock again. */
+  onRaidEndsAt?: (endsAt: number) => void;
+  /** I left the raid I was in. */
+  onRaidOver?: () => void;
+}
+
+export function handleLogLine(line: string, state: AppState = app, hooks: RaidHooks = {}): void {
   const ev = parseLogLine(line);
   if (!ev) return;
   if (ev.kind === "screenshotKey") {
@@ -34,16 +44,24 @@ export function handleLogLine(line: string, state: AppState = app): void {
     return;
   }
   if (ev.kind === "raidClock") {
-    if (state.raidEndsAt === null) state.raidSeenAt = Date.now();
+    const fresh = state.raidEndsAt === null;
+    if (fresh) state.raidSeenAt = Date.now();
     state.raidEndsAt = ev.endsAt;
+    if (fresh) hooks.onRaidStart?.(ev.at, ev.endsAt);
+    else hooks.onRaidEndsAt?.(ev.endsAt);
     return;
   }
   if (ev.kind === "raidEndMoved") {
-    if (state.raidEndsAt !== null) state.raidEndsAt += ev.byMs;
+    if (state.raidEndsAt !== null) {
+      state.raidEndsAt += ev.byMs;
+      hooks.onRaidEndsAt?.(state.raidEndsAt);
+    }
     return;
   }
   if (ev.kind === "raidOver") {
+    const wasIn = state.raidEndsAt !== null;
     state.raidEndsAt = null;
+    if (wasIn) hooks.onRaidOver?.();
     return;
   }
   const key = resolveMapKey(ev.name);
@@ -57,7 +75,7 @@ export function handleLogLine(line: string, state: AppState = app): void {
   }
 }
 
-export interface BridgeHooks {
+export interface BridgeHooks extends RaidHooks {
   /** Every position a screenshot yields, after the map has it. */
   onPosition?: (p: Position) => void;
   /** The mark-here key went down (Rust poller). */
@@ -68,7 +86,7 @@ export interface BridgeHooks {
 
 export async function startEventBridge(hooks: BridgeHooks = {}): Promise<() => void> {
   const unShot = await listen<string>("screenshot", (e) => handleScreenshot(e.payload, app, hooks.onPosition));
-  const unLog = await listen<string>("logline", (e) => handleLogLine(e.payload));
+  const unLog = await listen<string>("logline", (e) => handleLogLine(e.payload, app, hooks));
   const unMark = await listen<void>("markkey", () => hooks.onMarkKey?.());
   const unSecondInstance = await listen<void>("second-instance", () => hooks.onSecondInstance?.());
   return () => {
