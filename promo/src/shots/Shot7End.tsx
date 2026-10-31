@@ -1,9 +1,9 @@
-import { AbsoluteFill, spring, useCurrentFrame } from "remotion";
+import { AbsoluteFill, useCurrentFrame } from "remotion";
 import { LogoMark } from "../components/Logo.tsx";
-import { C, SPRING_POP } from "../theme.ts";
+import { C } from "../theme.ts";
 import { clamp, easeOutCubic, easeOutExpo, lerp, prog } from "../lib/ease.ts";
 import { HANDOFF } from "../timeline.ts";
-import { Burst, HIT, HitFlash, K, Shockwave, TopMark, fullFrame, heatAt, mixHex, type Ring } from "./end/Hit.tsx";
+import { Burst, HIT, HitFlash, K, Shockwave, TopMark, fullFrame, type Ring } from "./end/Hit.tsx";
 import { Badges, Tagline, Url, Wordmark } from "./end/Type.tsx";
 
 /** The logo at rest: ring outer radius 92 round (960, 336); the rows under it are in end/Type.tsx. */
@@ -51,11 +51,9 @@ const Bloom = ({ ring }: { ring: Ring }) => {
   );
 };
 
-/** The mark itself: white-hot on the hit, amber from 723; the tick springs out of the ring from 728; a glow flare as it pings at 840. */
+/** The mark itself (the app icon), riding the collapsing ring; a glow flare as it pings at 840. */
 const Logo = ({ ring }: { ring: Ring }) => {
   const frame = useCurrentFrame();
-  const heat = heatAt(frame);
-  const tick = frame < 728 ? 0 : frame >= 788 ? 1 : spring({ frame: frame - 728, fps: 60, config: SPRING_POP });
   const flare = frame >= 840 ? Math.max(0, 1 - (frame - 840) / 24) : 0;
   // While the ring is big the hit's halo is its glow; LogoMark's own bloom (a blur that grows with the
   // size, slow to render at 540 px) comes in as it shrinks.
@@ -64,9 +62,6 @@ const Logo = ({ ring }: { ring: Ring }) => {
     <div style={{ position: "absolute", left: ring.cx - ring.r, top: ring.cy - ring.r }}>
       <LogoMark
         size={2 * ring.r}
-        strokeWidth={ring.sw}
-        stroke={heat > 0 ? mixHex(C.amber, "#ffffff", heat) : C.amber}
-        tick={tick}
         glow={Math.min(1, 0.7 * own + 0.3 * flare)}
       />
     </div>
