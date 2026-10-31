@@ -54,4 +54,4 @@ jobs:
           releaseCommitish: ${{ github.sha }}
           releaseDraft: false
           prerelease: false
-          includeUpdaterJson: true
+          uploadUpdaterJson: true
