@@ -23,7 +23,10 @@ body {
   color: var(--fg);
   background: var(--bg);
   overflow: hidden;
+  /* App chrome is not a document: dragging over it must not leave text highlighted. */
+  user-select: none;
 }
+input, .selectable { user-select: text; }
 .mono { font-family: var(--mono); }
 .grow { flex: 1; }
 .muted { color: var(--muted); font-size: 12px; }

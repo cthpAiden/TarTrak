@@ -174,7 +174,7 @@
   input[type="color"] { width: 40px; padding: 0; height: 24px; }
   .row { display: flex; gap: 8px; align-items: center; }
   .code-row { display: flex; gap: 8px; align-items: center; }
-  .code { flex: 1; font-family: ui-monospace, Consolas, monospace; font-size: 20px; letter-spacing: 0.12em; }
+  .code { flex: 1; font-family: ui-monospace, Consolas, monospace; font-size: 20px; letter-spacing: 0.12em; user-select: text; }
   .dot { width: 10px; height: 10px; border-radius: 50%; background: #c33; display: inline-block; }
   .dot.open { background: #3c3; }
   .dot.connecting { background: #cc3; }
