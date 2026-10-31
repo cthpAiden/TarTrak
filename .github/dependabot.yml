@@ -1,0 +1,21 @@
+# Version updates once a month, grouped so each ecosystem is one PR. Security updates come as soon as an
+# advisory is out, independently of this schedule (repo Settings > Code security > Dependabot security updates).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: monthly }
+    groups: { app: { patterns: ["*"] } }
+  - package-ecosystem: npm
+    directory: /relay
+    schedule: { interval: monthly }
+    groups: { relay: { patterns: ["*"] } }
+  - package-ecosystem: cargo
+    directory: /src-tauri
+    schedule: { interval: monthly }
+    groups: { cargo: { patterns: ["*"] } }
+  # Actions are pinned to commits; Dependabot moves the pin and its version comment together.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: monthly }
+    groups: { actions: { patterns: ["*"] } }

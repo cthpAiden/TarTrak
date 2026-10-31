@@ -30,7 +30,7 @@ interface Shown {
  * with a paint layer of its own, about 14 KB in the renderer, and Streets with every layer on has
  * three thousand. Markers are added and removed by id as the view moves, so a filter or floor change
  * touches only what changed. A drag moves less than one viewport, so with VIEW_PAD of one it never
- * uncovers an empty area; a wheel notch zooms out 1.25 levels, also inside the pad. Bigger jumps fill
+ * uncovers an empty area; a wheel notch zooms out a quarter level, also inside the pad. Bigger jumps fill
  * in right after the move, in batches of ADD_BATCH per frame with the markers in view first, so the
  * map stays responsive while thousands come in. A marker with an open popup stays until the popup
  * closes. Zone outlines are few and always drawn.

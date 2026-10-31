@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>TarTrak · C · The filename</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Martian+Mono:wdth,wght@75..112.5,300..800&display=swap">
+<style>
+/* Layout: one ink on amber stock. The hero is the screenshot filename itself; a sticky stage then takes it apart, step by step. */
+:root {
+  color-scheme: light;
+  --amber: #f0b429;
+  --ink: #16130c;
+  --ink-2: #4d3c10;
+  --ink-soft: rgba(22, 19, 12, 0.12);
+  --night: #110f0a;
+  --mono: "Martian Mono", "IBM Plex Mono", Consolas, monospace;
+  --sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --gl: max(16px, env(safe-area-inset-left, 0px));
+  --gr: max(16px, env(safe-area-inset-right, 0px));
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--amber); color: var(--ink); font: 17px/1.6 var(--sans); -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.wrap { max-width: 1320px; margin: 0 auto; padding-left: var(--gl); padding-right: var(--gr); }
+
+/* ---------- nav ---------- */
+.nav { display: flex; align-items: center; gap: 20px; padding-block: calc(18px + env(safe-area-inset-top, 0px)) 18px; }
+.word { font: 800 20px/1 var(--mono); font-variation-settings: "wdth" 112.5; letter-spacing: -0.02em; text-decoration: none; }
+.nav .ver { margin-left: auto; font: 500 13px/1 var(--mono); color: var(--ink-2); }
+.pill { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 20px; border-radius: 999px; background: var(--ink); color: var(--amber); font: 600 14px/1 var(--mono); text-decoration: none; white-space: nowrap; transition: transform 0.2s; }
+.pill:hover { transform: translateY(-2px); }
+.pill.line { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink); }
+
+/* ---------- hero ---------- */
+.hero { padding-block: clamp(28px, 6vw, 72px) clamp(56px, 8vw, 104px); transition: background 0.08s, color 0.08s; }
+.hero.shot { background: var(--ink); color: var(--amber); }
+.hero.shot mark { background: var(--amber); color: var(--ink); }
+.path { margin: 0 0 18px; font: 500 13px/1.4 var(--mono); color: var(--ink-2); }
+.hero.shot .path { color: var(--amber); }
+.fname {
+  margin: 0; font: 700 clamp(30px, 6.3vw, 100px)/1.14 var(--mono); font-variation-settings: "wdth" 75; letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
+}
+.fname > span:first-child { white-space: nowrap; }
+.fname mark { background: var(--ink); color: var(--amber); padding: 0 0.06em; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.fname mark.raw { background: transparent; color: inherit; }
+.after { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 32px 64px; align-items: end; margin-top: clamp(36px, 5vw, 64px); }
+.claim { margin: 0; font: 600 clamp(24px, 3vw, 40px)/1.15 var(--mono); font-variation-settings: "wdth" 87.5; letter-spacing: -0.03em; text-wrap: balance; }
+.claim u { text-decoration-thickness: 0.12em; text-underline-offset: 0.12em; }
+.side p { margin: 0 0 22px; color: var(--ink); max-width: 30em; }
+.btns { display: flex; flex-wrap: wrap; gap: 10px; }
+.meta { margin-top: 14px; font: 500 12px/1.4 var(--mono); color: var(--ink-2); }
+
+/* ---------- ticker ---------- */
+.ticker { overflow: hidden; border-block: 2px solid var(--ink); padding-block: 14px; white-space: nowrap; }
+.ticker div { display: inline-block; font: 700 clamp(22px, 3vw, 36px)/1 var(--mono); font-variation-settings: "wdth" 75; letter-spacing: -0.02em; animation: tick 48s linear infinite; }
+.ticker:hover div { animation-play-state: paused; }
+@keyframes tick { to { transform: translateX(-50%); } }
+
+/* ---------- story ---------- */
+.story { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 0 48px; }
+.caps { padding-block: 10vh 30vh; }
+.cap { min-height: 82vh; display: flex; flex-direction: column; justify-content: center; opacity: 0.32; transition: opacity 0.35s; }
+.cap.on { opacity: 1; }
+.cap .k { font: 600 13px/1 var(--mono); letter-spacing: 0.06em; }
+.cap h2 { margin: 16px 0 14px; font: 700 clamp(30px, 3.6vw, 52px)/1.04 var(--mono); font-variation-settings: "wdth" 75; letter-spacing: -0.035em; text-wrap: balance; }
+.cap p { margin: 0; max-width: 28em; }
+.stage { position: sticky; top: env(safe-area-inset-top, 0px); height: 100vh; min-height: 520px; }
+.box { position: absolute; inset: 9vh 0; border: 2px solid var(--ink); overflow: hidden; background: var(--amber); }
+.layer { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; opacity: 0; transition: opacity 0.45s; }
+.layer.on { opacity: 1; }
+.corner { position: absolute; z-index: 3; left: 14px; top: 12px; font: 600 12px/1 var(--mono); }
+.corner.r { left: auto; right: 14px; }
+
+.readout { display: grid; gap: clamp(14px, 2.4vh, 26px); width: min(560px, 100%); }
+.readout div { display: grid; grid-template-columns: 1.2em minmax(0, 1fr); gap: 0 18px; align-items: baseline; border-bottom: 2px solid var(--ink); padding-bottom: 10px; }
+.readout .ax { font: 800 clamp(26px, 3vw, 40px)/1 var(--mono); }
+.readout .v { font: 700 clamp(40px, 6vw, 92px)/1 var(--mono); font-variation-settings: "wdth" 75; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+.readout .u { grid-column: 2; font: 500 13px/1.4 var(--mono); color: var(--ink-2); }
+
+.dialwrap { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 28px 40px; align-items: center; width: min(640px, 100%); }
+.dial { width: clamp(200px, 26vw, 320px); height: auto; }
+.needle { transform-origin: 160px 160px; transform: rotate(0deg); transition: transform 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.2s; }
+.layer.on .needle { transform: rotate(48deg); }
+.quat { font: 600 14px/1.9 var(--mono); }
+.quat b { display: block; margin-top: 10px; font: 700 clamp(40px, 5vw, 72px)/1 var(--mono); font-variation-settings: "wdth" 75; letter-spacing: -0.03em; }
+#storymap { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.code { position: absolute; z-index: 3; right: 14px; bottom: 14px; padding: 10px 14px; background: var(--ink); color: var(--amber); font: 700 22px/1 var(--mono); letter-spacing: 0.12em; opacity: 0; transform: translateY(8px); transition: opacity 0.4s, transform 0.4s; }
+.code small { display: block; margin-bottom: 6px; font: 500 10px/1 var(--mono); letter-spacing: 0.1em; color: #c99a2a; }
+.code.on { opacity: 1; transform: none; }
+
+/* ---------- the list ---------- */
+.night { background: var(--night); color: var(--amber); padding-block: clamp(80px, 11vw, 140px); }
+.night h2 { margin: 0; font: 700 clamp(40px, 7vw, 104px)/0.98 var(--mono); font-variation-settings: "wdth" 75; letter-spacing: -0.04em; }
+.night .intro { max-width: 34em; margin: 20px 0 48px; color: #e6c46e; }
+.ledger { border-top: 1px solid rgba(240, 180, 41, 0.35); }
+.ledger div { display: grid; grid-template-columns: 7em minmax(0, 18em) minmax(0, 1fr); gap: 6px 24px; padding: 18px 8px; border-bottom: 1px solid rgba(240, 180, 41, 0.35); font: 500 15px/1.5 var(--mono); transition: background 0.15s, color 0.15s; }
+.ledger div:hover { background: var(--amber); color: var(--night); }
+.ledger .verb { font-weight: 800; }
+.ledger .no { text-decoration: line-through; text-decoration-thickness: 2px; }
+.ledger .why { font-family: var(--sans); font-size: 15.5px; color: #e6c46e; }
+.ledger div:hover .why { color: var(--night); }
+.night blockquote { margin: 44px 0 0; max-width: 36em; font: 500 18px/1.55 var(--mono); }
+
+/* ---------- footer ---------- */
+footer { padding-block: clamp(64px, 9vw, 120px) calc(48px + env(safe-area-inset-bottom, 0px)); overflow: hidden; }
+.big { display: block; margin: 0 0 32px; font: 800 clamp(64px, 17vw, 260px)/0.82 var(--mono); font-variation-settings: "wdth" var(--w, 75); letter-spacing: -0.05em; white-space: nowrap; transition: font-variation-settings 0.25s; }
+.fine { margin-top: 56px; display: grid; gap: 6px; font: 500 12.5px/1.6 var(--mono); color: var(--ink-2); max-width: 64em; }
+
+@media (max-width: 860px) {
+  .after { grid-template-columns: minmax(0, 1fr); }
+  .nav .ver { display: none; }
+  .nav .pill { margin-left: auto; }
+  .story { grid-template-columns: minmax(0, 1fr); }
+  .stage { order: -1; height: 56vh; min-height: 360px; z-index: 2; background: var(--amber); }
+  .box { inset: 8px 0 12px; }
+  .caps { padding-block: 0 20vh; }
+  .cap { min-height: 64vh; justify-content: flex-start; padding-top: 24px; }
+  .dialwrap { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; gap: 12px; }
+  .dial { width: 170px; }
+  .ledger div { grid-template-columns: 5.5em minmax(0, 1fr); }
+  .ledger .why { grid-column: 2; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="wrap nav">
+  <a class="word" href="#top">TARTRAK</a>
+  <span class="ver">v0.14.5 · Windows</span>
+  <a class="pill" href="https://github.com/cthpAiden/TarTrak/releases/latest">Download ↓</a>
+</header>
+
+<section class="hero" id="top">
+  <div class="wrap">
+    <p class="path">Documents\Escape from Tarkov\Screenshots\</p>
+    <p class="fname" id="fname" aria-hidden="true"><span>2026-10-30[21-14]_</span><mark>-182.40</mark><span>, </span><mark>2.10</mark><span>, </span><mark>-71.03</mark><span>_</span><mark>0.00000, 0.40674, 0.00000, 0.91355</mark><span> (0).png</span></p>
+    <p class="sr" id="fname-sr">A Tarkov screenshot filename: 2026-10-30[21-14]_-182.40, 2.10, -71.03_0.00000, 0.40674, 0.00000, 0.91355 (0).png</p>
+    <div class="after">
+      <p class="claim">TarTrak reads <u>this filename</u>. Then it puts you and your squad on the map.</p>
+      <div class="side">
+        <p>Every time you press PrtSc in raid, Tarkov names the screenshot after where you stand and which way you face. TarTrak turns that into a live squad map and overlay. Free and open source.</p>
+        <div class="btns">
+          <a class="pill" href="https://github.com/cthpAiden/TarTrak/releases/latest">Download for Windows</a>
+          <a class="pill line" href="https://github.com/cthpAiden/TarTrak">Source</a>
+        </div>
+        <p class="meta">v0.14.5 · Windows 10 and 11 · MIT licence</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="ticker" aria-label="Features: quests, extracts, bosses, loot, round overlay, raid timer, mark here, shared markers, routes, live drawing, find item, PvP and PvE">
+  <div aria-hidden="true">QUESTS · EXTRACTS · BOSSES · LOOT · ROUND OVERLAY · RAID TIMER · MARK HERE · SHARED MARKERS · ROUTES · LIVE DRAWING · FIND ITEM · PVP AND PVE · QUESTS · EXTRACTS · BOSSES · LOOT · ROUND OVERLAY · RAID TIMER · MARK HERE · SHARED MARKERS · ROUTES · LIVE DRAWING · FIND ITEM · PVP AND PVE ·&nbsp;</div>
+</div>
+
+<section class="wrap story" id="story">
+  <div class="caps">
+    <article class="cap on" data-s="0">
+      <span class="k">01 / 04 · POSITION</span>
+      <h2>Three of those numbers are where you stand.</h2>
+      <p>X and Z place you on the map in metres. Y is your height, which is how TarTrak knows you went up to the second floor.</p>
+    </article>
+    <article class="cap" data-s="1">
+      <span class="k">02 / 04 · HEADING</span>
+      <h2>Four more say which way you face.</h2>
+      <p>The camera's rotation is stored as four numbers. TarTrak turns them into a compass heading, here 048°.</p>
+    </article>
+    <article class="cap" data-s="2">
+      <span class="k">03 / 04 · MAP</span>
+      <h2>Together, that's a dot and a line.</h2>
+      <p>Your marker and heading line land on the map, with range marks 50, 100 and 150 m ahead. The next screenshot moves them.</p>
+    </article>
+    <article class="cap" data-s="3">
+      <span class="k">04 / 04 · SQUAD</span>
+      <h2>Share six characters. Their dots join yours.</h2>
+      <p>One player creates a room, the rest type the code. Positions pass through a small relay that keeps nothing and logs nothing.</p>
+    </article>
+  </div>
+  <div class="stage" aria-hidden="true">
+    <div class="box">
+      <span class="corner" id="corner">FIG. 01</span>
+      <span class="corner r">SCALE 1 : 2500</span>
+      <div class="layer on" data-s="0">
+        <div class="readout">
+          <div><span class="ax">X</span><span class="v">-182.40</span><span class="u">metres, east-west</span></div>
+          <div><span class="ax">Y</span><span class="v">2.10</span><span class="u">metres up, ground floor</span></div>
+          <div><span class="ax">Z</span><span class="v">-71.03</span><span class="u">metres, north-south</span></div>
+        </div>
+      </div>
+      <div class="layer" data-s="1">
+        <div class="dialwrap">
+          <svg class="dial" viewBox="0 0 320 320">
+            <circle cx="160" cy="160" r="150" fill="none" stroke="#16130c" stroke-width="3"/>
+            <g id="ticks" stroke="#16130c"></g>
+            <g font-family="Martian Mono, monospace" font-weight="700" font-size="18" fill="#16130c" text-anchor="middle">
+              <text x="160" y="58">N</text><text x="266" y="166">E</text><text x="160" y="274">S</text><text x="54" y="166">W</text>
+            </g>
+            <g class="needle"><path d="M160 46 L170 160 L160 172 L150 160 Z" fill="#16130c"/></g>
+            <circle cx="160" cy="160" r="7" fill="#f0b429" stroke="#16130c" stroke-width="3"/>
+          </svg>
+          <div class="quat">0.00000<br>0.40674<br>0.00000<br>0.91355<b>048°</b></div>
+        </div>
+      </div>
+      <div class="layer" data-s="2" style="padding:0"><canvas id="storymap"></canvas></div>
+      <div class="code" id="code"><small>ROOM</small>K7Q2XM</div>
+    </div>
+  </div>
+</section>
+
+<section class="night">
+  <div class="wrap">
+    <h2>This is the whole list.</h2>
+    <p class="intro">TarTrak never touches the game process. Everything it reads, and everything it doesn't, fits on one screen.</p>
+    <div class="ledger">
+      <div><span class="verb">READS</span><span>Screenshot filenames</span><span class="why">Your coordinates and rotation. It can delete those screenshots afterwards, only the ones named with coordinates.</span></div>
+      <div><span class="verb">READS</span><span>The game's text log</span><span class="why">Which map you loaded, and the raid clock.</span></div>
+      <div><span class="verb">READS</span><span>One key's state</span><span class="why">Whether your mark-here key is held, using the same Windows call push-to-talk apps use.</span></div>
+      <div><span class="verb">NEVER</span><span class="no">Game memory</span><span class="why">Not read.</span></div>
+      <div><span class="verb">NEVER</span><span class="no">Code injection</span><span class="why">Nothing is injected.</span></div>
+      <div><span class="verb">NEVER</span><span class="no">Keyboard hooks</span><span class="why">None installed, and no keystrokes are sent to the game.</span></div>
+      <div><span class="verb">NEVER</span><span class="no">Accounts, telemetry</span><span class="why">There are none.</span></div>
+    </div>
+    <blockquote>"I can't speak for Battlestate's anti-cheat, but that is everything TarTrak does." From the README.</blockquote>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span class="big" id="big" aria-hidden="true">TARTRAK</span>
+    <div class="btns">
+      <a class="pill" href="https://github.com/cthpAiden/TarTrak/releases/latest">Download v0.14.5</a>
+      <a class="pill line" href="https://github.com/cthpAiden/TarTrak">GitHub</a>
+      <a class="pill line" href="https://paypal.me/HeyAiden">Chip in</a>
+    </div>
+    <div class="fine">
+      <span>The map on this page is made up. In the app, maps come from tarkov-dev-svg-maps and data from tarkov.dev.</span>
+      <span>Escape from Tarkov is a trademark of Battlestate Games. TarTrak is not affiliated with or endorsed by them.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="kit.js"></script>
+<script>
+(() => {
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---- hero: the filename decodes, then a new screenshot every few seconds
+  const fname = document.getElementById("fname"), parts = [...fname.children];
+  const marks = parts.filter((p) => p.tagName === "MARK");
+  const G = "0123456789.,-_[]";
+  let pos = { x: -182.4, y: 2.1, z: -71.03, h: 48 };
+  function texts() {
+    const f = TT.filename(pos.x, pos.y, pos.z, pos.h);
+    return [f.stamp + "_", f.pos[0], ", ", f.pos[1], ", ", f.pos[2], "_", f.rot.join(", "), " (0).png"];
+  }
+  function decode(target, dur, only) {
+    const total = target.reduce((n, t) => n + t.length, 0);
+    const t0 = performance.now();
+    if (!only) marks.forEach((m) => m.classList.add("raw"));
+    (function f(now) {
+      const p = Math.min(1, (now - t0) / dur);
+      let at = 0;
+      parts.forEach((el, k) => {
+        const t = target[k];
+        if (only && !only.includes(el)) { at += t.length; return; }
+        let s = "";
+        for (let i = 0; i < t.length; i++) {
+          const gate = (at + i) / total * 0.7;
+          s += p >= gate + 0.3 || t[i] === " " ? t[i] : G[(Math.random() * G.length) | 0];
+        }
+        el.textContent = s;
+        at += t.length;
+      });
+      if (p < 1) requestAnimationFrame(f);
+      else marks.forEach((m, i) => setTimeout(() => m.classList.remove("raw"), i * 90));
+    })(t0);
+  }
+  const sr = document.getElementById("fname-sr");
+  if (reduce) { parts.forEach((el, k) => (el.textContent = texts()[k])); }
+  else document.fonts.ready.then(() => decode(texts(), 1500));
+  const hero = document.querySelector(".hero");
+  if (!reduce) setInterval(() => {
+    if (document.hidden) return;
+    pos = { x: -182.4 + (Math.random() - 0.5) * 16, y: 2.1 + Math.random() * 3, z: -71.03 + (Math.random() - 0.5) * 16, h: (48 + (Math.random() - 0.5) * 90 + 360) % 360 };
+    hero.classList.add("shot");
+    setTimeout(() => hero.classList.remove("shot"), 110);
+    decode(texts(), 700, marks);
+    sr.textContent = "A Tarkov screenshot filename: " + texts().join("");
+  }, 7000);
+
+  // ---- dial ticks
+  const ticks = document.getElementById("ticks");
+  for (let d = 0; d < 360; d += 5) {
+    const a = d * Math.PI / 180, r1 = d % 30 === 0 ? 124 : 136, s = Math.sin(a), c = -Math.cos(a);
+    const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    l.setAttribute("x1", 160 + s * r1); l.setAttribute("y1", 160 + c * r1);
+    l.setAttribute("x2", 160 + s * 146); l.setAttribute("y2", 160 + c * 146);
+    l.setAttribute("stroke-width", d % 30 === 0 ? 3 : 1.5);
+    ticks.appendChild(l);
+  }
+
+  // ---- story: captions drive the sticky stage
+  const caps = [...document.querySelectorAll(".cap")], layers = [...document.querySelectorAll(".layer")];
+  const code = document.getElementById("code"), corner = document.getElementById("corner");
+  let stage = 0, stageAt = performance.now();
+  function setStage(s) {
+    if (s === stage) return;
+    stage = s; stageAt = performance.now();
+    caps.forEach((c) => c.classList.toggle("on", +c.dataset.s === s));
+    layers.forEach((l) => l.classList.toggle("on", +l.dataset.s === Math.min(s, 2)));
+    code.classList.toggle("on", s === 3);
+    corner.textContent = "FIG. 0" + (s + 1);
+  }
+  const io = new IntersectionObserver((es) => es.forEach((e) => e.isIntersecting && setStage(+e.target.dataset.s)), { rootMargin: "-45% 0px -45% 0px" });
+  caps.forEach((c) => io.observe(c));
+
+  // ---- the map, ink on amber
+  const cv = document.getElementById("storymap"), ctx = cv.getContext("2d");
+  const field = TT.noise(23);
+  let W, H, D, base;
+  const ink = "#16130c";
+  function build() {
+    W = cv.clientWidth; H = cv.clientHeight; D = Math.min(2, devicePixelRatio || 1);
+    if (!W || !H) return;
+    cv.width = W * D; cv.height = H * D;
+    base = document.createElement("canvas"); base.width = cv.width; base.height = cv.height;
+    const b = base.getContext("2d"); b.scale(D, D);
+    b.fillStyle = "#f0b429"; b.fillRect(0, 0, W, H);
+    const k = 1 / 230;
+    const p = TT.contours((x, y) => field(x * k, y * k), W, H, 6, TT.range(-0.75, 0.75, 0.075), 4);
+    b.strokeStyle = "rgba(22,19,12,0.2)"; b.lineWidth = 1; b.stroke(p.minor);
+    b.strokeStyle = "rgba(22,19,12,0.42)"; b.lineWidth = 1.6; b.stroke(p.major);
+    b.strokeStyle = "rgba(22,19,12,0.07)"; b.beginPath();
+    for (let x = 0; x < W; x += 80) { b.moveTo(x, 0); b.lineTo(x, H); }
+    for (let y = 0; y < H; y += 80) { b.moveTo(0, y); b.lineTo(W, y); }
+    b.stroke();
+  }
+  const mates = [["GHOST", -0.17, -0.2, 140, 47], ["NOMAD [2F]", 0.12, 0.2, 10, 84], ["VEX", 0.26, -0.24, 80, 132]];
+  function line(x, y, h, len, alpha) {
+    const a = (h - 90) * Math.PI / 180, cs = Math.cos(a), sn = Math.sin(a);
+    ctx.strokeStyle = `rgba(22,19,12,${alpha})`; ctx.lineWidth = 2.2; ctx.setLineDash([8, 6]);
+    ctx.beginPath(); ctx.moveTo(x + cs * 12, y + sn * 12); ctx.lineTo(x + cs * len, y + sn * len); ctx.stroke(); ctx.setLineDash([]);
+    ctx.lineWidth = 2;
+    for (const m of [1, 2, 3]) {
+      const d = len / 2 * m * 0.67, cx = x + cs * d, cy = y + sn * d;
+      ctx.beginPath(); ctx.moveTo(cx - sn * 4, cy + cs * 4); ctx.lineTo(cx - sn * 10, cy + cs * 10);
+      ctx.moveTo(cx + sn * 4, cy - cs * 4); ctx.lineTo(cx + sn * 10, cy - cs * 10); ctx.stroke();
+    }
+  }
+  function frame(now) {
+    requestAnimationFrame(frame);
+    if (stage < 2 || !base) return;
+    const t = reduce ? 9 : (now - stageAt) / 1000;
+    ctx.setTransform(D, 0, 0, D, 0, 0);
+    const cx = W * 0.46, cy = H * 0.56, len = Math.min(W, H) * 0.42;
+    ctx.fillStyle = "#f0b429"; ctx.fillRect(0, 0, W, H);
+    const R = stage === 2 ? Math.hypot(W, H) * (1 - Math.pow(2, -5 * Math.min(1, t / 1.4))) : 1e5;
+    ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
+    ctx.drawImage(base, 0, 0, W, H);
+    ctx.restore();
+    if (R < 1e4 && R < Math.hypot(W, H) * 0.98) { ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke(); }
+    // squad
+    if (stage === 3) {
+      ctx.font = '700 12px "Martian Mono", monospace'; ctx.textBaseline = "middle";
+      mates.forEach(([name, dx, dy, h, m], i) => {
+        const p = Math.min(1, Math.max(0, (t - i * 0.25) / 0.5));
+        if (p <= 0) return;
+        const x = cx + dx * W, y = cy + dy * H;
+        ctx.globalAlpha = p;
+        line(x, y, h, len * 0.8, 0.8);
+        ctx.beginPath(); ctx.arc(x, y, 8, 0, Math.PI * 2); ctx.fillStyle = "#f0b429"; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = ink; ctx.stroke();
+        const label = `${name}  ${m} m`, w = ctx.measureText(label).width + 16;
+        ctx.fillStyle = ink; ctx.fillRect(x + 14, y - 28, w, 22);
+        ctx.fillStyle = "#f0b429"; ctx.fillText(label, x + 22, y - 16);
+        const pt = (t - i * 0.25) % 2.4;
+        if (pt < 1) { ctx.beginPath(); ctx.arc(x, y, 10 + pt * 40, 0, Math.PI * 2); ctx.strokeStyle = `rgba(22,19,12,${1 - pt})`; ctx.lineWidth = 2; ctx.stroke(); }
+        ctx.globalAlpha = 1;
+      });
+    }
+    // you
+    line(cx, cy, 48, len, 1);
+    ctx.beginPath(); ctx.arc(cx, cy, 11, 0, Math.PI * 2); ctx.fillStyle = ink; ctx.fill();
+    ctx.font = '800 13px "Martian Mono", monospace'; ctx.fillStyle = ink; ctx.textBaseline = "middle"; ctx.fillText("YOU", cx + 18, cy + 22);
+  }
+  document.fonts.ready.then(() => { build(); requestAnimationFrame(frame); });
+  let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(build, 150); });
+
+  // ---- footer: the wordmark stretches with the pointer
+  const big = document.getElementById("big");
+  if (!reduce) addEventListener("pointermove", (e) => {
+    const r = big.getBoundingClientRect();
+    if (e.clientY < r.top - 200 || e.clientY > r.bottom + 200) return;
+    big.style.setProperty("--w", 75 + 37.5 * (1 - Math.abs(e.clientX / innerWidth - 0.5) * 2));
+  });
+
+  TT.switcher("C");
+})();
+</script>
+</body>
+</html>

@@ -16,6 +16,7 @@
   import { SHOT_REMINDER_DELAYS } from "../map/shotReminder";
   import { MARK_KEY_OFF, PRINT_SCREEN_VK, markKeyFromButton, markKeyFromCode, markKeyLabel } from "./markKey";
   import { openUrl } from "@tauri-apps/plugin-opener";
+  import { isRelayUrl } from "../room/client";
   import { version } from "../../../package.json";
 
   /** The webview opens no new windows on its own; links go to the system browser. */
@@ -52,6 +53,11 @@
   /** A blank field means "back to the project relay", not a relay at an empty address. */
   function commitRelay() {
     const next = relay.trim() || DEFAULT_RELAY_URL;
+    if (!isRelayUrl(next)) {
+      onInvalid?.(`Relay URL must use wss:// (plain ws:// only for localhost): ${next}`);
+      relay = settings.relayUrl;
+      return;
+    }
     relay = next;
     if (next !== settings.relayUrl) onChange({ relayUrl: next });
   }
@@ -206,7 +212,7 @@
           <label for="set-reminder">Grey out the map when I forget</label>
           <input id="set-reminder" class="switch" type="checkbox" checked={settings.shotReminder} onchange={(e) => onChange({ shotReminder: e.currentTarget.checked })} />
         </div>
-        <span class="hint">In a raid, the map slowly turns grey when you go too long without a screenshot; the next screenshot brings the colour back. Your marker and teammates keep their colour. Needs the game's log folder.</span>
+        <span class="hint">In a raid, the map slowly turns grey when you go too long without a screenshot; the next screenshot brings the colour back. Your marker and teammates keep their colour. Needs both the screenshots and the game's log folders.</span>
       </div>
       {#if settings.shotReminder}
         <div class="row">

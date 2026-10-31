@@ -69,7 +69,8 @@ markers, and the checkbox on a to-do entry marks it done.
 
 ## Squad
 
-Every player marker has a heading line (length adjustable in Settings). While you are in a room, the Squad tab lists your teammates: distance to you when they are on
+Every player marker has a heading line (length adjustable in Settings), with small split ticks either side of it 50, 100 and 150 m ahead
+(they hide when zoomed out too far to tell apart). While you are in a room, the Squad tab lists your teammates: distance to you when they are on
 your map, otherwise the map they are on, plus how long ago they last reported. Click a row to center on them.
 Names carry the floor a teammate is on, like "Aiden [2F]". Click the colour dot in a row to pick the colour that
 teammate is drawn in on your screen; it is yours alone, they keep their own colour on theirs (↺ goes back).

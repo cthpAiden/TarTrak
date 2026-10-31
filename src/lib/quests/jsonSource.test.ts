@@ -183,7 +183,7 @@ const raw: RawBundle = {
             },
           ],
         },
-        t2: { id: "t2", name: "t2 name", trader: "tr2", map: null, factionName: "Any", experience: 0, finishRewards: { items: [], traderStanding: [] }, objectives: [{ id: "o3", type: "shoot", description: "o3 desc", maps: ["m2", 5], count: null, foundInRaid: false, optional: false }] },
+        t2: { id: "t2", name: "t2 name", trader: "tr2", map: null, factionName: "Any", experience: 0, wikiLink: "http://escapefromtarkov.fandom.com/wiki/Checking", finishRewards: { items: [], traderStanding: [] }, objectives: [{ id: "o3", type: "shoot", description: "o3 desc", maps: ["m2", 5], count: null, foundInRaid: false, optional: false }] },
       },
       questItems: { qi1: { id: "qi1", name: "qi1 Name" } },
     },
@@ -255,7 +255,7 @@ describe("toQuestData", () => {
     expect(t2.kappaRequired).toBe(false);
   });
 
-  it("carries zone outlines as [x, z] pairs with their span, and only http(s) wiki links", () => {
+  it("carries zone outlines as [x, z] pairs with their span, and only https wiki links", () => {
     const [t1, t2] = d.tasks;
     const [z1, z2] = t1.objectives[0].zones!;
     expect(z1).toMatchObject({ outline: [[0, 0], [2, 0], [2, 6]], top: 5, bottom: -1 });

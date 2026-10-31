@@ -1,6 +1,7 @@
 mod detect;
 mod logtail;
 mod markkey;
+mod navguard;
 mod watcher;
 
 use tauri::{Emitter, Manager};
@@ -26,6 +27,11 @@ pub fn run() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
+        .plugin(
+            tauri::plugin::Builder::<tauri::Wry>::new("navguard")
+                .on_navigation(|_, url| navguard::is_app_url(url))
+                .build(),
+        )
         .plugin(
             tauri_plugin_window_state::Builder::default()
                 // Decorations follow overlay mode, which is not persisted: restoring them would

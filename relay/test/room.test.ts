@@ -1,5 +1,6 @@
-import { SELF } from "cloudflare:test";
+import { SELF, env } from "cloudflare:test";
 import { describe, it, expect } from "vitest";
+import worker from "../src/index";
 
 const BASE = "https://relay.test";
 
@@ -306,5 +307,49 @@ describe("limits", () => {
     await new Promise((r) => setTimeout(r, 200));
     const c = await join("ROOM14", "C");
     expect((await c.all()).filter((m) => m.type === "pin").length).toBe(20);
+  });
+});
+
+describe("access", () => {
+  const upgrade = (origin: string) => ({ headers: { Upgrade: "websocket", Origin: origin } });
+
+  it("turns away a socket from any web page, a sandboxed one included", async () => {
+    for (const origin of ["https://evil.example", "null", "http://localhost:8080"]) {
+      const res = await SELF.fetch(`${BASE}/room/ROOM20`, upgrade(origin));
+      expect(res.status).toBe(403);
+    }
+  });
+
+  it("lets the app's own pages in", async () => {
+    for (const origin of ["http://tauri.localhost", "https://tauri.localhost", "tauri://localhost", "http://localhost:1420"]) {
+      const res = await SELF.fetch(`${BASE}/room/ROOM21`, upgrade(origin));
+      expect(res.status).toBe(101);
+      res.webSocket!.accept();
+      res.webSocket!.close(1000);
+    }
+  });
+
+  it("limits room requests per client IP, and only room requests", async () => {
+    const keys: string[] = [];
+    let success = true;
+    const JOIN_LIMIT = {
+      limit: async ({ key }: { key: string }) => {
+        keys.push(key);
+        return { success };
+      },
+    };
+    const get = (path: string, ip?: string) =>
+      worker.fetch(new Request(`${BASE}${path}`, { headers: ip ? { "CF-Connecting-IP": ip } : {} }), { ...env, JOIN_LIMIT });
+
+    expect((await get("/room/ROOM22", "203.0.113.9")).status).toBe(426);
+    success = false;
+    const res = await get("/room/ROOM22", "203.0.113.9");
+    expect(res.status).toBe(429);
+    expect(res.headers.get("Retry-After")).toBe("60");
+    expect((await get("/health", "203.0.113.9")).status).toBe(200);
+    expect((await get("/room/abc", "203.0.113.9")).status).toBe(400);
+    // `wrangler dev` sends no client IP; Cloudflare always does.
+    expect((await get("/room/ROOM22")).status).toBe(426);
+    expect(keys).toEqual(["203.0.113.9", "203.0.113.9"]);
   });
 });

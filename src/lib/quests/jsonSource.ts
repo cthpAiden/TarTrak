@@ -183,8 +183,8 @@ function toTask(
     requires,
     kappaRequired: t.kappaRequired === true,
     lightkeeperRequired: t.lightkeeperRequired === true,
-    // Only http(s) links may ever be handed to the system browser.
-    wikiLink: /^https?:\/\//.test(str(t.wikiLink)) ? str(t.wikiLink) : undefined,
+    // Only https links may ever be handed to the system browser (the opener scope allows no other).
+    wikiLink: /^https:\/\//.test(str(t.wikiLink)) ? str(t.wikiLink) : undefined,
     neededKeys: [...new Set(list(t.neededKeys).flatMap((k) => strings(k.keys)).map((id) => itemName(itemsEn, mapsEn, id)))],
   };
   // "Any" is everyone's; only USEC and BEAR restrict.

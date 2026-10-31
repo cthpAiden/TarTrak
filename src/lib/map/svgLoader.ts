@@ -17,12 +17,14 @@ const FORBIDDEN_ELEMENTS = new Set([
 
 /**
  * Map SVGs are fetched from the network, so drop anything that could execute: script-bearing
- * elements, inline handlers, and any link target that is not a same-document fragment.
+ * elements, inline handlers, and any link target that is not a same-document fragment. HTML tags
+ * such as <meta> or <img> end the SVG when parsed and land as HTML (a <meta refresh> would navigate
+ * the window), so anything outside the SVG namespace goes too.
  * Note the SVG's own <style> block survives and lands in the document stylesheet scope.
  */
 function sanitize(root: SVGSVGElement): void {
   for (const el of root.querySelectorAll("*")) {
-    if (FORBIDDEN_ELEMENTS.has(el.nodeName.toLowerCase())) {
+    if (el.namespaceURI !== SVG_NS || FORBIDDEN_ELEMENTS.has(el.nodeName.toLowerCase())) {
       el.remove();
       continue;
     }

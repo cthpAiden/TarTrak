@@ -3,7 +3,30 @@
 ## 0.15.0 - 2026-10-31
 
 ### Map
-- **Screenshot reminder (opt-in).** Settings > Screenshot reminder. When it is on, the map slowly turns grey in a raid once you go 45 s (or 1 min, your pick) without pressing the screenshot key, fully grey 20 s later. The next screenshot brings the colour back at once. Your marker, teammates, quest markers and labels keep their colour. No sound, no popup. Off by default; it needs the game's log folder, which tells TarTrak when a raid is on.
+- **Screenshot reminder (opt-in).** Settings > Screenshot reminder. When it is on, the map slowly turns grey in a raid once you go 45 s (or 1 min, your pick) without pressing the screenshot key, fully grey 20 s later. The next screenshot brings the colour back at once. Your marker, teammates, quest markers and labels keep their colour. No sound, no popup. Off by default; it needs the screenshots and game log folders, which tell TarTrak where you are and when a raid is on.
+
+## 0.14.5 - 2026-10-29
+
+### Changed
+- **Finer mouse wheel zoom.** One wheel notch used to zoom the map about three quarters of a level (more when you spin fast), which overshot when you only wanted a little. A notch is now a quarter level; spinning faster still zooms more.
+
+## 0.14.4 - 2026-10-28
+
+### Added
+- **Range marks on the heading line.** Small split ticks sit either side of the line 50, 100 and 150 m ahead of every player, on the same bearing as the heading line even past its end. The gap keeps them off the dashes; they stay a few pixels long at any zoom and hide when zoomed out too far to tell apart.
+
+### Changed
+- The heading line is 100 m long by default (was 125 m), so it ends on the 100 m mark. Installs that have saved settings keep their saved length; change it under Settings.
+
+## 0.14.3 - 2026-10-28
+
+### Security
+- **The window stays on TarTrak's own pages.** A link or redirect can no longer load a web page inside the app, which runs elevated.
+- **Tighter page rules.** The Content Security Policy now also forbids plugins, frames, forms and `<base>`; the app may open https links only (no more file reveal, mail or plain http), and downloads only from json.tarkov.dev and assets.tarkov.dev (two hosts it never used are gone).
+- **Map SVGs are cleaned harder.** HTML tags hidden in a downloaded map (a `<meta refresh>`, an `<img>`) are dropped along with scripts and handlers. Checked against all ten maps: nothing real is lost.
+- **Encrypted relays only.** The relay field takes `wss://` addresses; plain `ws://` only for a relay on `localhost`. Quest wiki links must be https.
+- **The relay turns away strangers.** Web pages can no longer open rooms from a visitor's browser, and each IP may make 30 room requests a minute, which makes guessing room codes slow. Takes effect for every version once the relay is deployed.
+- Vite updated to 6.4.4 (dev server advisories), and the app and relay tests moved to Vitest 4 (test runner advisories); CI fails on any high-severity advisory in what ships; Dependabot watches npm, Cargo and Actions; `SECURITY.md` says how to report a problem.
 
 ## 0.14.2 - 2026-10-26
 

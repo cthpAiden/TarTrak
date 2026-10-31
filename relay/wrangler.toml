@@ -1,6 +1,7 @@
 name = "tartrak-relay"
 main = "src/index.ts"
 compatibility_date = "2025-06-01"
+workers_dev = true
 
 [[durable_objects.bindings]]
 name = "ROOMS"
@@ -11,7 +12,12 @@ class_name = "RoomDO"
 tag = "v1"
 new_sqlite_classes = ["RoomDO"]
 
+# Room requests per client IP. Approximate and counted per Cloudflare location, which is enough to
+# make guessing room codes slow. A squad joins once each and reconnects with a backoff, far below it.
+[[ratelimits]]
+name = "JOIN_LIMIT"
+namespace_id = "1001"
+simple = { limit = 30, period = 60 }
+
 [observability]
 enabled = false
-
-workers_dev = true
