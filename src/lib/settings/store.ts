@@ -2,6 +2,7 @@ import { load } from "@tauri-apps/plugin-store";
 import { FILTER_KEY_RE } from "../layers/filters";
 import { GAME_MODES, type GameMode } from "../quests/jsonSource";
 import { DEFAULT_MARK_KEY_VK } from "./markKey";
+import { SHOT_REMINDER_DELAYS } from "../map/shotReminder";
 
 export interface Settings {
   screenshotsDir: string | null;
@@ -29,6 +30,10 @@ export interface Settings {
   followMe: boolean;
   /** Overlay pill with the time left in the raid, read from the game's own raid clock in its output log. */
   raidTimer: boolean;
+  /** In a raid, the map turns grey after `shotReminderDelay` seconds without a screenshot. */
+  shotReminder: boolean;
+  /** Seconds without a screenshot before the map starts turning grey: one of SHOT_REMINDER_DELAYS. */
+  shotReminderDelay: number;
   /** Hide quests, in the list and on the map, whose prerequisite quests are not done yet. */
   questsAvailableOnly: boolean;
   layerFilters: Record<string, boolean>;
@@ -87,6 +92,8 @@ export const DEFAULT_SETTINGS: Settings = {
   lineLengthM: 125,
   followMe: true,
   raidTimer: true,
+  shotReminder: false,
+  shotReminderDelay: 45,
   questsAvailableOnly: false,
   layerFilters: {},
   todoQuests: {},
@@ -120,6 +127,8 @@ const SHAPE: Record<keyof Settings, Kind> = {
   lineLengthM: "number",
   followMe: "boolean",
   raidTimer: "boolean",
+  shotReminder: "boolean",
+  shotReminderDelay: "number",
   questsAvailableOnly: "boolean",
   layerFilters: "record",
   todoQuests: "record",
@@ -191,6 +200,7 @@ export function mergeSettings(partial: unknown): Settings {
   if (!ROOM_CODE_RE.test(out.lastRoom)) out.lastRoom = "";
   if (!OVERLAY_SHAPES.includes(out.overlayShape)) out.overlayShape = DEFAULT_SETTINGS.overlayShape;
   if (!MINIMAP_ROTATIONS.includes(out.minimapRotation)) out.minimapRotation = DEFAULT_SETTINGS.minimapRotation;
+  if (!SHOT_REMINDER_DELAYS.includes(out.shotReminderDelay)) out.shotReminderDelay = DEFAULT_SETTINGS.shotReminderDelay;
   out.minimapSize = Math.round(clamp(out.minimapSize, MINIMAP_SIZE_MIN, MINIMAP_SIZE_MAX));
   out.layerFilters = cleanRecord<boolean>(
     out.layerFilters,

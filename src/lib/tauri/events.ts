@@ -30,9 +30,11 @@ export function handleLogLine(line: string, state: AppState = app): void {
   if (ev.kind === "gameStarted") {
     // A new raid, possibly on the same map as the last one: the old marker would sit at last raid's spot.
     state.clearOwnPosition();
+    state.raidSeenAt = Date.now();
     return;
   }
   if (ev.kind === "raidClock") {
+    if (state.raidEndsAt === null) state.raidSeenAt = Date.now();
     state.raidEndsAt = ev.endsAt;
     return;
   }

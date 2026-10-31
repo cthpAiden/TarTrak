@@ -13,6 +13,7 @@
     type Settings,
   } from "./store";
   import { GAME_MODES, GAME_MODE_LABELS, type GameMode } from "../quests/jsonSource";
+  import { SHOT_REMINDER_DELAYS } from "../map/shotReminder";
   import { MARK_KEY_OFF, PRINT_SCREEN_VK, markKeyFromButton, markKeyFromCode, markKeyLabel } from "./markKey";
   import { openUrl } from "@tauri-apps/plugin-opener";
   import { version } from "../../../package.json";
@@ -194,6 +195,31 @@
         <span class="screen" aria-hidden="true"><span class:round={settings.overlayShape === "circle"}></span></span>
         <span class="hint">Needs the game in borderless windowed mode. Alt+drag moves the overlay; park it in a corner.</span>
       </div>
+    </div>
+  </section>
+
+  <section class="group" aria-labelledby="set-h-reminder">
+    <h3 id="set-h-reminder">Screenshot reminder</h3>
+    <div class="card">
+      <div class="row stack">
+        <div class="row">
+          <label for="set-reminder">Grey out the map when I forget</label>
+          <input id="set-reminder" class="switch" type="checkbox" checked={settings.shotReminder} onchange={(e) => onChange({ shotReminder: e.currentTarget.checked })} />
+        </div>
+        <span class="hint">In a raid, the map slowly turns grey when you go too long without a screenshot; the next screenshot brings the colour back. Your marker and teammates keep their colour. Needs the game's log folder.</span>
+      </div>
+      {#if settings.shotReminder}
+        <div class="row">
+          <span id="set-reminder-delay-l">Start greying after</span>
+          <div class="seg" role="radiogroup" aria-labelledby="set-reminder-delay-l">
+            {#each SHOT_REMINDER_DELAYS as delay (delay)}
+              <button type="button" role="radio" aria-checked={settings.shotReminderDelay === delay} onclick={() => onChange({ shotReminderDelay: delay })}>
+                {delay === 60 ? "1 min" : `${delay}s`}
+              </button>
+            {/each}
+          </div>
+        </div>
+      {/if}
     </div>
   </section>
 

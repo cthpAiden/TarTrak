@@ -155,6 +155,15 @@ describe("mergeSettings", () => {
     expect(mergeSettings({ minimapSize: 9000 }).minimapSize).toBe(640);
     expect(mergeSettings({ minimapSize: 321.6 }).minimapSize).toBe(322);
   });
+
+  it("keeps the screenshot reminder off by default at 45 s, and only takes a delay Settings offers", () => {
+    const s = mergeSettings({});
+    expect(s.shotReminder).toBe(false);
+    expect(s.shotReminderDelay).toBe(45);
+    expect(mergeSettings({ shotReminder: true, shotReminderDelay: 60 })).toMatchObject({ shotReminder: true, shotReminderDelay: 60 });
+    expect(mergeSettings({ shotReminderDelay: 1 }).shotReminderDelay).toBe(45);
+    expect(mergeSettings({ shotReminderDelay: "60" }).shotReminderDelay).toBe(45);
+  });
 });
 
 describe("loadSettings", () => {

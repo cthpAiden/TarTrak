@@ -236,4 +236,23 @@ describe("SettingsPanel overlay", () => {
     expect(box.target.querySelector("#set-raid-timer")).not.toBeNull();
     void unmount(box.panel);
   });
+
+  it("offers the screenshot reminder delay only once the reminder is on", () => {
+    const off = open();
+    expect(radio(off.target, "45s")).toBeUndefined();
+    const toggle = off.target.querySelector<HTMLInputElement>("#set-reminder")!;
+    expect(toggle.checked).toBe(false);
+    toggle.click();
+    flushSync();
+    expect(off.changes).toEqual([{ shotReminder: true }]);
+    void unmount(off.panel);
+    document.body.innerHTML = "";
+
+    const on = open({ shotReminder: true });
+    expect(radio(on.target, "45s").getAttribute("aria-checked")).toBe("true");
+    radio(on.target, "1 min").click();
+    flushSync();
+    expect(on.changes).toEqual([{ shotReminderDelay: 60 }]);
+    void unmount(on.panel);
+  });
 });
