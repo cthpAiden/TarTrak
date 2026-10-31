@@ -133,6 +133,30 @@ describe("handleLogLine", () => {
     }
   });
 
+  it("tells the raid hooks when I spawn, when the end moves, and when I leave, but not about the hideout's clock", () => {
+    const s = new AppState();
+    const calls: string[] = [];
+    const hooks = {
+      onRaidStart: (at: number, endsAt: number) => calls.push(`start ${at} ${endsAt}`),
+      onRaidEndsAt: (endsAt: number) => calls.push(`ends ${endsAt}`),
+      onRaidOver: () => calls.push("over"),
+    };
+    const hideout =
+      "2026-10-26 00:18:11.487|1.2.5.0.48146|Info|output|GameTimer utcNow:10/25/2026 17:18:56 start:10/25/2026 17:18:56 escape: PastTime:00:00:00 stop:01/01/0001 00:00:00 (startTime:, sessionTime:)";
+    handleLogLine(hideout, s, hooks);
+    handleLogLine(
+      "2026-09-18 12:51:34.321|1.1.5.0.47426|Info|output|GameTimer utcNow:09/18/2026 05:51:33 start:09/18/2026 05:51:22 escape:09/18/2026 06:26:22 PastTime:00:00:10.7960000 stop:01/01/0001 00:00:00 (startTime:09/18/2026 05:51:22, sessionTime:00:35:00)",
+      s,
+      hooks,
+    );
+    const at = new Date(2026, 8, 18, 12, 51, 34, 321).getTime();
+    const endsAt = at + 35 * 60_000 - 10_796;
+    handleLogLine("2026-09-18 12:51:51.045|1.1.5.0.47426|Info|output|Escape dateTime update to:09/18/2026 06:01:49 from:09/18/2026 06:26:22", s, hooks);
+    handleLogLine("2026-09-18 12:59:18.481|1.1.5.0.47426|Info|output|Connection.Disconnect() TransportId:4294967296 address:178.249.213.71 Reason:Stop game", s, hooks);
+    handleLogLine(hideout, s, hooks);
+    expect(calls).toEqual([`start ${at} ${endsAt}`, `ends ${endsAt - (24 * 60 + 33) * 1000}`, "over"]);
+  });
+
   it("keeps the raid's end through a map change: the clock no longer depends on the map", () => {
     const s = new AppState();
     s.setMap("factory", "log");

@@ -93,6 +93,8 @@ input[type="range"] { accent-color: var(--accent); }
 .dot.open { background: var(--ok); }
 .dot.connecting { background: #e8c547; }
 .dot.closed { background: #e5534b; }
+/* Raids tab: a raid saved since the tab was last opened. */
+.dot.fresh { background: var(--accent); }
 
 .side { width: 400px; flex: none; background: var(--panel); border-right: 1px solid #262d36; overflow: hidden; display: flex; flex-direction: column; }
 .side .pane { flex: 1; min-height: 0; overflow-y: auto; }

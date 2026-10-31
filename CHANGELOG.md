@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.16.0 - 2026-10-31
+
+### Added
+- **Raid replay.** TarTrak now records every raid you take a screenshot in: your screenshots and the positions your squad room passes on for each teammate. When you leave, a toast says how many screenshots you took and the new **Raids** tab gets a dot. Pick one of your last 10 raids there and the map plays it back: every player's trail in their colour, bright for the last 3 minutes before the playhead, faint before that, with a marker and heading where each player last took a screenshot. The dock under the map plays at 1× to 64×, steps between your screenshots, and has a lane per player with a tick for each position; drag across it to jump anywhere. A card counts your screenshots, how often you took one, and your longest gap. Teammates keep being recorded after you leave, until the raid's clock runs out or your next raid starts.
+
 ## 0.15.2 - 2026-10-31
 
 ### Changed

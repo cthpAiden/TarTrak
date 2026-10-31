@@ -22,6 +22,7 @@
   import { pinIcon, pinPopup } from "./pins";
   import { distanceM } from "./route";
   import { MAX_DRAW_POINTS } from "../room/protocol";
+  import { ReplayLayer, type ReplayTrail } from "./replayLayer";
 
   let {
     def,
@@ -46,6 +47,7 @@
     frame = null,
     rotation = 0,
     grey = 0,
+    replay = null,
   }: {
     def: MapDef | null;
     activeFloor: string | null;
@@ -80,6 +82,11 @@
     rotation?: number;
     /** Screenshot reminder: 0 shows the map in full colour, 1 fully grey; markers keep their colour. */
     grey?: number;
+    /**
+     * A raid replay at the playhead `at` (epoch ms): it takes the map's place for players, pins and drawings.
+     * `id` names the raid, so the view fits its trails once when it opens; `padBottom` keeps them clear of the dock.
+     */
+    replay?: { id: number; trails: ReplayTrail[]; at: number; padBottom: number } | null;
   } = $props();
 
   // Before the first marker exists: 2D transforms keep the renderer from giving every marker a layer.
@@ -111,6 +118,11 @@
   let drawGroup = $state<L.LayerGroup | null>(null);
   let routeLine: L.Polyline | null = null;
   let routeTip: L.Tooltip | null = null;
+  let replayLayer: ReplayLayer | null = null;
+  /** The map and line length the replay layer was made for; a change of either makes a new one. */
+  let replayFor: { map: L.Map; len: number } | null = null;
+  const replaying = $derived(replay !== null);
+  const replayId = $derived(replay?.id ?? null);
   /** Right-click menu: where it opens (container pixels) and the game point under the cursor. */
   let pinMenu = $state<{ px: number; py: number; x: number; z: number } | null>(null);
   let pinMenuEl: HTMLDivElement | undefined = $state();
@@ -141,6 +153,9 @@
     mates = new Map();
     own?.remove();
     own = null;
+    replayLayer?.remove();
+    replayLayer = null;
+    replayFor = null;
     questGroup = null;
     pointMarkers?.dispose();
     pointMarkers = null;
@@ -243,6 +258,8 @@
     m.on("mouseup", finishStroke);
     m.on("mouseout", finishStroke);
     m.on("contextmenu", (e: L.LeafletMouseEvent) => {
+      // A replay shows another time, maybe another map: a pin or route made there would land on the live one.
+      if (replay) return;
       pinLabel = "";
       // Placed where the mouse is in the menu's own box (the map's parent), which a round or turned map
       // does not share with Leaflet's container points. Kept inside it, so a right-click near the right or
@@ -341,6 +358,7 @@
     const g = drawGroup;
     if (!g || !d) return;
     g.clearLayers();
+    if (replaying) return;
     for (const st of Object.values(all)) {
       if (st.map !== d.key) continue;
       // A teammate's stroke takes the colour they are shown in, like their marker.
@@ -397,7 +415,7 @@
     const len = lineLengthM;
     const color = safeColor(ownColor);
     if (!m) return;
-    if (!p) {
+    if (!p || replaying) {
       own?.remove();
       own = null;
       return;
@@ -417,7 +435,7 @@
     const colors = mateColors;
     if (!m || !d) return;
     // A teammate whose game log was not found reports no map; a squad shares a raid, so they go on mine.
-    const wanted: Teammate[] = Object.values(all).filter((t) => !t.noPosition && (t.map === d.key || t.map === null));
+    const wanted: Teammate[] = replaying ? [] : Object.values(all).filter((t) => !t.noPosition && (t.map === d.key || t.map === null));
     const ids = new Set(wanted.map((t) => t.id));
     for (const [id, marker] of mates) {
       if (!ids.has(id)) {
@@ -440,6 +458,40 @@
       marker.setOpacity(opacityFor(tick - t.receivedAt));
       marker.setAge((tick - t.receivedAt) / 1000);
     }
+  });
+
+  // The replay at the playhead: redrawn as the playhead moves, made anew for a new map or line length.
+  $effect(() => {
+    const r = replay;
+    const m = map;
+    const len = lineLengthM;
+    untrack(() => {
+      if (!m || !r) {
+        replayLayer?.remove();
+        replayLayer = null;
+        replayFor = null;
+        return;
+      }
+      if (!replayLayer || replayFor?.map !== m || replayFor.len !== len) {
+        replayLayer?.remove();
+        replayLayer = new ReplayLayer(m, len);
+        replayFor = { map: m, len };
+      }
+      replayLayer.update(r.trails, r.at);
+    });
+  });
+
+  // A raid opened for replay: show all of its trails, once, clear of the dock.
+  $effect(() => {
+    const id = replayId;
+    const m = map;
+    if (id === null || !m) return;
+    untrack(() => {
+      const pts = replay?.trails.flatMap((t) => t.points) ?? [];
+      if (pts.length === 0) return;
+      const bounds = L.latLngBounds(pts.map((p) => toLatLng(p.x, p.z)));
+      m.fitBounds(bounds, { paddingTopLeft: [60, 60], paddingBottomRight: [70, 60 + (replay?.padBottom ?? 0)], animate: false });
+    });
   });
 
   $effect(() => {
@@ -537,6 +589,7 @@
     const g = pinGroup;
     if (!g || !d) return;
     g.clearLayers();
+    if (replaying) return;
     for (const p of Object.values(pins)) {
       if (p.map !== d.key) continue;
       const mate = p.from ? mates[p.from] : undefined;
@@ -646,4 +699,5 @@
   </div>
 {/if}
 
-{#if message}<div class="map-msg">{message}</div>{/if}
+<!-- Above the replay dock while one is open, so a map that failed to load still says so. -->
+{#if message}<div class="map-msg" style:bottom={replay ? `${replay.padBottom + 12}px` : null}>{message}</div>{/if}

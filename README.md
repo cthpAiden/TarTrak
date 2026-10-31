@@ -19,6 +19,7 @@
 - Shows your squad on the same map, linked by a 6-character room code.
 - Draws quests, extracts, bosses and loot, with filters for each.
 - Runs as an overlay on top of the game in borderless windowed mode.
+- Replays your last 10 raids afterwards: your screenshots and your squad's trails, on the map with a timeline.
 
 ## Get started
 

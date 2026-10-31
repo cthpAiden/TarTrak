@@ -28,13 +28,15 @@ describe("parseLogLine", () => {
     const line =
       "2026-10-25 01:52:35.519|1.2.5.0.48146|Info|output|GameTimer utcNow:10/24/2026 18:53:20 start:10/24/2026 18:30:11 escape:10/24/2026 19:10:11 PastTime:00:23:08.9320000 stop:01/01/0001 00:00:00 (startTime:10/24/2026 18:30:11, sessionTime:00:40:00)";
     const left = (16 * 60 + 51.068) * 1000;
-    expect(parseLogLine(line)).toEqual({ kind: "raidClock", endsAt: new Date(2026, 9, 25, 1, 52, 35, 519).getTime() + left });
+    const at = new Date(2026, 9, 25, 1, 52, 35, 519).getTime();
+    expect(parseLogLine(line)).toEqual({ kind: "raidClock", endsAt: at + left, at });
   });
 
   it("reads a PMC raid that started on time", () => {
     const line =
       "2026-10-26 01:01:19.187|1.2.5.0.48146|Info|output|GameTimer utcNow:10/25/2026 18:02:04 start:10/25/2026 18:02:04 escape:10/25/2026 18:42:04 PastTime:00:00:00.0010000 stop:01/01/0001 00:00:00 (startTime:10/25/2026 18:02:04, sessionTime:00:40:00)";
-    expect(parseLogLine(line)).toEqual({ kind: "raidClock", endsAt: new Date(2026, 9, 26, 1, 1, 19, 187).getTime() + 40 * 60_000 - 1 });
+    const at = new Date(2026, 9, 26, 1, 1, 19, 187).getTime();
+    expect(parseLogLine(line)).toEqual({ kind: "raidClock", endsAt: at + 40 * 60_000 - 1, at });
   });
 
   it("treats the hideout's clock, which has no session time, as no raid", () => {

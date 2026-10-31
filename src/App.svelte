@@ -70,7 +70,12 @@
   import { raidTimeLeft } from "./lib/map/raidTimer";
   import { SHOT_REMINDER_DELAY_S, mapGrey as reminderGrey } from "./lib/map/shotReminder";
   import { bearingDeg, pad3, type CompassTarget } from "./lib/map/compass";
-  import { mateColor } from "./lib/room/squad";
+  import { mateColor, safeColor } from "./lib/room/squad";
+  import { RaidLog, loadRaids } from "./lib/raids/log.svelte";
+  import { raidSpan } from "./lib/raids/replay";
+  import RaidsPanel from "./lib/raids/RaidsPanel.svelte";
+  import ReplayDock from "./lib/raids/ReplayDock.svelte";
+  import type { ReplayTrail } from "./lib/map/replayLayer";
   import Toasts from "./lib/ui/Toasts.svelte";
   import Banner from "./lib/ui/Banner.svelte";
 
@@ -96,10 +101,20 @@
     { id: "filters", label: "Filters" },
     { id: "squad", label: "Squad" },
     { id: "quests", label: "Quests" },
+    { id: "raids", label: "Raids" },
     { id: "settings", label: "Settings" },
   ] as const;
 
   let tab = $state<(typeof TABS)[number]["id"]>("filters");
+
+  /** My raids with my squad's trails, for the Raids tab's replay. */
+  const raidLog = new RaidLog(undefined, (e) => app.toast(`Could not save raids: ${e}`));
+  /** A raid was saved since the Raids tab was last opened. */
+  let raidsUnseen = $state(false);
+  /** The raid picked in the Raids tab; null shows the newest. */
+  let selectedRaid = $state<number | null>(null);
+  /** The replay's playhead, epoch ms. */
+  let replayAt = $state(0);
 
   let pinnedFloor = $state<string | null>(null);
   /** Where the route line leads: an extract by point id, or a spot picked with "Go here" on the map. */
@@ -168,6 +183,39 @@
   });
   // tarkov.dev's entry for the map on screen: raid length, player count, bosses.
   const mapInfo = $derived(def && app.questData ? (app.questData.maps.find((m) => m.normalizedName === def.key) ?? null) : null);
+  // Raids tab in the full window: the map shows the picked raid's replay instead of the live game.
+  const replayRaid = $derived(
+    tab === "raids" && !overlay ? (raidLog.raids.find((r) => r.startedAt === selectedRaid) ?? raidLog.raids[0] ?? null) : null,
+  );
+  const replayDef = $derived(replayRaid?.map ? (getMapDef(replayRaid.map) ?? null) : null);
+  /** The map on screen: the replay's while one is open, else the live one. */
+  const shownDef = $derived(replayRaid ? replayDef : def);
+  const replayTrails = $derived.by((): ReplayTrail[] => {
+    const r = replayRaid;
+    if (!r) return [];
+    const colors = settings?.mateColors ?? {};
+    const mine: ReplayTrail = {
+      key: "me",
+      name: "You",
+      color: safeColor(settings?.color ?? DEFAULT_SETTINGS.color),
+      mine: true,
+      points: r.me,
+    };
+    // Relay names are any text; the prefix keeps one from colliding with "me".
+    const mates = r.mates.map((m) => ({ key: `mate:${m.name}`, name: m.name, color: mateColor(m.name, m.color, colors), mine: false, points: m.points }));
+    return [mine, ...mates];
+  });
+  // A raid opened for replay starts at its end, every trail drawn; another raid picked starts over the same way.
+  let replayShown: number | null = null;
+  $effect(() => {
+    const r = replayRaid;
+    untrack(() => {
+      const id = r?.startedAt ?? null;
+      if (id === replayShown) return;
+      replayShown = id;
+      if (r) replayAt = raidSpan(r).end;
+    });
+  });
   // The raid clock ticks once a second while a raid's end is known (the status bar and the overlay show it).
   let now = $state(Date.now());
   $effect(() => {
@@ -461,7 +509,18 @@
     // Each phase is isolated: a failure in one must not stop the others from starting.
     (async () => {
       stop = await startEventBridge({
-        onPosition: (p) => markPairer.screenshot(p),
+        onPosition: (p) => {
+          markPairer.screenshot(p);
+          raidLog.own(p, app.currentMap, Date.now());
+        },
+        onRaidStart: (at, endsAt) => raidLog.start(at, endsAt, app.currentMap, Date.now()),
+        onRaidEndsAt: (endsAt) => raidLog.setEndsAt(endsAt),
+        onRaidOver: () => {
+          const r = raidLog.over(Date.now());
+          if (!r) return;
+          app.toast(`Raid saved: ${r.me.length} screenshot${r.me.length === 1 ? "" : "s"}. Replay it in the Raids tab.`);
+          if (tab !== "raids") raidsUnseen = true;
+        },
         onMarkKey: () => markPairer.press(),
         // Rust already showed the window; the hide hotkey must not think it is still hidden.
         onSecondInstance: () => {
@@ -474,6 +533,13 @@
       settings = s;
       if (s.lastMap && !app.currentMap) app.setMap(s.lastMap, "manual");
       await armHotkeys(s);
+
+      // Before the log tail starts: an unfinished raid it replays carries on from what was saved.
+      try {
+        raidLog.loaded(await loadRaids());
+      } catch (e) {
+        app.toast(`Could not load saved raids: ${e}`);
+      }
 
       try {
         app.setDone(await loadDone());
@@ -525,6 +591,17 @@
   $effect(() => {
     const p = app.ownPos;
     if (p) room.onOwnPosition(app.currentMap, p);
+  });
+
+  // Every teammate position goes to the raid recorder; it keeps the new ones that belong to the raid.
+  $effect(() => {
+    const mates = Object.values(app.teammates);
+    untrack(() => {
+      for (const t of mates) {
+        if (t.noPosition) continue;
+        raidLog.mate({ name: t.name, color: t.color, map: t.map, x: t.x, y: t.y, z: t.z, yaw: t.yaw, receivedAt: t.receivedAt });
+      }
+    });
   });
 
   // The chord poller follows the mark key setting and the screenshot key the game log reports;
@@ -609,7 +686,7 @@
   $effect(() => {
     const at = app.ownUpdatedAt;
     untrack(() => {
-      if (at && (settings?.followMe ?? true)) mapView?.centerOnMe();
+      if (at && (settings?.followMe ?? true) && !replayRaid) mapView?.centerOnMe();
     });
   });
 </script>
@@ -651,7 +728,16 @@
       {#if settings}
         <div class="rail-tabs" role="tablist" aria-orientation="vertical">
           {#each TABS as t (t.id)}
-            <button type="button" role="tab" aria-selected={tab === t.id} aria-controls="side" onclick={() => (tab = t.id)}>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === t.id}
+              aria-controls="side"
+              onclick={() => {
+                tab = t.id;
+                if (t.id === "raids") raidsUnseen = false;
+              }}
+            >
               <svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4">
                 {#if t.id === "filters"}
                   <path d="M8 2l6 3-6 3-6-3z" /><path d="M2 8l6 3 6-3" /><path d="M2 11l6 3 6-3" />
@@ -660,6 +746,8 @@
                   <circle cx="11.5" cy="6" r="2" /><path d="M11 10c2 0 3.5 1.2 3.5 3.5" />
                 {:else if t.id === "quests"}
                   <path d="M6 4h8M6 8h8M6 12h8" /><path d="M2 3.5l1 1 1.5-2M2 7.5l1 1 1.5-2M2 11.5l1 1 1.5-2" />
+                {:else if t.id === "raids"}
+                  <path d="M2 12.5l3.5-4 3 2.5 5.5-7" /><circle cx="2" cy="12.5" r="1" /><circle cx="14" cy="4" r="1" />
                 {:else}
                   <path d="M2 4h7M12 4h2M2 12h2M7 12h7" /><circle cx="10.5" cy="4" r="1.5" /><circle cx="5.5" cy="12" r="1.5" />
                   <path d="M2 8h2M7 8h7" /><circle cx="5.5" cy="8" r="1.5" />
@@ -670,6 +758,8 @@
                 <span class="dot {room.status}" title="Squad {room.status}"></span>
               {:else if t.id === "quests" && todoCount > 0}
                 <span class="badge" title="{todoCount} on my to-do">{todoCount}</span>
+              {:else if t.id === "raids" && raidsUnseen}
+                <span class="dot fresh" title="A new raid to replay"></span>
               {/if}
             </button>
           {/each}
@@ -720,6 +810,8 @@
               onShowSquadTodo={(on) => patchSettings({ showSquadTodo: on })}
               faction={settings.faction}
             />
+          {:else if tab === "raids"}
+            <RaidsPanel raids={raidLog.raids} selected={replayRaid?.startedAt ?? null} onSelect={(id) => (selectedRaid = id)} />
           {:else}
             <SettingsPanel
               {settings}
@@ -751,48 +843,50 @@
                 <rect x="2.5" y="2.5" width="11" height="11" /><path d="M2.5 5.5h11" />
               </svg>
             </button>
-            <button
-              type="button"
-              class="tool-btn"
-              aria-pressed={settings?.followMe ?? true}
-              onclick={() => patchSettings({ followMe: !(settings?.followMe ?? true) })}
-              title="Follow me: keep the map centred on my marker"
-              aria-label="Follow me"
-            >
-              {@render followIcon()}
-            </button>
-            <RoutePicker
-              variant="toolbar"
-              groups={extractGroups}
-              selectedId={routePoint?.id ?? null}
-              selectedName={routePoint?.name ?? null}
-              distanceM={routeDistance}
-              from={app.ownPos ? { x: app.ownPos.x, z: app.ownPos.z } : null}
-              onSelect={(id) => (route = id ? { kind: "extract", id } : null)}
-            />
-            <button
-              type="button"
-              class="tool-btn"
-              aria-pressed={drawMode}
-              onclick={() => (drawMode = !drawMode)}
-              title="Draw on the map: drag to draw, right-click for undo and clear. In a room the squad sees it live."
-              aria-label="Draw on the map"
-            >
-              {@render drawIcon()}
-            </button>
-            <button type="button" class="tool-btn" onclick={() => mapView?.centerOnMe()} disabled={!app.ownPos} title="Centre on me" aria-label="Centre on me">
-              <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
-                <circle cx="8" cy="8" r="2" /><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3" />
-              </svg>
-            </button>
-            <button type="button" class="tool-btn" onclick={() => mapView?.fitMap()} disabled={!def} title="Fit the whole map" aria-label="Fit map">
+            {#if !replayRaid}
+              <button
+                type="button"
+                class="tool-btn"
+                aria-pressed={settings?.followMe ?? true}
+                onclick={() => patchSettings({ followMe: !(settings?.followMe ?? true) })}
+                title="Follow me: keep the map centred on my marker"
+                aria-label="Follow me"
+              >
+                {@render followIcon()}
+              </button>
+              <RoutePicker
+                variant="toolbar"
+                groups={extractGroups}
+                selectedId={routePoint?.id ?? null}
+                selectedName={routePoint?.name ?? null}
+                distanceM={routeDistance}
+                from={app.ownPos ? { x: app.ownPos.x, z: app.ownPos.z } : null}
+                onSelect={(id) => (route = id ? { kind: "extract", id } : null)}
+              />
+              <button
+                type="button"
+                class="tool-btn"
+                aria-pressed={drawMode}
+                onclick={() => (drawMode = !drawMode)}
+                title="Draw on the map: drag to draw, right-click for undo and clear. In a room the squad sees it live."
+                aria-label="Draw on the map"
+              >
+                {@render drawIcon()}
+              </button>
+              <button type="button" class="tool-btn" onclick={() => mapView?.centerOnMe()} disabled={!app.ownPos} title="Centre on me" aria-label="Centre on me">
+                <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="8" cy="8" r="2" /><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3" />
+                </svg>
+              </button>
+            {/if}
+            <button type="button" class="tool-btn" onclick={() => mapView?.fitMap()} disabled={!shownDef} title="Fit the whole map" aria-label="Fit map">
               <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" />
               </svg>
             </button>
-            {#if def}
+            {#if shownDef}
               <span class="sep"></span>
-              <FloorPicker variant="toolbar" {def} {pinnedFloor} onPick={(n) => (pinnedFloor = n)} />
+              <FloorPicker variant="toolbar" def={shownDef} {pinnedFloor} onPick={(n) => (pinnedFloor = n)} />
             {/if}
           </div>
         {:else if !circle}
@@ -850,13 +944,13 @@
           </div>
         {/if}
 
-        {#if def}
+        {#if shownDef}
           <MapView
             bind:this={mapView}
-            {def}
-            {activeFloor}
-            {questMarkers}
-            {points}
+            def={shownDef}
+            activeFloor={replayRaid ? pinnedFloor || null : activeFloor}
+            questMarkers={replayRaid ? [] : questMarkers}
+            points={replayRaid ? [] : points}
             {hitIds}
             {showLabels}
             lineLengthM={settings?.lineLengthM ?? DEFAULT_SETTINGS.lineLengthM}
@@ -864,9 +958,11 @@
             canShare={room.status === "open"}
             onPin={placePin}
             onRemovePin={removePin}
-            onGoHere={(p) => (route = { kind: "spot", map: def.key, x: p.x, z: p.z })}
-            route={routePoint ? { x: routePoint.x, z: routePoint.z, name: routePoint.name } : null}
-            {drawMode}
+            onGoHere={(p) => {
+              if (def) route = { kind: "spot", map: def.key, x: p.x, z: p.z };
+            }}
+            route={routePoint && !replayRaid ? { x: routePoint.x, z: routePoint.z, name: routePoint.name } : null}
+            drawMode={drawMode && !replayRaid}
             drawColor={settings?.color ?? DEFAULT_SETTINGS.color}
             ownColor={settings?.color ?? DEFAULT_SETTINGS.color}
             onDraw={addDrawing}
@@ -874,8 +970,12 @@
             onClearDraw={clearDrawings}
             frame={ring ? { left: ring.cx - ring.r, top: ring.cy - ring.r, size: 2 * ring.r } : null}
             rotation={mapRotation}
-            grey={mapGrey}
+            grey={replayRaid ? 0 : mapGrey}
+            replay={replayRaid ? { id: replayRaid.startedAt, trails: replayTrails, at: replayAt, padBottom: 84 + 23 * replayTrails.length } : null}
           />
+          {#if replayRaid}
+            <ReplayDock raid={replayRaid} trails={replayTrails} at={replayAt} onSeek={(t) => (replayAt = t)} />
+          {/if}
         {:else}
           <div class="empty" class:round={circle}>Pick a map, or load into a raid.</div>
         {/if}

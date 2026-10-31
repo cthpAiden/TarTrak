@@ -2,8 +2,11 @@ export type LogEvent =
   | { kind: "preset"; name: string }
   | { kind: "location"; name: string }
   | { kind: "gameStarted" }
-  /** The game's raid clock (output log): `endsAt` is when the raid ends, as epoch ms on this PC's clock. */
-  | { kind: "raidClock"; endsAt: number }
+  /**
+   * The game's raid clock (output log): `endsAt` is when the raid ends, as epoch ms on this PC's clock;
+   * `at` is when the line was logged, which is the moment I spawned.
+   */
+  | { kind: "raidClock"; endsAt: number; at: number }
   /** The game moved the raid's end mid-raid by `byMs` (negative: sooner). */
   | { kind: "raidEndMoved"; byMs: number }
   /** Back in the menu or the hideout: no raid clock. */
@@ -53,7 +56,7 @@ export function parseLogLine(line: string): LogEvent | null {
     const [, ph, pm, ps, sh, sm, ss] = timer;
     if (sh === undefined) return { kind: "raidOver" };
     const at = lineTime(line);
-    return at === null ? null : { kind: "raidClock", endsAt: at + hmsMs(sh, sm, ss) - hmsMs(ph, pm, ps) };
+    return at === null ? null : { kind: "raidClock", endsAt: at + hmsMs(sh, sm, ss) - hmsMs(ph, pm, ps), at };
   }
   const moved = ESCAPE_MOVED_RE.exec(line);
   if (moved) return { kind: "raidEndMoved", byMs: usUtc(moved.slice(1, 7)) - usUtc(moved.slice(7, 13)) };
