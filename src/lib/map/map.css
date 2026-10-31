@@ -25,6 +25,8 @@
 
 /* Round minimap: the Leaflet container is the disc itself. */
 .map-root.circle { right: auto; bottom: auto; border-radius: 50%; overflow: hidden; background: #20251d; }
+/* Screenshot reminder: the disc's backing greys with the map; #1c1c1c is #20251d through the same grayscale(1) brightness(0.8). */
+.map-root.circle.greying { background: color-mix(in srgb, #1c1c1c calc(var(--grey) * 100%), #20251d); }
 /* Heading-up: the whole map element is turned by -heading; text turns back by --counter to stay upright.
    Marker icons turn with the map. Tooltips sit above their point, so they turn about their bottom edge. */
 .map-root.rotated .upright { transform: rotate(var(--counter)); transform-origin: 50% 100%; }
