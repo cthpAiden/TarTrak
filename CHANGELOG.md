@@ -6,7 +6,7 @@
 - **Simpler screenshot reminder.** The setting is now just the switch: no description text and no delay choice. The map starts greying after 30 s without a screenshot (was 45 s or 1 min), fully grey 20 s later. Installs that picked 45 s or 1 min move to 30 s.
 
 ### Security
-- Dependency updates: tokio 1.54.1 (fixes the `AsyncFd` I/O safety advisory, RUSTSEC-2026-0386), Tauri plugins, Vite 8, Vitest 5, TypeScript 6, and the build actions (checkout and setup-node v7, tauri-action v1).
+- Dependency updates: tokio 1.54.1 (fixes the `AsyncFd` I/O safety advisory, RUSTSEC-2026-0386), Vite 8, Vitest 5, TypeScript 6, and the build actions (checkout and setup-node v7, tauri-action v1).
 
 ## 0.15.1 - 2026-10-31
 
