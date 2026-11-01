@@ -70,7 +70,7 @@ const Logo = ({ ring }: { ring: Ring }) => {
 };
 
 /** Contour lines behind the card (dim amber), computed once; they fade in as the logo lands. */
-const TOPO = topoPath({ w: 1920, h: 1080, seed: 3, scale: 380, levels: 24 });
+const TOPO = topoPath({ w: 1920, h: 1080, step: 5, seed: 27, scale: 380, levels: 20, octaves: 2, gain: 0.3, warp: 0.3 });
 const Topo = () => {
   const k = prog(useCurrentFrame(), 724, 790, easeOutCubic);
   if (k <= 0) return null;

@@ -1,9 +1,13 @@
 /**
  * Topographic contour lines as one SVG path: iso-lines of seeded 2-octave gradient noise over a w x h
  * area, traced with marching squares and chained into polylines. `scale` is the noise feature size in
- * px, `levels` the number of contour levels (more = denser lines), `step` the sampling grid in px.
+ * px, `levels` the number of contour levels (more = denser lines), `step` the sampling grid in px,
+ * `octaves`/`gain` the fractal detail (more octaves = rougher, more irregular lines) and `warp` how far
+ * the terrain is bent by a second noise field (0 = none; ~1 gives stretched, twisting ridges).
  */
-export function topoPath({ w, h, seed = 1, scale = 260, levels = 26, step = 6 }: { w: number; h: number; seed?: number; scale?: number; levels?: number; step?: number }): string {
+export function topoPath({ w, h, seed = 1, scale = 260, levels = 26, step = 6, octaves = 2, gain = 0.45, warp = 0 }: {
+  w: number; h: number; seed?: number; scale?: number; levels?: number; step?: number; octaves?: number; gain?: number; warp?: number;
+}): string {
   let s = seed;
   const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
   const perm = Array.from({ length: 256 }, (_, i) => i);
@@ -25,7 +29,20 @@ export function topoPath({ w, h, seed = 1, scale = 260, levels = 26, step = 6 }:
     const b = dot(0, 1) + u * (dot(1, 1) - dot(0, 1));
     return a + v * (b - a);
   };
-  const height = (x: number, y: number) => noise(x / scale + 17.3, y / scale + 5.1) + 0.45 * noise(x / (scale / 2.3) + 3.7, y / (scale / 2.3) + 11.9);
+  const fbm = (x: number, y: number, o: number) => {
+    let v = 0, a = 1, f = 1;
+    for (let i = 0; i < octaves; i++) {
+      v += a * noise(x * f + o + i * 3.7, y * f + o * 0.7 + i * 11.9);
+      a *= gain;
+      f *= 2.3;
+    }
+    return v;
+  };
+  const height = (x: number, y: number) => {
+    const u = x / scale, v = y / scale;
+    const qx = warp ? fbm(u, v, 41.2) : 0, qy = warp ? fbm(u, v, 87.5) : 0;
+    return fbm(u + warp * qx, v + warp * qy, 17.3);
+  };
 
   const nx = Math.ceil(w / step) + 1, ny = Math.ceil(h / step) + 1;
   const g: number[][] = [];
