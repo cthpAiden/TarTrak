@@ -720,10 +720,7 @@
   <div class="body">
     <nav class="rail" aria-label="Main">
       <div class="logo" title="TarTrak {version}">
-        <svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8">
-          <circle cx="8" cy="8" r="4" />
-          <path d="M8 1v3M8 12v3M1 8h3M12 8h3" />
-        </svg>
+        <img src="/logo.png" width="34" height="34" alt="" />
       </div>
       {#if settings}
         <div class="rail-tabs" role="tablist" aria-orientation="vertical">

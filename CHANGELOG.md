@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.16.1 - 2026-11-01
+
+### Changed
+- **New icon.** TarTrak's icon is now a compass rose over a topographic map, on the taskbar, the window, the installer and the top of the sidebar.
+
+### Fixed
+- **Live map after a replay:** closing a raid replay (F5 to the overlay, or another tab) left the live map at the replay's zoom, often the closest there is. The view from before the replay now comes back. Re-opening the replay after the overlay also fits the trails to the window, not the overlay.
+- **No blue highlight when dragging:** a drag across the map no longer selects the compass bearings, the scale and the status readouts. Text boxes and the room code can still be selected.
+
 ## 0.16.0 - 2026-10-31
 
 ### Added
