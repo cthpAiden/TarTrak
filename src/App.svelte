@@ -68,7 +68,7 @@
   import { version } from "../package.json";
   import MateReadout from "./lib/map/MateReadout.svelte";
   import { raidTimeLeft } from "./lib/map/raidTimer";
-  import { SHOT_REMINDER_DELAY_S, shotOverdue } from "./lib/map/shotReminder";
+  import { SHOT_REMINDER_DELAY_S, shotAgeS } from "./lib/map/shotReminder";
   import { bearingDeg, pad3, type CompassTarget } from "./lib/map/compass";
   import { mateColor, safeColor } from "./lib/room/squad";
   import { RaidLog, loadRaids } from "./lib/raids/log.svelte";
@@ -225,9 +225,9 @@
     return () => clearInterval(id);
   });
   const raidLeft = $derived(settings?.raidTimer === false ? null : raidTimeLeft(app.raidEndsAt, now));
-  // Screenshot reminder: in a raid, the map's border pulses once I go too long without a screenshot; the next one stops it.
-  const shotDue = $derived(
-    !!settings?.shotReminder && shotOverdue(now, app.raidEndsAt, app.ownUpdatedAt, app.raidSeenAt, SHOT_REMINDER_DELAY_S),
+  // Screenshot reminder: in a raid, a tag by my marker counts up once I go too long without a screenshot; the next one hides it.
+  const shotAge = $derived(
+    settings?.shotReminder ? shotAgeS(now, app.raidEndsAt, app.ownUpdatedAt, app.raidSeenAt, SHOT_REMINDER_DELAY_S) : null,
   );
   const routeDistance = $derived(routePoint && app.ownPos ? distanceM(app.ownPos, routePoint) : null);
   // Teammates drawn on my map, the map view's filter, for the overlay's compass and distance pill.
@@ -967,7 +967,7 @@
             onClearDraw={clearDrawings}
             frame={ring ? { left: ring.cx - ring.r, top: ring.cy - ring.r, size: 2 * ring.r } : null}
             rotation={mapRotation}
-            shotDue={!replayRaid && shotDue}
+            shotAge={replayRaid ? null : shotAge}
             replay={replayRaid ? { id: replayRaid.startedAt, trails: replayTrails, at: replayAt, padBottom: 84 + 23 * replayTrails.length } : null}
           />
           {#if replayRaid}

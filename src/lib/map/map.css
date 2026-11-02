@@ -3,14 +3,15 @@
 .leaflet-container { background: transparent; }
 .hidden-layer { display: none; }
 .off-level { opacity: 0.35; }
-/* Screenshot reminder: an amber border pulses round the inside of the map's edge, about every 2 s. It sits
-   over the panes and takes no clicks; on the round minimap it follows the disc. */
-.map-root.shot-due::after {
-  content: ""; position: absolute; inset: 0; z-index: 1000; pointer-events: none; border-radius: inherit;
-  box-shadow: inset 0 0 0 3px var(--accent), inset 0 0 18px 4px rgba(240, 180, 41, 0.6);
-  animation: shot-pulse 2s ease-in-out infinite;
+/* Screenshot reminder: a red tag up and to the right of my marker, counting the seconds since my last
+   screenshot. Turned about the point by --counter, so it stays upright and up-right on a heading-up map. */
+.tt-shot-age { pointer-events: none; z-index: 300 !important; }
+.tt-shot-age span {
+  position: absolute; left: 0; top: 0; transform-origin: 0 0;
+  transform: rotate(var(--counter, 0deg)) translate(9px, -26px);
+  padding: 1px 5px; border: 1px solid #ff6b5a; border-radius: 3px; background: #12151a; color: #ff8a7a;
+  font: 500 11px/1.4 var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap;
 }
-@keyframes shot-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
 .tt-label {
   text-shadow: 0 0 3px #000, 0 0 1px #000;
   color: #fff;
