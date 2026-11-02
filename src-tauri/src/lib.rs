@@ -2,6 +2,7 @@ mod detect;
 mod logtail;
 mod markkey;
 mod navguard;
+mod shareshot;
 mod watcher;
 
 use tauri::{Emitter, Manager};
@@ -44,6 +45,7 @@ pub fn run() {
         .manage(watcher::WatcherState::default())
         .manage(logtail::TailState::default())
         .manage(markkey::MarkKeyState::default())
+        .manage(shareshot::SharedShot::default())
         .invoke_handler(tauri::generate_handler![
             watcher::start_screenshot_watcher,
             watcher::stop_screenshot_watcher,
@@ -51,6 +53,7 @@ pub fn run() {
             logtail::stop_log_tail_cmd,
             detect::detect_dirs,
             markkey::start_mark_key,
+            shareshot::take_shared_shot,
         ])
         .run(tauri::generate_context!())
         .expect("error while running TarTrak");

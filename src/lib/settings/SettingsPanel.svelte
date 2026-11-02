@@ -65,12 +65,25 @@
   let hideKey = $state(untrack(() => settings.hotkeyHide));
   let lineLen = $state(untrack(() => settings.lineLengthM));
 
-  /** While true, the next key or mouse button pressed anywhere becomes the mark-here key. */
-  let capturing = $state(false);
+  /** While set, the next key or mouse button pressed anywhere becomes that held key. */
+  let capturing = $state<"markKeyVk" | "shareKeyVk" | null>(null);
+
+  function toggleCapture(which: "markKeyVk" | "shareKeyVk") {
+    capturing = capturing === which ? null : which;
+  }
 
   function bindKey(vk: number) {
-    capturing = false;
-    onChange({ markKeyVk: vk });
+    const which = capturing;
+    capturing = null;
+    if (which) onChange({ [which]: vk });
+  }
+
+  /** Why `vk` cannot be the key being captured, or null when it can. */
+  function refusal(vk: number): string | null {
+    if (vk === PRINT_SCREEN_VK) return "PrintScreen is a screenshot key; pick another key to hold";
+    if (capturing === "markKeyVk" && vk === settings.shareKeyVk) return "That is the share key; pick another";
+    if (capturing === "shareKeyVk" && vk === settings.markKeyVk) return "That is the mark-here key; pick another";
+    return null;
   }
 
   function captureKey(e: KeyboardEvent) {
@@ -79,7 +92,7 @@
     e.stopPropagation();
     if (e.repeat) return;
     if (e.code === "Escape") {
-      capturing = false;
+      capturing = null;
       return;
     }
     if (e.code === "Backspace" || e.code === "Delete") {
@@ -91,8 +104,9 @@
       onInvalid?.(`Cannot bind ${e.code || "that key"}`);
       return;
     }
-    if (key.vk === PRINT_SCREEN_VK) {
-      onInvalid?.("PrintScreen is a screenshot key; pick another key to hold");
+    const why = refusal(key.vk);
+    if (why) {
+      onInvalid?.(why);
       return;
     }
     bindKey(key.vk);
@@ -110,13 +124,18 @@
     const key = markKeyFromButton(e.button);
     // A left or right click on anything else just ends the capture.
     if (!key) {
-      capturing = false;
+      capturing = null;
       if (e.button === 2) e.preventDefault();
       return;
     }
     e.preventDefault();
     e.stopPropagation();
     boundButton = e.button;
+    const why = refusal(key.vk);
+    if (why) {
+      onInvalid?.(why);
+      return;
+    }
     bindKey(key.vk);
   }
 
@@ -230,8 +249,14 @@
       </div>
       <div class="row">
         <label for="set-mark-key" title="Hold this key and press the game's screenshot key: a private marker drops where you stand. Nothing happens on either key alone. Backspace turns it off.">Mark-here key</label>
-        <button id="set-mark-key" type="button" class="capture key" class:capturing onclick={() => (capturing = !capturing)}>
-          {capturing ? "Press a key…" : markKeyLabel(settings.markKeyVk)}
+        <button id="set-mark-key" type="button" class="capture key" class:capturing={capturing === "markKeyVk"} onclick={() => toggleCapture("markKeyVk")}>
+          {capturing === "markKeyVk" ? "Press a key…" : markKeyLabel(settings.markKeyVk)}
+        </button>
+      </div>
+      <div class="row">
+        <label for="set-share-key" title="Hold this key and press the game's screenshot key: that screenshot pops up for everyone in your squad. Nothing happens on either key alone. Backspace turns it off.">Share-shot key</label>
+        <button id="set-share-key" type="button" class="capture key" class:capturing={capturing === "shareKeyVk"} onclick={() => toggleCapture("shareKeyVk")}>
+          {capturing === "shareKeyVk" ? "Press a key…" : markKeyLabel(settings.shareKeyVk)}
         </button>
       </div>
       <div class="row">

@@ -16,7 +16,9 @@
     restoreWindowRect,
     type WindowRect,
   } from "./lib/tauri/window";
-  import { detectDirs, startScreenshotWatcher, startLogTail, startMarkKey, type DetectedDirs } from "./lib/tauri/commands";
+  import { detectDirs, startScreenshotWatcher, startLogTail, startMarkKey, takeSharedShot, type DetectedDirs } from "./lib/tauri/commands";
+  import { shrinkShot } from "./lib/room/shot";
+  import ShotCard from "./lib/room/ShotCard.svelte";
   import { MarkPairer } from "./lib/tauri/markHere";
   import { DEFAULT_SHOT_KEY_VK, markKeyLabel } from "./lib/settings/markKey";
   import type { Position } from "./lib/parse/screenshot";
@@ -401,11 +403,29 @@
   }
 
   /** The poller runs in Rust; a failure to start it must not break startup. */
-  async function armMarkKey(vk: number, shotVk: number) {
+  async function armMarkKey(vk: number, shotVk: number, shareVk: number) {
     try {
-      await startMarkKey(vk, shotVk);
+      await startMarkKey(vk, shotVk, shareVk);
     } catch (e) {
-      app.toast(`Could not watch the mark-here key: ${e}`);
+      app.toast(`Could not watch the mark-here and share keys: ${e}`);
+    }
+  }
+
+  /** A screenshot taken with the share key held: shrunk here and sent to the squad, who see it pop up. */
+  async function shareShot() {
+    try {
+      // Taken even when it cannot go out, so a stale one is never sent later.
+      const png = await takeSharedShot();
+      if (room.status !== "open") {
+        app.toast(room.code ? "Squad not connected: screenshot not shared" : "Join a squad to share screenshots");
+        return;
+      }
+      const sent = room.shareShot(await shrinkShot(png));
+      if (sent === "sent") app.toast("Screenshot shared with the squad");
+      else if (sent === "wait") app.toast("One shared screenshot per 10 s: not sent");
+      else app.toast("Squad not connected: screenshot not shared");
+    } catch (e) {
+      app.toast(`Could not share the screenshot: ${e}`);
     }
   }
 
@@ -523,6 +543,7 @@
           if (tab !== "raids") raidsUnseen = true;
         },
         onMarkKey: () => markPairer.press(),
+        onSharedShot: () => void shareShot(),
         // Rust already showed the window; the hide hotkey must not think it is still hidden.
         onSecondInstance: () => {
           hidden = false;
@@ -611,7 +632,9 @@
     const vk = settings?.markKeyVk;
     const shot = app.shotKeyVk ?? DEFAULT_SHOT_KEY_VK;
     if (vk === undefined) return;
-    void armMarkKey(vk, shot);
+    // A share key that is the game's own screenshot key could never chord; the poller would refuse it and mark-here with it.
+    const share = settings?.shareKeyVk === shot ? 0 : (settings?.shareKeyVk ?? 0);
+    void armMarkKey(vk, shot, share);
   });
 
   function placePin(p: { x: number; z: number; label: string; shared: boolean }) {
@@ -1167,4 +1190,9 @@
     <span class="st-muted mono">v{version}</span>
   </footer>
 </div>
+{#if room.shot}
+  {#key room.shot}
+    <ShotCard shot={room.shot} onClose={() => room.closeShot()} />
+  {/key}
+{/if}
 <Toasts />

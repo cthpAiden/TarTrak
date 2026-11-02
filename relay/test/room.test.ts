@@ -310,6 +310,37 @@ describe("limits", () => {
   });
 });
 
+describe("shared screenshots", () => {
+  /** Base64 of a JPEG-headed buffer of about `bytes` bytes. */
+  const jpeg = (bytes: number) => {
+    const b = new Uint8Array(bytes - (bytes % 3));
+    b.set([0xff, 0xd8, 0xff, 0xe0]);
+    let s = "";
+    for (const x of b) s += String.fromCharCode(x);
+    return btoa(s);
+  };
+
+  it("passes a large shot on to the others with the sender's id, and never replays it", async () => {
+    const [a, b] = await room("ROOM20", "A", "B");
+    const data = jpeg(600_000);
+    a.ws.send(JSON.stringify({ type: "shot", data }));
+    const got = JSON.parse(await b.next());
+    expect(got.type).toBe("shot");
+    expect(got.data).toBe(data);
+    expect(typeof got.id).toBe("string");
+    expect(await a.quiet(200)).toBe(true);
+    const c = await join("ROOM20", "C");
+    expect((await c.all()).some((m) => m.type === "shot")).toBe(false);
+  });
+
+  it("drops shots past the burst", async () => {
+    const [a, b] = await room("ROOM21", "A", "B");
+    const data = jpeg(3_000);
+    for (let i = 0; i < 4; i++) a.ws.send(JSON.stringify({ type: "shot", data }));
+    expect((await b.all()).filter((m) => m.type === "shot").length).toBe(2);
+  });
+});
+
 describe("access", () => {
   const upgrade = (origin: string) => ({ headers: { Upgrade: "websocket", Origin: origin } });
 

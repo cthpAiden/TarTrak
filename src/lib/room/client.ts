@@ -7,13 +7,14 @@ import {
   type PinMsg,
   type PosMsg,
   type ServerMsg,
+  type ShotMsg,
   type TodoMsg,
   type UndrawMsg,
   type UnpinMsg,
 } from "./protocol";
 
 /** Everything a client sends besides its own identity and position. */
-export type ActionMsg = PinMsg | UnpinMsg | DrawMsg | UndrawMsg | ClearDrawMsg | TodoMsg;
+export type ActionMsg = PinMsg | UnpinMsg | DrawMsg | UndrawMsg | ClearDrawMsg | TodoMsg | ShotMsg;
 
 export type RoomStatus = "connecting" | "open" | "closed";
 

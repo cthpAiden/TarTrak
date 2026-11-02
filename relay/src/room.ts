@@ -30,6 +30,9 @@ const MSG_PER_SEC = 20;
 const STORE_BURST = 20;
 const STORE_PER_SEC = 2;
 const STORE_TYPES = new Set(["pin", "unpin", "draw", "undraw", "cleardraw", "todo"]);
+/** Shared screenshots, up to 1 MiB each: two at once, then one per 10 s. The app waits 10 s between its own. */
+const SHOT_BURST = 2;
+const SHOT_PER_SEC = 0.1;
 
 interface Bucket {
   tokens: number;
@@ -47,7 +50,7 @@ function take(b: Bucket, burst: number, perSec: number, now: number): boolean {
 
 export class RoomDO extends DurableObject {
   /** In memory only: a hibernation wake starts every socket on a full bucket, which is fine. */
-  private buckets = new WeakMap<WebSocket, { msg: Bucket; store: Bucket }>();
+  private buckets = new WeakMap<WebSocket, { msg: Bucket; store: Bucket; shot: Bucket }>();
   /** Stored marker and stroke keys, read once per wake so a write does not list the whole set. */
   private keys: { pins: Set<string>; draws: Set<string> } | null = null;
 
@@ -112,7 +115,11 @@ export class RoomDO extends DurableObject {
     const now = Date.now();
     let bucket = this.buckets.get(ws);
     if (!bucket) {
-      bucket = { msg: { tokens: MSG_BURST, at: now }, store: { tokens: STORE_BURST, at: now } };
+      bucket = {
+        msg: { tokens: MSG_BURST, at: now },
+        store: { tokens: STORE_BURST, at: now },
+        shot: { tokens: SHOT_BURST, at: now },
+      };
       this.buckets.set(ws, bucket);
     }
     if (!take(bucket.msg, MSG_BURST, MSG_PER_SEC, now)) {
@@ -133,6 +140,7 @@ export class RoomDO extends DurableObject {
     // Every app build says hello first; nothing else counts until it has.
     if (!att.hello && msg.type !== "hello") return;
     if (STORE_TYPES.has(msg.type) && !take(bucket.store, STORE_BURST, STORE_PER_SEC, now)) return;
+    if (msg.type === "shot" && !take(bucket.shot, SHOT_BURST, SHOT_PER_SEC, now)) return;
     const out: ServerMsg = { ...msg, id: att.id };
     const text = JSON.stringify(out);
     if (msg.type === "pin") {
@@ -172,6 +180,8 @@ export class RoomDO extends DurableObject {
       if (gone.length > 0) await this.ctx.storage.delete(gone);
     } else if (msg.type === "pos") {
       ws.serializeAttachment({ ...att, last: text } satisfies Attachment);
+    } else if (msg.type === "shot") {
+      // Only passed on: a newcomer never sees an old screenshot, and nothing of it is kept.
     } else {
       ws.serializeAttachment({ ...att, hello: text } satisfies Attachment);
       if (!att.hello) await this.welcome(ws);

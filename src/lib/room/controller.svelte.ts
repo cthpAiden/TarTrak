@@ -3,7 +3,16 @@ import { app, type Drawing, type Pin, type Teammate } from "../state/app.svelte"
 import { RoomClient, type ActionMsg, type RoomClientOptions, type RoomStatus } from "./client";
 import type { ServerMsg } from "./protocol";
 import { distinctColor } from "./squad";
+import { SHOT_GAP_MS } from "./shot";
 import { version as APP_VERSION } from "../../../package.json";
+
+/** A screenshot a teammate shared: `url` is a data URL of the JPEG they sent. */
+export interface ReceivedShot {
+  from: string;
+  color: string;
+  url: string;
+  at: number;
+}
 
 /** The part of RoomClient the controller drives; injectable so the message handling is testable. */
 export interface RoomClientLike {
@@ -18,6 +27,9 @@ export interface RoomClientLike {
 export class RoomController {
   code = $state<string | null>(null);
   status = $state<RoomStatus>("closed");
+  /** The newest screenshot a teammate shared, shown until closed or replaced by the next. */
+  shot = $state<ReceivedShot | null>(null);
+  private lastShotAt = -Infinity;
   private client: RoomClientLike | null = null;
   /** The name I joined with; a message carrying it is my own stale socket, never a teammate. */
   private name = "";
@@ -117,6 +129,7 @@ export class RoomController {
     this.client = null;
     this.code = null;
     this.status = "closed";
+    this.shot = null;
     app.clearTeammates();
     app.clearSharedPins();
     app.clearSharedDrawings();
@@ -152,6 +165,18 @@ export class RoomController {
     const sent = this.client?.send({ type: "todo", tasks }) ?? false;
     if (sent) this.todoSent = key;
     return sent;
+  }
+
+  /** A shrunk screenshot (base64 JPEG) for the squad: "wait" within 10 s of the last, "offline" when not connected. */
+  shareShot(data: string, now: number = Date.now()): "sent" | "wait" | "offline" {
+    if (now - this.lastShotAt < SHOT_GAP_MS) return "wait";
+    if (!this.client?.send({ type: "shot", data })) return "offline";
+    this.lastShotAt = now;
+    return "sent";
+  }
+
+  closeShot(): void {
+    this.shot = null;
   }
 
   onOwnPosition(map: string | null, p: Position): void {
@@ -240,6 +265,12 @@ export class RoomController {
     }
     if (m.type === "todo") {
       app.setSquadTodo(m.id, m.tasks);
+      return;
+    }
+    if (m.type === "shot") {
+      // Everyone says hello before the relay passes anything on, so the sender is listed by now.
+      const t = app.teammates[m.id];
+      this.shot = { from: t?.name ?? "A squadmate", color: t?.color ?? "#fff", url: `data:image/jpeg;base64,${m.data}`, at: Date.now() };
       return;
     }
     // My old socket, replayed to my new one: not a teammate.

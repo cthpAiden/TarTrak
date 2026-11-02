@@ -525,3 +525,32 @@ describe("RoomController", () => {
     expect(app.teammates.bbbbbbbb.color).toBe("#f00");
   });
 });
+
+describe("RoomController shared screenshots", () => {
+  beforeEach(() => {
+    app.clearTeammates();
+  });
+
+  it("shows a teammate's shot with their name and colour, and clears it on close or leave", () => {
+    const { room, client } = makeController();
+    client.onMessage(hello("r1", "Bob"));
+    client.onMessage({ type: "shot", id: "r1", data: "/9j/4AEC" });
+    expect(room.shot).toMatchObject({ from: "Bob", color: "#f00", url: "data:image/jpeg;base64,/9j/4AEC" });
+    room.closeShot();
+    expect(room.shot).toBeNull();
+    client.onMessage({ type: "shot", id: "r1", data: "/9j/4AEC" });
+    room.leave();
+    expect(room.shot).toBeNull();
+  });
+
+  it("sends a shot at most once per gap, and says when not connected", () => {
+    const { room, client } = makeController();
+    expect(room.shareShot("/9j/4AEC", 100_000)).toBe("sent");
+    expect(client.sentPins.at(-1)).toEqual({ type: "shot", data: "/9j/4AEC" });
+    expect(room.shareShot("/9j/4AEC", 105_000)).toBe("wait");
+    client.open = false;
+    expect(room.shareShot("/9j/4AEC", 111_000)).toBe("offline");
+    client.open = true;
+    expect(room.shareShot("/9j/4AEC", 111_000)).toBe("sent");
+  });
+});

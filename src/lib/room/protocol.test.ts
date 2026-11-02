@@ -8,6 +8,7 @@ import {
   MAX_DRAW_MESSAGE_BYTES,
   MAX_DRAW_POINTS,
   MAX_TODO_TASKS,
+  MAX_SHOT_MESSAGE_BYTES,
 } from "./protocol";
 
 const pos = { type: "pos", name: "Bob", color: "#ff0000", map: "customs", x: 1.5, y: 2, z: -3, yaw: 90, ts: 1700000000000 };
@@ -208,5 +209,41 @@ describe("todo messages", () => {
     expect(parseClientMessage(JSON.stringify({ type: "todo", tasks: [""] }))).toBeNull();
     expect(parseClientMessage(JSON.stringify({ type: "todo", tasks: ["x".repeat(33)] }))).toBeNull();
     expect(parseClientMessage(JSON.stringify({ type: "todo", tasks: [3] }))).toBeNull();
+  });
+});
+
+describe("shot messages", () => {
+  // A real JPEG starts FF D8 FF E0; padded out with zero bytes to a given length.
+  const jpeg = (bytes: number) => {
+    const b = new Uint8Array(bytes);
+    b.set([0xff, 0xd8, 0xff, 0xe0]);
+    let s = "";
+    for (const x of b) s += String.fromCharCode(x);
+    return btoa(s);
+  };
+
+  it("accepts a JPEG far past the stroke cap, from a client and with an id from the relay", () => {
+    const data = jpeg(300_000 - (300_000 % 3));
+    const raw = JSON.stringify({ type: "shot", data });
+    expect(raw.length).toBeGreaterThan(MAX_DRAW_MESSAGE_BYTES);
+    expect(parseClientMessage(raw)).toEqual({ type: "shot", data });
+    expect(parseServerMessage(JSON.stringify({ type: "shot", data, id: "r1" }))).toEqual({ type: "shot", data, id: "r1" });
+  });
+
+  it("rejects a message at the shot cap, data that is not base64 JPEG, and no data", () => {
+    const over = "/9j/" + "A".repeat(MAX_SHOT_MESSAGE_BYTES);
+    expect(parseClientMessage(JSON.stringify({ type: "shot", data: over }))).toBeNull();
+    // PNG bytes, not JPEG.
+    expect(parseClientMessage(JSON.stringify({ type: "shot", data: btoa("\x89PNG\r\n\x1a\n") }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ type: "shot", data: "/9j/<script>" }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ type: "shot", data: "/9j/A" }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ type: "shot" }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ type: "shot", data: 3 }))).toBeNull();
+  });
+
+  it("still holds every other type to its own cap", () => {
+    const pad = "p".repeat(MAX_DRAW_MESSAGE_BYTES);
+    expect(parseClientMessage(JSON.stringify({ type: "todo", tasks: [], pad }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ type: "hello", name: "a", color: "b", pad }))).toBeNull();
   });
 });

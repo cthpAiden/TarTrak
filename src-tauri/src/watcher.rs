@@ -88,8 +88,11 @@ pub fn start_screenshot_watcher(
     }
     state.0.lock().map_err(|e| e.to_string())?.take();
     let handle = app.clone();
+    let shots = path.clone();
     let watcher = watch_screenshots(&path, delete, move |name| {
-        let _ = handle.emit("screenshot", name);
+        let _ = handle.emit("screenshot", name.clone());
+        // Here, not on the delete thread: the file is only deleted once this returns.
+        crate::shareshot::grab_if_armed(&handle, &shots.join(&name), &name);
     })
     .map_err(|e| e.to_string())?;
     *state.0.lock().map_err(|e| e.to_string())? = Some(watcher);

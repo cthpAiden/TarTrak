@@ -6,6 +6,8 @@ export const MAX_MESSAGE_BYTES = 512;
 /** Only a drawing may be this long: a stroke carries many points, every other message is tiny. */
 export const MAX_DRAW_MESSAGE_BYTES = 8192;
 export const MAX_DRAW_POINTS = 300;
+/** A shared screenshot is the one long message: a JPEG the sender already shrank, as base64. */
+export const MAX_SHOT_MESSAGE_BYTES = 1_048_576;
 export const MAX_TODO_TASKS = 50;
 export const MAX_STRING = 32;
 
@@ -74,7 +76,13 @@ export interface TodoMsg {
   tasks: string[];
 }
 
-export type ClientMsg = HelloMsg | PosMsg | PinMsg | UnpinMsg | DrawMsg | UndrawMsg | ClearDrawMsg | TodoMsg;
+/** A screenshot shared with the room, as base64 JPEG. Relayed as it comes, never stored. */
+export interface ShotMsg {
+  type: "shot";
+  data: string;
+}
+
+export type ClientMsg = HelloMsg | PosMsg | PinMsg | UnpinMsg | DrawMsg | UndrawMsg | ClearDrawMsg | TodoMsg | ShotMsg;
 
 /** `id` is relay-assigned, 1..32 chars: the socket that sent the message. */
 export type ServerMsg =
@@ -86,6 +94,7 @@ export type ServerMsg =
   | (UndrawMsg & { id: string })
   | (ClearDrawMsg & { id: string })
   | (TodoMsg & { id: string })
+  | (ShotMsg & { id: string })
   /** `dropped`: the socket died rather than closed on purpose, so the person may be right back. */
   | { type: "leave"; id: string; dropped?: true };
 
@@ -124,8 +133,10 @@ function byteLength(s: string): number {
 }
 
 function parseJson(raw: string): Record<string, unknown> | null {
+  // A string is never longer in UTF-16 units than in UTF-8 bytes, so this skips encoding a huge one.
+  if (raw.length >= MAX_SHOT_MESSAGE_BYTES) return null;
   const bytes = byteLength(raw);
-  if (bytes >= MAX_DRAW_MESSAGE_BYTES) return null;
+  if (bytes >= MAX_SHOT_MESSAGE_BYTES) return null;
   let v: unknown;
   try {
     v = JSON.parse(raw);
@@ -133,6 +144,8 @@ function parseJson(raw: string): Record<string, unknown> | null {
     return null;
   }
   if (!isRecord(v)) return null;
+  if (v.type === "shot") return v;
+  if (bytes >= MAX_DRAW_MESSAGE_BYTES) return null;
   // Only strokes and to-do lists may be long; everything else keeps the small cap.
   if (v.type !== "draw" && v.type !== "todo" && bytes >= MAX_MESSAGE_BYTES) return null;
   return v;
@@ -235,6 +248,15 @@ function readTodo(o: Record<string, unknown>): TodoMsg | null {
   return { type: "todo", tasks };
 }
 
+/** Base64 of a JPEG: its bytes always start FF D8 FF, which encodes as "/9j/". */
+const JPEG_BASE64_RE = /^\/9j\/[A-Za-z0-9+/]*={0,2}$/;
+
+function readShot(o: Record<string, unknown>): ShotMsg | null {
+  const data = o.data;
+  if (typeof data !== "string" || data.length % 4 !== 0 || !JPEG_BASE64_RE.test(data)) return null;
+  return { type: "shot", data };
+}
+
 function readBody(o: Record<string, unknown>): ClientMsg | null {
   if (o.type === "hello") return readHello(o);
   if (o.type === "pos") return readPos(o);
@@ -244,6 +266,7 @@ function readBody(o: Record<string, unknown>): ClientMsg | null {
   if (o.type === "undraw") return readUndraw(o);
   if (o.type === "cleardraw") return readClearDraw(o);
   if (o.type === "todo") return readTodo(o);
+  if (o.type === "shot") return readShot(o);
   return null;
 }
 
