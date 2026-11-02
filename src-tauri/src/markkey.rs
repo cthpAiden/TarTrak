@@ -64,9 +64,10 @@ impl Chord {
 }
 
 /// Whether a mark key `vk` and a share key `share_vk` (0 = off) can chord with `shot_vk`.
+/// They may be the same key: that chord then both marks and shares.
 pub fn usable_keys(vk: u32, shot_vk: u32, share_vk: u32) -> bool {
     let held_ok = |k: u32| k == 0 || (k <= 0xff && k != shot_vk);
-    shot_vk != 0 && shot_vk <= 0xff && held_ok(vk) && held_ok(share_vk) && (vk == 0 || vk != share_vk)
+    shot_vk != 0 && shot_vk <= 0xff && held_ok(vk) && held_ok(share_vk)
 }
 
 /// Start polling the mark key `vk`, the share key `share_vk` and the screenshot key `shot_vk`,
@@ -129,12 +130,12 @@ mod tests {
     }
 
     #[test]
-    fn key_sets_need_a_screenshot_key_and_distinct_held_keys() {
+    fn key_sets_need_a_screenshot_key_and_held_keys_that_are_not_it() {
         assert!(usable_keys(0xa4, 0x2c, 0));
         assert!(usable_keys(0, 0x2c, 0xa0));
         assert!(usable_keys(0xa4, 0x2c, 0xa0));
         assert!(!usable_keys(0xa4, 0, 0)); // no screenshot key
-        assert!(!usable_keys(0xa4, 0x2c, 0xa4)); // mark and share the same key
+        assert!(usable_keys(0xa4, 0x2c, 0xa4)); // mark and share on one chord
         assert!(!usable_keys(0, 0x2c, 0x2c)); // share is the screenshot key
         assert!(!usable_keys(0x100, 0x2c, 0));
     }

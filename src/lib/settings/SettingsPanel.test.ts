@@ -209,10 +209,10 @@ describe("SettingsPanel mark-here key", () => {
     void unmount(panel);
   });
 
-  it("captures the share key into its own setting, off by default", () => {
+  it("captures the share key into its own setting, the mark-here key by default", () => {
     const { target, panel, changes } = open();
     const btn = target.querySelector<HTMLButtonElement>("#set-share-key")!;
-    expect(btn.textContent?.trim()).toBe("Off");
+    expect(btn.textContent?.trim()).toBe("Left Alt");
     clickCapture(btn);
     expect(btn.textContent?.trim()).toBe("Press a key…");
     // Only the button being captured shows it.
@@ -222,16 +222,12 @@ describe("SettingsPanel mark-here key", () => {
     void unmount(panel);
   });
 
-  it("refuses the mark-here key as the share key, and the other way round", () => {
+  it("takes the mark-here key as the share key, so one chord does both", () => {
     const { target, panel, changes, invalid } = open({ shareKeyVk: 0xa0 });
     clickCapture(target.querySelector<HTMLButtonElement>("#set-share-key")!);
     key("AltLeft");
-    expect(invalid).toEqual(["That is the mark-here key; pick another"]);
-    key("Escape");
-    clickCapture(target.querySelector<HTMLButtonElement>("#set-mark-key")!);
-    key("ShiftLeft");
-    expect(invalid.at(-1)).toBe("That is the share key; pick another");
-    expect(changes).toEqual([]);
+    expect(changes).toEqual([{ shareKeyVk: 0xa4 }]);
+    expect(invalid).toEqual([]);
     void unmount(panel);
   });
 });

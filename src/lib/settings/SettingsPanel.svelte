@@ -81,8 +81,6 @@
   /** Why `vk` cannot be the key being captured, or null when it can. */
   function refusal(vk: number): string | null {
     if (vk === PRINT_SCREEN_VK) return "PrintScreen is a screenshot key; pick another key to hold";
-    if (capturing === "markKeyVk" && vk === settings.shareKeyVk) return "That is the share key; pick another";
-    if (capturing === "shareKeyVk" && vk === settings.markKeyVk) return "That is the mark-here key; pick another";
     return null;
   }
 
@@ -254,7 +252,7 @@
         </button>
       </div>
       <div class="row">
-        <label for="set-share-key" title="Hold this key and press the game's screenshot key: that screenshot pops up for everyone in your squad. Nothing happens on either key alone. Backspace turns it off.">Share-shot key</label>
+        <label for="set-share-key" title="Hold this key and press the game's screenshot key: that screenshot pops up for everyone in your squad. The same key as mark-here does both. Nothing happens on either key alone. Backspace turns it off.">Share-shot key</label>
         <button id="set-share-key" type="button" class="capture key" class:capturing={capturing === "shareKeyVk"} onclick={() => toggleCapture("shareKeyVk")}>
           {capturing === "shareKeyVk" ? "Press a key…" : markKeyLabel(settings.shareKeyVk)}
         </button>

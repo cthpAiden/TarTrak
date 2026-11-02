@@ -134,11 +134,11 @@ describe("mergeSettings", () => {
     expect(mergeSettings({ markKeyVk: "F7" }).markKeyVk).toBe(0xa4);
   });
 
-  it("keeps a share key that is a byte and not the mark key, else turns it off", () => {
-    expect(mergeSettings({}).shareKeyVk).toBe(0);
+  it("defaults the share key to the mark-here key, keeps any byte, else turns it off", () => {
+    expect(mergeSettings({}).shareKeyVk).toBe(0xa4);
+    expect(mergeSettings({ shareKeyVk: 0 }).shareKeyVk).toBe(0);
     expect(mergeSettings({ shareKeyVk: 0xa0 }).shareKeyVk).toBe(0xa0);
-    expect(mergeSettings({ shareKeyVk: 0xa4 }).shareKeyVk).toBe(0);
-    expect(mergeSettings({ markKeyVk: 0, shareKeyVk: 0xa4 }).shareKeyVk).toBe(0xa4);
+    expect(mergeSettings({ markKeyVk: 0xa0, shareKeyVk: 0xa0 }).shareKeyVk).toBe(0xa0);
     expect(mergeSettings({ shareKeyVk: 256 }).shareKeyVk).toBe(0);
     expect(mergeSettings({ shareKeyVk: 1.5 }).shareKeyVk).toBe(0);
   });

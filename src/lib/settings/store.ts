@@ -21,7 +21,8 @@ export interface Settings {
   hotkeyHide: string;
   /** Windows virtual-key code of the mark-here key; 0 turns it off. */
   markKeyVk: number;
-  /** Windows virtual-key code of the share key: held with the screenshot key, that shot goes to the squad. 0 is off. */
+  /** Windows virtual-key code of the share key: held with the screenshot key, that shot goes to the squad. 0 is off.
+   *  It defaults to the mark-here key, so one chord both drops the marker and shares the shot. */
   shareKeyVk: number;
   lastMap: string | null;
   lastRoom: string;
@@ -86,7 +87,7 @@ export const DEFAULT_SETTINGS: Settings = {
   hotkeyOpacity: "F6",
   hotkeyHide: "F7",
   markKeyVk: DEFAULT_MARK_KEY_VK,
-  shareKeyVk: 0,
+  shareKeyVk: DEFAULT_MARK_KEY_VK,
   lastMap: null,
   lastRoom: "",
   lineLengthM: 100,
@@ -194,8 +195,7 @@ export function mergeSettings(partial: unknown): Settings {
   out.lineLengthM = clamp(out.lineLengthM, 5, 125);
   out.playerLevel = clamp(out.playerLevel, 0, 79);
   if (!Number.isInteger(out.markKeyVk) || out.markKeyVk < 0 || out.markKeyVk > 255) out.markKeyVk = DEFAULT_MARK_KEY_VK;
-  // One key cannot be both: the poller would refuse the pair and mark-here would stop as well.
-  if (!Number.isInteger(out.shareKeyVk) || out.shareKeyVk < 0 || out.shareKeyVk > 255 || out.shareKeyVk === out.markKeyVk) out.shareKeyVk = 0;
+  if (!Number.isInteger(out.shareKeyVk) || out.shareKeyVk < 0 || out.shareKeyVk > 255) out.shareKeyVk = 0;
   if (!GAME_MODES.includes(out.gameMode)) out.gameMode = DEFAULT_SETTINGS.gameMode;
   if (!FACTIONS.includes(out.faction)) out.faction = DEFAULT_SETTINGS.faction;
   if (!ROOM_CODE_RE.test(out.lastRoom)) out.lastRoom = "";
