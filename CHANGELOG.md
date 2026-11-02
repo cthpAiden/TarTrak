@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.17.0 - 2026-11-03
+
+### Added
+- **Red raid timer near the end.** From 10:00 left, the raid timer turns red: the corner pill, the chip on the round minimap and the status bar.
+
+### Changed
+- **New fonts.** Text is now Barlow and numbers Barlow Semi Condensed, in place of IBM Plex. The heading badge, distance labels, compass tape and teammate distances use the same number font instead of Consolas.
+- **Screenshot reminder shows your position's age.** After 30 s in a raid without a screenshot, a small red tag by your marker counts the time since your last one ("45s", then "1:06"), in the main window and both overlay shapes. The next screenshot hides it. The map no longer greys out.
+
 ## 0.16.1 - 2026-11-01
 
 ### Changed
