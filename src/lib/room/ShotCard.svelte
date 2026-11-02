@@ -38,7 +38,7 @@
   class:placed={place !== null}
   role="dialog"
   aria-label="Screenshot from {shot.from}"
-  style={place ? `left: ${place.left}px; top: ${place.top}px; width: ${place.width}px` : undefined}
+  style={place ? `left: ${place.left}px; top: ${place.top}px; bottom: auto; width: ${place.width}px` : undefined}
 >
   <div class="head">
     <span class="dot" style="background: {safeColor(shot.color)}"></span>
@@ -66,8 +66,7 @@
   }
   /* No status bar in the overlay: down to the corner, and narrower in the small window. */
   :global(body.overlay) .shot { bottom: 12px; width: min(220px, calc(100vw - 24px)); }
-  /* Placed by the caller in room sized for a 16:9 picture: a taller one is letterboxed to fit. */
-  .shot.placed { bottom: auto; }
+  /* Placed by the caller (inline, so it beats the overlay corner) in room sized for a 16:9 picture: a taller one is letterboxed. */
   .shot.placed .thumb img { aspect-ratio: 16 / 9; object-fit: contain; }
   .head {
     display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 4px 0 8px;

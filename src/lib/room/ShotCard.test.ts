@@ -61,7 +61,7 @@ describe("ShotCard", () => {
     const target = document.body.appendChild(document.createElement("div"));
     const card = mount(ShotCard, { target, props: { shot, onClose: () => {}, place: { left: 40, top: 400, width: 200 } } });
     const el = target.querySelector<HTMLElement>(".shot")!;
-    expect([el.style.left, el.style.top, el.style.width]).toEqual(["40px", "400px", "200px"]);
+    expect([el.style.left, el.style.top, el.style.bottom, el.style.width]).toEqual(["40px", "400px", "auto", "200px"]);
     void unmount(card);
   });
 
