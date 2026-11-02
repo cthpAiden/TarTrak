@@ -31,7 +31,7 @@
   .compass {
     position: relative; height: 34px; box-sizing: border-box; overflow: hidden;
     border-bottom: 1px solid rgba(255, 255, 255, 0.09);
-    font-family: ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums;
+    font-family: var(--mono); font-variant-numeric: tabular-nums;
     user-select: none;
   }
   .tick { position: absolute; bottom: 0; width: 1px; height: 4px; background: #39414d; }

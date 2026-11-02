@@ -14,3 +14,11 @@ export function raidTimeLeft(endsAt: number | null, now: number): string | null 
   const ss = String(s % 60).padStart(2, "0");
   return `${mm}:${ss}`;
 }
+
+/** Time left, in seconds, from which the raid timer shows red. */
+const LOW_S = 600;
+
+/** Whether the raid timer reads 10:00 or less, counted the same way raidTimeLeft rounds. */
+export function raidTimeLow(endsAt: number | null, now: number): boolean {
+  return endsAt !== null && Math.floor((endsAt - now) / 1000) <= LOW_S;
+}

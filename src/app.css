@@ -13,8 +13,8 @@
   --on-accent: #1a1405;
   --accent-soft: rgba(240, 180, 41, 0.14);
   --ok: #3ecf8e;
-  --sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
-  --mono: "IBM Plex Mono", Consolas, ui-monospace, monospace;
+  --sans: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --mono: "Barlow Semi Condensed", "Barlow", system-ui, sans-serif;
 }
 html, body, #app { height: 100%; margin: 0; }
 body {
@@ -236,3 +236,5 @@ body.circle .empty.round {
 .rim-chip.timer { padding-left: 7px; font-weight: 700; }
 .rim-chip.more { pointer-events: auto; cursor: default; }
 .rim-chip .mate-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+/* Raid timer at 10:00 or less. */
+.raid-pill.low, .rim-chip.timer.low, .status .st-raid b.low { color: #ff5a4e; }

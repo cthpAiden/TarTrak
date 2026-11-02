@@ -67,7 +67,7 @@
   } from "./lib/map/circle";
   import { version } from "../package.json";
   import MateReadout from "./lib/map/MateReadout.svelte";
-  import { raidTimeLeft } from "./lib/map/raidTimer";
+  import { raidTimeLeft, raidTimeLow } from "./lib/map/raidTimer";
   import { SHOT_REMINDER_DELAY_S, mapGrey as reminderGrey } from "./lib/map/shotReminder";
   import { bearingDeg, pad3, type CompassTarget } from "./lib/map/compass";
   import { mateColor, safeColor } from "./lib/room/squad";
@@ -225,6 +225,7 @@
     return () => clearInterval(id);
   });
   const raidLeft = $derived(settings?.raidTimer === false ? null : raidTimeLeft(app.raidEndsAt, now));
+  const raidLow = $derived(raidLeft !== null && raidTimeLow(app.raidEndsAt, now));
   // Screenshot reminder: in a raid, the map greys out once I go too long without a screenshot; the next one restores it.
   const mapGrey = $derived(
     settings?.shotReminder ? reminderGrey(now, app.raidEndsAt, app.ownUpdatedAt, app.raidSeenAt, SHOT_REMINDER_DELAY_S) : 0,
@@ -928,7 +929,7 @@
                 <MateReadout mates={readoutMates} />
               {/if}
               {#if raidLeft}
-                <div class="raid-pill" role="timer" aria-label="Time left in raid">{raidLeft}</div>
+                <div class="raid-pill" class:low={raidLow} role="timer" aria-label="Time left in raid">{raidLeft}</div>
               {/if}
             </div>
           {/if}
@@ -1113,6 +1114,7 @@
           {#each chips as c, i (c.id)}
             <div
               class="rim-at rim-chip {c.kind}"
+              class:low={c.kind === "timer" && raidLow}
               style="{onRim(chipSlots[i], ring.ro + CHIP_GAP)}{c.color ? `; color: ${c.color}` : ''}"
               title={c.title}
               role={c.kind === "timer" ? "timer" : undefined}
@@ -1159,7 +1161,7 @@
     {/if}
     {#if raidLeft}
       <span class="st-sep"></span>
-      <span class="st-raid">Raid <b>{raidLeft}</b> left</span>
+      <span class="st-raid">Raid <b class:low={raidLow}>{raidLeft}</b> left</span>
     {/if}
     <span class="grow"></span>
     <span class="st-muted mono">v{version}</span>

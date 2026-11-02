@@ -50,7 +50,7 @@
   display: inline-flex; align-items: center; justify-content: center;
   height: 18px; min-width: 18px; padding: 0 5px; box-sizing: border-box;
   border: 1.5px solid #000; border-radius: 9px;
-  font: 500 12px/1 ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums;
+  font: 500 12px/1 var(--mono); font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: #1e222a; color: var(--fg); }

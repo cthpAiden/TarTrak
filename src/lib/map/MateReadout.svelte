@@ -24,7 +24,7 @@
   }
   .mate {
     display: inline-flex; align-items: center; gap: 4px;
-    font-family: ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; font-size: 13px;
+    font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 13px;
   }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
 </style>

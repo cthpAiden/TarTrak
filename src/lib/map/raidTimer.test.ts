@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { raidTimeLeft } from "./raidTimer";
+import { raidTimeLeft, raidTimeLow } from "./raidTimer";
 
 const MIN = 60_000;
 
@@ -22,5 +22,20 @@ describe("raidTimeLeft", () => {
 
   it("hides without an end", () => {
     expect(raidTimeLeft(null, 5)).toBeNull();
+  });
+});
+
+describe("raidTimeLow", () => {
+  it("is on from 10:00 left down to the end", () => {
+    expect(raidTimeLow(40 * MIN, 30 * MIN - 1000)).toBe(false); // 10:01
+    expect(raidTimeLow(40 * MIN, 30 * MIN - 999)).toBe(true); // 10:00, rounded down like the pill
+    expect(raidTimeLow(40 * MIN, 30 * MIN)).toBe(true);
+    expect(raidTimeLow(40 * MIN, 39 * MIN)).toBe(true);
+    expect(raidTimeLow(40 * MIN, 40 * MIN + 30_000)).toBe(true);
+  });
+
+  it("is off before 10:00 and without a raid", () => {
+    expect(raidTimeLow(40 * MIN, 29 * MIN)).toBe(false);
+    expect(raidTimeLow(null, 0)).toBe(false);
   });
 });
