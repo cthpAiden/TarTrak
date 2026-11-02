@@ -4,8 +4,17 @@
 
   let { shot, onClose }: { shot: ReceivedShot; onClose: () => void } = $props();
 
+  /** The card closes itself this long after it opens, or after it is shrunk again; never while enlarged. */
+  const SHOW_MS = 10_000;
+
   /** Shown over the whole window; App keys this component by shot, so a new one opens small again. */
   let big = $state(false);
+
+  $effect(() => {
+    if (big) return;
+    const t = setTimeout(onClose, SHOW_MS);
+    return () => clearTimeout(t);
+  });
 
   function onKey(e: KeyboardEvent) {
     if (big && e.key === "Escape") big = false;

@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { flushSync, mount, unmount } from "svelte";
 import ShotCard from "./ShotCard.svelte";
 
@@ -13,7 +13,25 @@ function open() {
 
 describe("ShotCard", () => {
   afterEach(() => {
+    vi.useRealTimers();
     document.body.innerHTML = "";
+  });
+
+  it("closes itself after 10 s, but not while enlarged", () => {
+    vi.useFakeTimers();
+    const { target, card, closed } = open();
+    flushSync();
+    vi.advanceTimersByTime(9_999);
+    expect(closed()).toBe(0);
+    target.querySelector<HTMLButtonElement>(".thumb")!.click();
+    flushSync();
+    vi.advanceTimersByTime(60_000);
+    expect(closed()).toBe(0);
+    target.querySelector<HTMLButtonElement>(".big")!.click();
+    flushSync();
+    vi.advanceTimersByTime(10_000);
+    expect(closed()).toBe(1);
+    void unmount(card);
   });
 
   it("shows who shared the screenshot, in their colour", () => {
