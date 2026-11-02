@@ -66,6 +66,8 @@
     FLOOR_GAP,
     RIM_BUTTON_ANGLES,
     RIM_BUTTON_GAP,
+    SHOT_BELOW,
+    shotUnderDisc,
   } from "./lib/map/circle";
   import { version } from "../package.json";
   import MateReadout from "./lib/map/MateReadout.svelte";
@@ -306,7 +308,7 @@
     }
     try {
       if (next && shape === "circle") {
-        const size = circleWindowSize(s.minimapSize);
+        const size = discWindow(s.minimapSize);
         await fitWindowTo(size.width, size.height);
       } else if (!next && savedRect) {
         const r = savedRect;
@@ -318,6 +320,12 @@
     }
     // The map area just changed size and place; follow me puts me back in the middle of it.
     if (settings?.followMe ?? true) setTimeout(() => mapView?.centerOnMe(), 50);
+  }
+
+  /** The round window for a disc of `size`; taller while a teammate's screenshot shows under the disc. */
+  function discWindow(size: number): { width: number; height: number } {
+    const s = circleWindowSize(size);
+    return { width: s.width, height: s.height + (room.shot ? SHOT_BELOW : 0) };
   }
 
   /**
@@ -333,7 +341,7 @@
     try {
       do {
         fitAgain = false;
-        const size = circleWindowSize(sizeOpen ? MINIMAP_SIZE_MAX : minimapSize);
+        const size = discWindow(sizeOpen ? MINIMAP_SIZE_MAX : minimapSize);
         await fitWindowTo(size.width, size.height);
       } while (fitAgain);
     } catch (e) {
@@ -353,6 +361,15 @@
     sizeOpen = false;
     void fitToDisc();
   }
+
+  // The round window grows under the disc while a teammate's screenshot shows there, and shrinks back after.
+  const shotShowing = $derived(room.shot !== null);
+  $effect(() => {
+    void shotShowing;
+    untrack(() => {
+      if (circle) void fitToDisc();
+    });
+  });
 
   function focusNow(node: HTMLElement) {
     node.focus();
@@ -1192,7 +1209,7 @@
 </div>
 {#if room.shot}
   {#key room.shot}
-    <ShotCard shot={room.shot} onClose={() => room.closeShot()} />
+    <ShotCard shot={room.shot} onClose={() => room.closeShot()} place={ring ? shotUnderDisc(ring) : null} />
   {/key}
 {/if}
 <Toasts />

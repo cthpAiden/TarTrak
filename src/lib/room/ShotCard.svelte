@@ -2,7 +2,16 @@
   import { safeColor } from "./squad";
   import type { ReceivedShot } from "./controller.svelte";
 
-  let { shot, onClose }: { shot: ReceivedShot; onClose: () => void } = $props();
+  let {
+    shot,
+    onClose,
+    place = null,
+  }: {
+    shot: ReceivedShot;
+    onClose: () => void;
+    /** Window pixels for the card (the round minimap puts it under the disc); null keeps the bottom-left corner. */
+    place?: { left: number; top: number; width: number } | null;
+  } = $props();
 
   /** The card closes itself this long after it opens, or after it is shrunk again; never while enlarged. */
   const SHOW_MS = 10_000;
@@ -24,7 +33,13 @@
 <svelte:window onkeydown={onKey} />
 
 <!-- A teammate's shared screenshot: a card in the map's bottom-left corner, clicked to fill the window. -->
-<div class="shot" role="dialog" aria-label="Screenshot from {shot.from}">
+<div
+  class="shot"
+  class:placed={place !== null}
+  role="dialog"
+  aria-label="Screenshot from {shot.from}"
+  style={place ? `left: ${place.left}px; top: ${place.top}px; width: ${place.width}px` : undefined}
+>
   <div class="head">
     <span class="dot" style="background: {safeColor(shot.color)}"></span>
     <span class="from" style="color: {safeColor(shot.color)}">{shot.from}</span>
@@ -51,6 +66,9 @@
   }
   /* No status bar in the overlay: down to the corner, and narrower in the small window. */
   :global(body.overlay) .shot { bottom: 12px; width: min(220px, calc(100vw - 24px)); }
+  /* Placed by the caller in room sized for a 16:9 picture: a taller one is letterboxed to fit. */
+  .shot.placed { bottom: auto; }
+  .shot.placed .thumb img { aspect-ratio: 16 / 9; object-fit: contain; }
   .head {
     display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 4px 0 8px;
     font-size: 12px; white-space: nowrap;

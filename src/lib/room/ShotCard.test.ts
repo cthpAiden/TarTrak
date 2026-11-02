@@ -57,6 +57,14 @@ describe("ShotCard", () => {
     void unmount(card);
   });
 
+  it("goes where it is placed, for the round minimap", () => {
+    const target = document.body.appendChild(document.createElement("div"));
+    const card = mount(ShotCard, { target, props: { shot, onClose: () => {}, place: { left: 40, top: 400, width: 200 } } });
+    const el = target.querySelector<HTMLElement>(".shot")!;
+    expect([el.style.left, el.style.top, el.style.width]).toEqual(["40px", "400px", "200px"]);
+    void unmount(card);
+  });
+
   it("closes from its button", () => {
     const { target, card, closed } = open();
     target.querySelector<HTMLButtonElement>(".x")!.click();

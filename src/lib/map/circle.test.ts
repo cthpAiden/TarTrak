@@ -15,7 +15,27 @@ import {
   RIM_BUTTON_GAP,
   RIM_BUTTON_SIZE,
   RING,
+  SHOT_BELOW,
+  SHOT_CARD_H,
+  shotUnderDisc,
 } from "./circle";
+
+describe("shotUnderDisc", () => {
+  it("puts a shared screenshot under the disc and floor chip, inside the window grown for it", () => {
+    for (const size of [200, 300, 480]) {
+      const { width, height } = circleWindowSize(size);
+      const l = circleLayout(width, height + SHOT_BELOW, size);
+      // The taller window leaves the disc where it was.
+      expect(l).toEqual(circleLayout(width, height, size));
+      const s = shotUnderDisc(l);
+      expect(s.top).toBe(height);
+      expect(s.top + SHOT_CARD_H).toBeLessThanOrEqual(height + SHOT_BELOW - EDGE);
+      expect(s.left).toBeGreaterThanOrEqual(0);
+      expect(s.left + s.width).toBeLessThanOrEqual(width);
+      expect(s.left + s.width / 2).toBeCloseTo(l.cx);
+    }
+  });
+});
 
 describe("circleWindowSize / circleLayout", () => {
   it("fits the chosen disc exactly in the window sized for it, anchored top-right", () => {
