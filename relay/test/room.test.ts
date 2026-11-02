@@ -339,6 +339,15 @@ describe("shared screenshots", () => {
     for (let i = 0; i < 4; i++) a.ws.send(JSON.stringify({ type: "shot", data }));
     expect((await b.all()).filter((m) => m.type === "shot").length).toBe(2);
   });
+
+  it("charges any long message to the shot allowance, so long junk cannot be parsed at the message rate", async () => {
+    const [a, b] = await room("ROOM23", "A", "B");
+    const junk = JSON.stringify({ type: "pin", pad: "x".repeat(20_000) });
+    a.ws.send(junk);
+    a.ws.send(junk);
+    a.ws.send(JSON.stringify({ type: "shot", data: jpeg(30_000) }));
+    expect((await b.all()).some((m) => m.type === "shot")).toBe(false);
+  });
 });
 
 describe("access", () => {

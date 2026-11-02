@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { parseClientMessage, type ServerMsg } from "./protocol";
+import { MAX_DRAW_MESSAGE_BYTES, parseClientMessage, type ServerMsg } from "./protocol";
 import type { Env } from "./index";
 
 /** Per-socket state kept by the runtime across hibernation (limit 2 KiB). */
@@ -133,6 +133,9 @@ export class RoomDO extends DurableObject {
       return;
     }
     if (typeof message !== "string") return;
+    // Only a screenshot may be this long, so it spends the shot allowance before it costs a parse.
+    const long = message.length >= MAX_DRAW_MESSAGE_BYTES;
+    if (long && !take(bucket.shot, SHOT_BURST, SHOT_PER_SEC, now)) return;
     const msg = parseClientMessage(message);
     if (!msg) return;
     const att = ws.deserializeAttachment() as Attachment | null;
@@ -140,7 +143,7 @@ export class RoomDO extends DurableObject {
     // Every app build says hello first; nothing else counts until it has.
     if (!att.hello && msg.type !== "hello") return;
     if (STORE_TYPES.has(msg.type) && !take(bucket.store, STORE_BURST, STORE_PER_SEC, now)) return;
-    if (msg.type === "shot" && !take(bucket.shot, SHOT_BURST, SHOT_PER_SEC, now)) return;
+    if (msg.type === "shot" && !long && !take(bucket.shot, SHOT_BURST, SHOT_PER_SEC, now)) return;
     const out: ServerMsg = { ...msg, id: att.id };
     const text = JSON.stringify(out);
     if (msg.type === "pin") {
