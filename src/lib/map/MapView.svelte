@@ -7,6 +7,7 @@
   import { makeCrs, boundsOf, svgBoundsOf, toLatLng } from "./crs";
   import { buildSvgElement, showFloor, type LoadedSvg } from "./svgLoader";
   import { OWN_PANE, PositionMarker } from "./markers";
+  import { shotAgeText } from "./shotReminder";
   import { fetchTextCached } from "../tauri/http";
   import { opacityFor } from "../room/fade";
   import { floorTag, mateColor, mateLabel, safeColor } from "../room/squad";
@@ -46,7 +47,7 @@
     onClearDraw,
     frame = null,
     rotation = 0,
-    grey = 0,
+    shotAge = null,
     replay = null,
   }: {
     def: MapDef | null;
@@ -80,8 +81,8 @@
     frame?: { left: number; top: number; size: number } | null;
     /** Degrees the map is turned anticlockwise on screen (my heading in heading-up mode), 0 for north-up. */
     rotation?: number;
-    /** Screenshot reminder: 0 shows the map in full colour, 1 fully grey; markers keep their colour. */
-    grey?: number;
+    /** Screenshot reminder: seconds since my last screenshot, shown in a tag by my marker; null hides it. */
+    shotAge?: number | null;
     /**
      * A raid replay at the playhead `at` (epoch ms): it takes the map's place for players, pins and drawings.
      * `id` names the raid, so the view fits its trails once when it opens; `padBottom` keeps them clear of the dock.
@@ -108,6 +109,9 @@
   let baseTile: L.TileLayer | null = null;
   let floorTile: L.TileLayer | null = null;
   let own: PositionMarker | null = null;
+  /** Screenshot reminder tag by my marker, and its text span. */
+  let ageTag: L.Marker | null = null;
+  let ageTagEl: HTMLSpanElement | null = null;
   let mates = new Map<string, PositionMarker>();
   // $state so the quest and point effects re-run once build() creates the groups.
   let questGroup = $state<L.LayerGroup | null>(null);
@@ -155,6 +159,8 @@
     mates = new Map();
     own?.remove();
     own = null;
+    ageTag?.remove();
+    ageTag = null;
     replayLayer?.remove();
     replayLayer = null;
     replayFor = null;
@@ -429,6 +435,30 @@
   });
 
   $effect(() => {
+    const p = app.ownPos;
+    const age = shotAge;
+    const m = map;
+    if (!m || !p || replaying || age === null) {
+      ageTag?.remove();
+      ageTag = null;
+      return;
+    }
+    if (!ageTag) {
+      ageTagEl = document.createElement("span");
+      // Not interactive: a right-click on my marker must still pin.
+      ageTag = L.marker([0, 0], {
+        pane: OWN_PANE,
+        icon: L.divIcon({ className: "tt-shot-age", html: ageTagEl, iconSize: [0, 0] }),
+        interactive: false,
+        keyboard: false,
+      }).addTo(m);
+    }
+    ageTag.setLatLng(toLatLng(p.x, p.z));
+    const text = shotAgeText(age);
+    if (ageTagEl!.textContent !== text) ageTagEl!.textContent = text;
+  });
+
+  $effect(() => {
     const all = app.teammates;
     const tick = now;
     const d = def;
@@ -647,8 +677,6 @@
   style:height={frame ? `${frame.size}px` : null}
   style:transform={rotation !== 0 ? `rotate(${-rotation}deg)` : null}
   style:--counter="{rotation}deg"
-  class:greying={grey > 0}
-  style:--grey={grey > 0 ? grey : null}
   bind:this={container}
   role="application"
   aria-label="map"

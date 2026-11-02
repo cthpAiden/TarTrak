@@ -3,11 +3,14 @@
 .leaflet-container { background: transparent; }
 .hidden-layer { display: none; }
 .off-level { opacity: 0.35; }
-/* Screenshot reminder: the map drawing (SVG or tiles, and a raster floor) turns grey and a little darker;
-   markers, labels and zones sit in other panes and keep their colour. Only while greying, so the usual
-   map carries no filter at all. */
-.map-root.greying :is(.leaflet-tile-pane, .leaflet-overlay-pane, .leaflet-floor-tiles-pane) {
-  filter: grayscale(var(--grey)) brightness(calc(1 - 0.2 * var(--grey)));
+/* Screenshot reminder: a red tag up and to the right of my marker, counting the seconds since my last
+   screenshot. Turned about the point by --counter, so it stays upright and up-right on a heading-up map. */
+.tt-shot-age { pointer-events: none; z-index: 300 !important; }
+.tt-shot-age span {
+  position: absolute; left: 0; top: 0; transform-origin: 0 0;
+  transform: rotate(var(--counter, 0deg)) translate(9px, -26px);
+  padding: 1px 5px; border: 1px solid #ff6b5a; border-radius: 3px; background: #12151a; color: #ff8a7a;
+  font: 500 11px/1.4 var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap;
 }
 .tt-label {
   text-shadow: 0 0 3px #000, 0 0 1px #000;
@@ -25,8 +28,6 @@
 
 /* Round minimap: the Leaflet container is the disc itself. */
 .map-root.circle { right: auto; bottom: auto; border-radius: 50%; overflow: hidden; background: #20251d; }
-/* Screenshot reminder: the disc's backing greys with the map; #1c1c1c is #20251d through the same grayscale(1) brightness(0.8). */
-.map-root.circle.greying { background: color-mix(in srgb, #1c1c1c calc(var(--grey) * 100%), #20251d); }
 /* Heading-up: the whole map element is turned by -heading; text turns back by --counter to stay upright.
    Marker icons turn with the map. Tooltips sit above their point, so they turn about their bottom edge. */
 .map-root.rotated .upright { transform: rotate(var(--counter)); transform-origin: 50% 100%; }
