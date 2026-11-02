@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.18.1 - 2026-11-03
+
+### Changed
+- **New fonts.** Text is now Geist and numbers Geist Mono, in place of Barlow and Barlow Semi Condensed.
+
 ## 0.17.0 - 2026-11-03
 
 ### Added
