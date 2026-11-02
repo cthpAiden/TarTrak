@@ -71,7 +71,7 @@
   } from "./lib/map/circle";
   import { version } from "../package.json";
   import MateReadout from "./lib/map/MateReadout.svelte";
-  import { raidTimeLeft, raidTimeLow } from "./lib/map/raidTimer";
+  import { clockJump, msToNextSecond, raidTimeLeft, raidTimeLow } from "./lib/map/raidTimer";
   import { SHOT_REMINDER_DELAY_S, shotAgeS } from "./lib/map/shotReminder";
   import { bearingDeg, pad3, type CompassTarget } from "./lib/map/compass";
   import { mateColor, safeColor } from "./lib/room/squad";
@@ -220,13 +220,31 @@
       if (r) replayAt = raidSpan(r).end;
     });
   });
-  // The raid clock ticks once a second while a raid's end is known (the status bar and the overlay show it).
+  // The raid clock ticks on the raid end's second edges, as the in-game watch does, while a raid's end is
+  // known (the status bar and the overlay show it). If the PC's clock is set mid-raid, the end moves with it.
   let now = $state(Date.now());
   $effect(() => {
-    if (app.raidEndsAt === null) return;
-    now = Date.now();
-    const id = setInterval(() => (now = Date.now()), 1000);
-    return () => clearInterval(id);
+    const endsAt = app.raidEndsAt;
+    if (endsAt === null) return;
+    let wall = Date.now();
+    let mono = performance.now();
+    now = wall;
+    let id: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      const w = Date.now();
+      const m = performance.now();
+      const jump = clockJump(wall, mono, w, m);
+      [wall, mono, now] = [w, m, w];
+      if (jump !== 0) {
+        // Re-runs this effect, which starts ticking again on the moved end's edges.
+        app.raidEndsAt = endsAt + jump;
+        raidLog.setEndsAt(endsAt + jump);
+        return;
+      }
+      id = setTimeout(tick, msToNextSecond(endsAt, w));
+    };
+    id = setTimeout(tick, msToNextSecond(endsAt, wall));
+    return () => clearTimeout(id);
   });
   const raidLeft = $derived(settings?.raidTimer === false ? null : raidTimeLeft(app.raidEndsAt, now));
   const raidLow = $derived(raidLeft !== null && raidTimeLow(app.raidEndsAt, now));
