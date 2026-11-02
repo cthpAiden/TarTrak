@@ -29,7 +29,7 @@ export interface Settings {
   followMe: boolean;
   /** Overlay pill with the time left in the raid, read from the game's own raid clock in its output log. */
   raidTimer: boolean;
-  /** In a raid, the map turns grey after SHOT_REMINDER_DELAY_S seconds without a screenshot. */
+  /** In a raid, the map's border pulses after SHOT_REMINDER_DELAY_S seconds without a screenshot. */
   shotReminder: boolean;
   /** Hide quests, in the list and on the map, whose prerequisite quests are not done yet. */
   questsAvailableOnly: boolean;

@@ -207,7 +207,7 @@
     <h3 id="set-h-reminder">Screenshot reminder</h3>
     <div class="card">
       <div class="row">
-        <label for="set-reminder">Grey out the map when I forget</label>
+        <label for="set-reminder">Pulse the map border when I forget</label>
         <input id="set-reminder" class="switch" type="checkbox" checked={settings.shotReminder} onchange={(e) => onChange({ shotReminder: e.currentTarget.checked })} />
       </div>
     </div>
