@@ -28,6 +28,32 @@ function blurWith(target: HTMLElement, id: string, value: string) {
   flushSync();
 }
 
+describe("SettingsPanel shared screenshots", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("opens the popup to move it, and resets a custom spot", () => {
+    let moves = 0;
+    const changes: Partial<Settings>[] = [];
+    const target = document.body.appendChild(document.createElement("div"));
+    const props = { settings: { ...DEFAULT_SETTINGS }, onChange: (p: Partial<Settings>) => changes.push(p), onPickDir: () => {}, onMoveShot: () => moves++ };
+    let panel = mount(SettingsPanel, { target, props });
+    const button = (name: string) => [...target.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === name)!;
+    expect(target.querySelector('[data-testid="shot-pos"]')!.textContent).toBe("Bottom-left of the screen");
+    expect(button("Reset").disabled).toBe(true);
+    button("Move").click();
+    expect(moves).toBe(1);
+    void unmount(panel);
+
+    panel = mount(SettingsPanel, { target, props: { ...props, settings: { ...DEFAULT_SETTINGS, shotPos: { x: 10, y: 20 } } } });
+    expect(target.querySelector('[data-testid="shot-pos"]')!.textContent).toBe("Custom");
+    button("Reset").click();
+    expect(changes).toEqual([{ shotPos: null }]);
+    void unmount(panel);
+  });
+});
+
 describe("SettingsPanel faction", () => {
   afterEach(() => {
     document.body.innerHTML = "";

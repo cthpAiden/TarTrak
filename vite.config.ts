@@ -12,6 +12,8 @@ export default defineConfig({
     host: host || false,
     watch: { ignored: ["**/src-tauri/**", "**/relay/**"] },
   },
+  // The shared-screenshot popup is its own window with its own page.
+  build: { rolldownOptions: { input: { main: "index.html", shot: "shot.html" } } },
   resolve: process.env.VITEST ? { conditions: ["browser"] } : undefined,
   test: {
     include: ["src/**/*.test.ts"],

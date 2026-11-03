@@ -25,12 +25,14 @@
     openUrl(href).catch((err) => onInvalid?.(`Could not open ${href}: ${err}`));
   }
 
-  let { settings, onChange, onPickDir, onInvalid, onCheckUpdate, shotKey = "PrintScreen" }: {
+  let { settings, onChange, onPickDir, onInvalid, onCheckUpdate, onMoveShot, shotKey = "PrintScreen" }: {
     settings: Settings;
     onChange: (patch: Partial<Settings>) => void;
     onPickDir: (kind: "screenshots" | "logs") => void;
     onInvalid?: (msg: string) => void;
     onCheckUpdate?: () => void;
+    /** Opens the screenshot popup as a stand-in to drag where shared screenshots should show. */
+    onMoveShot?: () => void;
     /** The game's screenshot key as read from its log, for display. */
     shotKey?: string;
   } = $props();
@@ -296,6 +298,19 @@
     </div>
   </section>
 
+  <section class="group" aria-labelledby="set-h-shots">
+    <h3 id="set-h-shots">Shared screenshots</h3>
+    <div class="card">
+      <div class="row">
+        <span title="Your squad's screenshots open in their own small window that stays on top. Move shows it so you can drag it anywhere on your screens; it opens there from then on. Like the overlay, it shows over the game only in borderless or windowed mode.">Position</span>
+        <span class="small muted" data-testid="shot-pos">{settings.shotPos ? "Custom" : "Bottom-left of the screen"}</span>
+        <span class="grow"></span>
+        <button type="button" class="browse" onclick={onMoveShot}>Move</button>
+        <button type="button" class="browse" disabled={!settings.shotPos} onclick={() => onChange({ shotPos: null })}>Reset</button>
+      </div>
+    </div>
+  </section>
+
   <section class="group" aria-labelledby="set-h-squad">
     <h3 id="set-h-squad">Squad relay</h3>
     <div class="card">
@@ -355,6 +370,7 @@
     background: var(--raised-2); color: var(--fg); border: 1px solid var(--line-2); border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer;
   }
   .browse:hover, .check-update:hover { border-color: var(--accent); }
+  .browse:disabled { opacity: 0.5; cursor: default; border-color: var(--line-2); }
   .place { justify-content: flex-start; padding: 8px 0; }
   .screen { position: relative; flex: none; width: 56px; height: 32px; border: 1.5px solid var(--line-2); border-radius: 4px; background: #0f1216; }
   .screen span { position: absolute; right: 3px; bottom: 3px; width: 16px; height: 9px; border-radius: 2px; background: var(--accent); }

@@ -134,6 +134,14 @@ describe("mergeSettings", () => {
     expect(mergeSettings({ markKeyVk: "F7" }).markKeyVk).toBe(0xa4);
   });
 
+  it("keeps a popup spot of two finite numbers, else the default", () => {
+    expect(mergeSettings({}).shotPos).toBeNull();
+    expect(mergeSettings({ shotPos: { x: -1500.5, y: 20 } }).shotPos).toEqual({ x: -1500.5, y: 20 });
+    expect(mergeSettings({ shotPos: { x: 1 } }).shotPos).toBeNull();
+    expect(mergeSettings({ shotPos: { x: "1", y: 2 } }).shotPos).toBeNull();
+    expect(mergeSettings({ shotPos: [1, 2] }).shotPos).toBeNull();
+  });
+
   it("binds the share hotkey to F8 and drops the old share-key setting", () => {
     expect(mergeSettings({}).hotkeyShare).toBe("F8");
     expect(mergeSettings({ hotkeyShare: "" }).hotkeyShare).toBe("");

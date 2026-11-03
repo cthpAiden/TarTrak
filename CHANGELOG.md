@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- **Shared screenshots get their own window.** A teammate's screenshot now opens in a small always-on-top window instead of inside TarTrak's map, so it can sit anywhere on your screens. Drag it by its top bar; it opens there from then on. Settings > Shared screenshots > **Move** shows a stand-in to drag into place, and **Reset** puts it back at the bottom-left of the screen. Opening it never takes focus from the game. Like the overlay, it shows over the game only in borderless or windowed mode. Click the picture to enlarge it, again to shrink it.
+
 ## 0.19.0 - 2026-11-03
 
 ### Changed

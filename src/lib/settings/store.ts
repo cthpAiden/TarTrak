@@ -21,6 +21,8 @@ export interface Settings {
   hotkeyHide: string;
   /** Sends my latest screenshot to the squad. Empty unbinds it. */
   hotkeyShare: string;
+  /** Where the shared-screenshot popup opens, in logical screen pixels; null is the bottom-left of the screen. */
+  shotPos: { x: number; y: number } | null;
   /** Windows virtual-key code of the mark-here key; 0 turns it off. */
   markKeyVk: number;
   lastMap: string | null;
@@ -86,6 +88,7 @@ export const DEFAULT_SETTINGS: Settings = {
   hotkeyOpacity: "F6",
   hotkeyHide: "F7",
   hotkeyShare: "F8",
+  shotPos: null,
   markKeyVk: DEFAULT_MARK_KEY_VK,
   lastMap: null,
   lastRoom: "",
@@ -106,7 +109,7 @@ export const DEFAULT_SETTINGS: Settings = {
   rimTools: true,
 };
 
-type Kind = "string" | "number" | "boolean" | "string?" | "record";
+type Kind = "string" | "number" | "boolean" | "string?" | "record" | "point?";
 const SHAPE: Record<keyof Settings, Kind> = {
   screenshotsDir: "string?",
   logsDir: "string?",
@@ -121,6 +124,7 @@ const SHAPE: Record<keyof Settings, Kind> = {
   hotkeyOpacity: "string",
   hotkeyHide: "string",
   hotkeyShare: "string",
+  shotPos: "point?",
   markKeyVk: "number",
   lastMap: "string?",
   lastRoom: "string",
@@ -145,6 +149,11 @@ function accepts(kind: Kind, v: unknown): boolean {
   if (kind === "string?") return v === null || typeof v === "string";
   if (kind === "number") return typeof v === "number" && Number.isFinite(v);
   if (kind === "record") return typeof v === "object" && v !== null && !Array.isArray(v);
+  if (kind === "point?") {
+    if (v === null) return true;
+    const p = v as { x?: unknown; y?: unknown };
+    return typeof v === "object" && Number.isFinite(p.x) && Number.isFinite(p.y);
+  }
   return typeof v === kind;
 }
 

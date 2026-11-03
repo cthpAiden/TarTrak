@@ -44,18 +44,6 @@ export function circleWindowSize(size: number): { width: number; height: number 
   return { width: Math.ceil(LEFT + 2 * ro + EDGE), height: Math.ceil(EDGE + 2 * ro + BOTTOM) };
 }
 
-/** A teammate's shared screenshot card, while it shows: this wide at most, its picture no taller than 16:9. */
-export const SHOT_CARD_W = 220;
-export const SHOT_CARD_H = 28 + Math.round((SHOT_CARD_W * 9) / 16) + 2;
-/** Extra window height under the floor chip that the card takes while it shows. */
-export const SHOT_BELOW = SHOT_CARD_H + EDGE;
-
-/** Where the card goes: centred under the disc, below the floor chip, no wider than the bezel. */
-export function shotUnderDisc(l: CircleLayout): { left: number; top: number; width: number } {
-  const width = Math.min(SHOT_CARD_W, 2 * l.ro);
-  return { left: l.cx - width / 2, top: l.cy + l.ro + BOTTOM, width };
-}
-
 /** The disc for a window of this size: the chosen diameter, shrunk only when the window cannot hold it. */
 export function circleLayout(winW: number, winH: number, size: number): CircleLayout {
   const roFit = Math.min((winW - LEFT - EDGE) / 2, (winH - EDGE - BOTTOM) / 2);

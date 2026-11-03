@@ -3,6 +3,7 @@ mod logtail;
 mod markkey;
 mod navguard;
 mod shareshot;
+mod shotwin;
 mod watcher;
 
 use tauri::{Emitter, Manager};
@@ -40,12 +41,23 @@ pub fn run() {
                 // hotkey: quitting while hidden would otherwise relaunch to an invisible window
                 // that looks like a failed start.
                 .with_state_flags(StateFlags::all() - StateFlags::DECORATIONS - StateFlags::VISIBLE)
+                // The screenshot popup is placed from the settings, and enlarging it must not stick.
+                .with_denylist(&[shotwin::LABEL])
                 .build(),
         )
         .manage(watcher::WatcherState::default())
         .manage(logtail::TailState::default())
         .manage(markkey::MarkKeyState::default())
         .manage(shareshot::SharedShot::default())
+        .manage(shotwin::ShotPopup::default())
+        // An open screenshot popup would otherwise keep the app running after the main window closes.
+        .on_window_event(|window, event| {
+            if window.label() == "main" && matches!(event, tauri::WindowEvent::Destroyed) {
+                if let Some(popup) = window.app_handle().get_webview_window(shotwin::LABEL) {
+                    let _ = popup.destroy();
+                }
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             watcher::start_screenshot_watcher,
             watcher::stop_screenshot_watcher,
@@ -54,6 +66,9 @@ pub fn run() {
             detect::detect_dirs,
             markkey::start_mark_key,
             shareshot::take_shared_shot,
+            shotwin::open_shot_window,
+            shotwin::shot_popup_data,
+            shotwin::close_shot_window,
         ])
         .run(tauri::generate_context!())
         .expect("error while running TarTrak");

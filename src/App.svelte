@@ -16,9 +16,9 @@
     restoreWindowRect,
     type WindowRect,
   } from "./lib/tauri/window";
-  import { detectDirs, startScreenshotWatcher, startLogTail, startMarkKey, takeSharedShot, type DetectedDirs } from "./lib/tauri/commands";
+  import { detectDirs, startScreenshotWatcher, startLogTail, startMarkKey, takeSharedShot, openShotWindow, type DetectedDirs } from "./lib/tauri/commands";
   import { shrinkShot } from "./lib/room/shot";
-  import ShotCard from "./lib/room/ShotCard.svelte";
+  import type { PopupData } from "./lib/room/popup";
   import { MarkPairer } from "./lib/tauri/markHere";
   import { DEFAULT_SHOT_KEY_VK, markKeyLabel } from "./lib/settings/markKey";
   import type { Position } from "./lib/parse/screenshot";
@@ -66,8 +66,6 @@
     FLOOR_GAP,
     RIM_BUTTON_ANGLES,
     RIM_BUTTON_GAP,
-    SHOT_BELOW,
-    shotUnderDisc,
   } from "./lib/map/circle";
   import { version } from "../package.json";
   import MateReadout from "./lib/map/MateReadout.svelte";
@@ -326,7 +324,7 @@
     }
     try {
       if (next && shape === "circle") {
-        const size = discWindow(s.minimapSize);
+        const size = circleWindowSize(s.minimapSize);
         await fitWindowTo(size.width, size.height);
       } else if (!next && savedRect) {
         const r = savedRect;
@@ -338,12 +336,6 @@
     }
     // The map area just changed size and place; follow me puts me back in the middle of it.
     if (settings?.followMe ?? true) setTimeout(() => mapView?.centerOnMe(), 50);
-  }
-
-  /** The round window for a disc of `size`; taller while a teammate's screenshot shows under the disc. */
-  function discWindow(size: number): { width: number; height: number } {
-    const s = circleWindowSize(size);
-    return { width: s.width, height: s.height + (room.shot ? SHOT_BELOW : 0) };
   }
 
   /**
@@ -359,7 +351,7 @@
     try {
       do {
         fitAgain = false;
-        const size = discWindow(sizeOpen ? MINIMAP_SIZE_MAX : minimapSize);
+        const size = circleWindowSize(sizeOpen ? MINIMAP_SIZE_MAX : minimapSize);
         await fitWindowTo(size.width, size.height);
       } while (fitAgain);
     } catch (e) {
@@ -380,14 +372,20 @@
     void fitToDisc();
   }
 
-  // The round window grows under the disc while a teammate's screenshot shows there, and shrinks back after.
-  const shotShowing = $derived(room.shot !== null);
+  // A teammate's screenshot goes to its own popup window, wherever the player put it.
   $effect(() => {
-    void shotShowing;
+    const shot = room.shot;
+    if (!shot) return;
     untrack(() => {
-      if (circle) void fitToDisc();
+      room.closeShot();
+      openPopup({ kind: "shot", from: shot.from, color: shot.color, url: shot.url });
     });
   });
+
+  /** Shows the screenshot popup at the saved spot; the preview is the Settings "Move" button's stand-in. */
+  function openPopup(data: PopupData) {
+    openShotWindow(JSON.stringify(data), settings?.shotPos ?? null).catch((e) => app.toast(`Could not show the screenshot: ${e}`));
+  }
 
   function focusNow(node: HTMLElement) {
     node.focus();
@@ -579,6 +577,7 @@
           if (tab !== "raids") raidsUnseen = true;
         },
         onMarkKey: () => markPairer.press(),
+        onShotMoved: (p) => patchSettings({ shotPos: p }),
         // Rust already showed the window; the hide hotkey must not think it is still hidden.
         onSecondInstance: () => {
           hidden = false;
@@ -873,6 +872,7 @@
               onPickDir={pickDir}
               shotKey={app.shotKeyVk === null ? "PrintScreen (game log not read yet)" : `${markKeyLabel(app.shotKeyVk)} (from the game log)`}
               onInvalid={(m) => app.toast(m)}
+              onMoveShot={() => openPopup({ kind: "preview" })}
               onCheckUpdate={() => checkForUpdate(updateUi, { manual: true }).catch((e) => app.toast(`Update failed: ${e}`))}
             />
           {/if}
@@ -1223,9 +1223,4 @@
     <span class="st-muted mono">v{version}</span>
   </footer>
 </div>
-{#if room.shot}
-  {#key room.shot}
-    <ShotCard shot={room.shot} onClose={() => room.closeShot()} place={ring ? shotUnderDisc(ring) : null} />
-  {/key}
-{/if}
 <Toasts />
