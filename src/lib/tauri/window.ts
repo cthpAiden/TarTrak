@@ -130,12 +130,14 @@ export async function registerHotkeys(
   overlayKey: string,
   opacityKey: string,
   hideKey: string,
-  handlers: { toggleOverlay(): void; cycleOpacity(): void; toggleHidden(): void },
+  shareKey: string,
+  handlers: { toggleOverlay(): void; cycleOpacity(): void; toggleHidden(): void; shareShot(): void },
 ): Promise<() => Promise<void>> {
   const bound: [string | null, () => void][] = [
     [normalizeHotkey(overlayKey), handlers.toggleOverlay],
     [normalizeHotkey(opacityKey), handlers.cycleOpacity],
     [normalizeHotkey(hideKey), handlers.toggleHidden],
+    [normalizeHotkey(shareKey), handlers.shareShot],
   ];
   const keys: [string, () => void][] = [];
   for (const [k, fn] of bound) {

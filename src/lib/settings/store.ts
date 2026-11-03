@@ -19,11 +19,10 @@ export interface Settings {
   hotkeyOpacity: string;
   /** Hides the window outright, for looting with the overlay in the way. Empty unbinds it. */
   hotkeyHide: string;
+  /** Sends my latest screenshot to the squad. Empty unbinds it. */
+  hotkeyShare: string;
   /** Windows virtual-key code of the mark-here key; 0 turns it off. */
   markKeyVk: number;
-  /** Windows virtual-key code of the share key: held with the screenshot key, that shot goes to the squad. 0 is off.
-   *  It defaults to the mark-here key, so one chord both drops the marker and shares the shot. */
-  shareKeyVk: number;
   lastMap: string | null;
   lastRoom: string;
   /** Heading line length in metres, 5 to 125. */
@@ -86,8 +85,8 @@ export const DEFAULT_SETTINGS: Settings = {
   hotkeyOverlay: "F5",
   hotkeyOpacity: "F6",
   hotkeyHide: "F7",
+  hotkeyShare: "F8",
   markKeyVk: DEFAULT_MARK_KEY_VK,
-  shareKeyVk: DEFAULT_MARK_KEY_VK,
   lastMap: null,
   lastRoom: "",
   lineLengthM: 100,
@@ -121,8 +120,8 @@ const SHAPE: Record<keyof Settings, Kind> = {
   hotkeyOverlay: "string",
   hotkeyOpacity: "string",
   hotkeyHide: "string",
+  hotkeyShare: "string",
   markKeyVk: "number",
-  shareKeyVk: "number",
   lastMap: "string?",
   lastRoom: "string",
   lineLengthM: "number",
@@ -195,7 +194,6 @@ export function mergeSettings(partial: unknown): Settings {
   out.lineLengthM = clamp(out.lineLengthM, 5, 125);
   out.playerLevel = clamp(out.playerLevel, 0, 79);
   if (!Number.isInteger(out.markKeyVk) || out.markKeyVk < 0 || out.markKeyVk > 255) out.markKeyVk = DEFAULT_MARK_KEY_VK;
-  if (!Number.isInteger(out.shareKeyVk) || out.shareKeyVk < 0 || out.shareKeyVk > 255) out.shareKeyVk = 0;
   if (!GAME_MODES.includes(out.gameMode)) out.gameMode = DEFAULT_SETTINGS.gameMode;
   if (!FACTIONS.includes(out.faction)) out.faction = DEFAULT_SETTINGS.faction;
   if (!ROOM_CODE_RE.test(out.lastRoom)) out.lastRoom = "";

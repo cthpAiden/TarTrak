@@ -134,13 +134,10 @@ describe("mergeSettings", () => {
     expect(mergeSettings({ markKeyVk: "F7" }).markKeyVk).toBe(0xa4);
   });
 
-  it("defaults the share key to the mark-here key, keeps any byte, else turns it off", () => {
-    expect(mergeSettings({}).shareKeyVk).toBe(0xa4);
-    expect(mergeSettings({ shareKeyVk: 0 }).shareKeyVk).toBe(0);
-    expect(mergeSettings({ shareKeyVk: 0xa0 }).shareKeyVk).toBe(0xa0);
-    expect(mergeSettings({ markKeyVk: 0xa0, shareKeyVk: 0xa0 }).shareKeyVk).toBe(0xa0);
-    expect(mergeSettings({ shareKeyVk: 256 }).shareKeyVk).toBe(0);
-    expect(mergeSettings({ shareKeyVk: 1.5 }).shareKeyVk).toBe(0);
+  it("binds the share hotkey to F8 and drops the old share-key setting", () => {
+    expect(mergeSettings({}).hotkeyShare).toBe("F8");
+    expect(mergeSettings({ hotkeyShare: "" }).hotkeyShare).toBe("");
+    expect(mergeSettings({ shareKeyVk: 0xa4 })).not.toHaveProperty("shareKeyVk");
   });
 
   it("defaults the overlay to the box, and the circle to north-up with its bezel and rim tools", () => {

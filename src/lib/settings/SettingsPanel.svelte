@@ -36,7 +36,7 @@
   } = $props();
 
   /** An unparseable hotkey would be stored and the key would then silently stop working. */
-  function commitHotkey(which: "hotkeyOverlay" | "hotkeyOpacity" | "hotkeyHide", raw: string) {
+  function commitHotkey(which: "hotkeyOverlay" | "hotkeyOpacity" | "hotkeyHide" | "hotkeyShare", raw: string) {
     const text = raw.trim();
     // Empty is the way to unbind a key, so only a non-empty string can be invalid.
     if (text !== "" && normalizeHotkey(text) === null) {
@@ -63,25 +63,15 @@
   let overlayKey = $state(untrack(() => settings.hotkeyOverlay));
   let opacityKey = $state(untrack(() => settings.hotkeyOpacity));
   let hideKey = $state(untrack(() => settings.hotkeyHide));
+  let shareKey = $state(untrack(() => settings.hotkeyShare));
   let lineLen = $state(untrack(() => settings.lineLengthM));
 
-  /** While set, the next key or mouse button pressed anywhere becomes that held key. */
-  let capturing = $state<"markKeyVk" | "shareKeyVk" | null>(null);
-
-  function toggleCapture(which: "markKeyVk" | "shareKeyVk") {
-    capturing = capturing === which ? null : which;
-  }
+  /** While true, the next key or mouse button pressed anywhere becomes the mark-here key. */
+  let capturing = $state(false);
 
   function bindKey(vk: number) {
-    const which = capturing;
-    capturing = null;
-    if (which) onChange({ [which]: vk });
-  }
-
-  /** Why `vk` cannot be the key being captured, or null when it can. */
-  function refusal(vk: number): string | null {
-    if (vk === PRINT_SCREEN_VK) return "PrintScreen is a screenshot key; pick another key to hold";
-    return null;
+    capturing = false;
+    onChange({ markKeyVk: vk });
   }
 
   function captureKey(e: KeyboardEvent) {
@@ -90,7 +80,7 @@
     e.stopPropagation();
     if (e.repeat) return;
     if (e.code === "Escape") {
-      capturing = null;
+      capturing = false;
       return;
     }
     if (e.code === "Backspace" || e.code === "Delete") {
@@ -102,9 +92,8 @@
       onInvalid?.(`Cannot bind ${e.code || "that key"}`);
       return;
     }
-    const why = refusal(key.vk);
-    if (why) {
-      onInvalid?.(why);
+    if (key.vk === PRINT_SCREEN_VK) {
+      onInvalid?.("PrintScreen is a screenshot key; pick another key to hold");
       return;
     }
     bindKey(key.vk);
@@ -122,18 +111,13 @@
     const key = markKeyFromButton(e.button);
     // A left or right click on anything else just ends the capture.
     if (!key) {
-      capturing = null;
+      capturing = false;
       if (e.button === 2) e.preventDefault();
       return;
     }
     e.preventDefault();
     e.stopPropagation();
     boundButton = e.button;
-    const why = refusal(key.vk);
-    if (why) {
-      onInvalid?.(why);
-      return;
-    }
     bindKey(key.vk);
   }
 
@@ -246,15 +230,13 @@
         <input id="set-hk-hide" class="key" bind:value={hideKey} onblur={() => commitHotkey("hotkeyHide", hideKey)} placeholder="F7" />
       </div>
       <div class="row">
-        <label for="set-mark-key" title="Hold this key and press the game's screenshot key: a private marker drops where you stand. Nothing happens on either key alone. Backspace turns it off.">Mark-here key</label>
-        <button id="set-mark-key" type="button" class="capture key" class:capturing={capturing === "markKeyVk"} onclick={() => toggleCapture("markKeyVk")}>
-          {capturing === "markKeyVk" ? "Press a key…" : markKeyLabel(settings.markKeyVk)}
-        </button>
+        <label for="set-hk-share" title="Sends your latest screenshot to everyone in your squad. Empty unbinds it.">Share screenshot</label>
+        <input id="set-hk-share" class="key" bind:value={shareKey} onblur={() => commitHotkey("hotkeyShare", shareKey)} placeholder="F8" />
       </div>
       <div class="row">
-        <label for="set-share-key" title="Hold this key and press the game's screenshot key: that screenshot pops up for everyone in your squad. The same key as mark-here does both. Nothing happens on either key alone. Backspace turns it off.">Share-shot key</label>
-        <button id="set-share-key" type="button" class="capture key" class:capturing={capturing === "shareKeyVk"} onclick={() => toggleCapture("shareKeyVk")}>
-          {capturing === "shareKeyVk" ? "Press a key…" : markKeyLabel(settings.shareKeyVk)}
+        <label for="set-mark-key" title="Hold this key and press the game's screenshot key: a private marker drops where you stand. Nothing happens on either key alone. Backspace turns it off.">Mark-here key</label>
+        <button id="set-mark-key" type="button" class="capture key" class:capturing onclick={() => (capturing = !capturing)}>
+          {capturing ? "Press a key…" : markKeyLabel(settings.markKeyVk)}
         </button>
       </div>
       <div class="row">
@@ -326,7 +308,7 @@
   <details>
     <summary>About</summary>
     <p class="small">
-      TarTrak is free and open source (MIT). It only reads screenshot filenames and the game's text logs.
+      TarTrak is free and open source (MIT). It only reads the screenshots the game saves and its text logs.
       Map images: <a href="https://github.com/the-hideout/tarkov-dev-svg-maps" onclick={external}>tarkov-dev-svg-maps</a> (CC BY-NC-SA 4.0).
       Map math and quest data: <a href="https://tarkov.dev" onclick={external}>tarkov.dev</a> (MIT). Escape from Tarkov and its trader portraits belong to Battlestate Games; TarTrak is not affiliated with or endorsed by them.
       In a squad room, your name, colour, position, shared markers, drawings and to-do list go through the relay to

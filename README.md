@@ -40,6 +40,7 @@ One player clicks **Create** and shares the code. Everyone else types it in and 
 | `F5` | Switch overlay mode |
 | `F6` | Change overlay opacity |
 | `F7` | Hide the window until you press it again |
+| `F8` | Send your latest screenshot to your squad |
 | `Alt` + drag | Move the overlay |
 | `Left Alt` + screenshot key | Drop a private marker where you stand |
 
@@ -49,7 +50,7 @@ Every key can be rebound in Settings.
 
 TarTrak never touches the game process. It reads three things:
 
-- The filenames of the screenshots the game saves, which contain your coordinates and camera rotation. It can delete those screenshots afterwards, and only the ones named with coordinates.
+- The screenshots the game saves. Their filenames contain your coordinates and camera rotation. The latest image is kept in memory so `F8` can send it to your squad; it leaves your PC only when you press `F8`. It can delete those screenshots afterwards, and only the ones named with coordinates.
 - The game's text log, to learn which map you loaded.
 - Whether your mark-here key is held down, using the same Windows call push-to-talk apps use.
 

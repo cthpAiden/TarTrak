@@ -2,7 +2,7 @@ use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::Duration;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 const DELETE_ATTEMPTS: u32 = 5;
 const DELETE_GAP: Duration = Duration::from_millis(200);
@@ -92,7 +92,7 @@ pub fn start_screenshot_watcher(
     let watcher = watch_screenshots(&path, delete, move |name| {
         let _ = handle.emit("screenshot", name.clone());
         // Here, not on the delete thread: the file is only deleted once this returns.
-        crate::shareshot::grab_if_armed(&handle, &shots.join(&name), &name);
+        handle.state::<crate::shareshot::SharedShot>().keep(&shots.join(&name));
     })
     .map_err(|e| e.to_string())?;
     *state.0.lock().map_err(|e| e.to_string())? = Some(watcher);

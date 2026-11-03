@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.19.0 - 2026-11-03
+
+### Changed
+- **Share a screenshot with F8.** Press `F8` and your latest screenshot pops up for everyone in your squad. Take screenshots as usual with the game's key, then press `F8` when you want to share the last one. Rebind it in Settings > Hotkeys > Share screenshot (empty unbinds it). One share per 10 s.
+- The Share-shot key chord (holding a key while taking a screenshot) is gone. `Left Alt` + screenshot key only drops your private marker again.
+
 ## 0.18.1 - 2026-11-03
 
 ### Changed

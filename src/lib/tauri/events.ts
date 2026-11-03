@@ -80,8 +80,6 @@ export interface BridgeHooks extends RaidHooks {
   onPosition?: (p: Position) => void;
   /** The mark-here key went down (Rust poller). */
   onMarkKey?: () => void;
-  /** A screenshot taken with the share key held is ready to take (Rust read it before any delete). */
-  onSharedShot?: () => void;
   /** A second instance was launched; the OS-level plugin already brought the window back. */
   onSecondInstance?: () => void;
 }
@@ -90,13 +88,11 @@ export async function startEventBridge(hooks: BridgeHooks = {}): Promise<() => v
   const unShot = await listen<string>("screenshot", (e) => handleScreenshot(e.payload, app, hooks.onPosition));
   const unLog = await listen<string>("logline", (e) => handleLogLine(e.payload, app, hooks));
   const unMark = await listen<void>("markkey", () => hooks.onMarkKey?.());
-  const unShare = await listen<string>("sharedshot", () => hooks.onSharedShot?.());
   const unSecondInstance = await listen<void>("second-instance", () => hooks.onSecondInstance?.());
   return () => {
     unShot();
     unLog();
     unMark();
-    unShare();
     unSecondInstance();
   };
 }

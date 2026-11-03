@@ -416,10 +416,11 @@
     unhookHotkeys = null;
     try {
       if (previous) await previous();
-      unhookHotkeys = await registerHotkeys(s.hotkeyOverlay, s.hotkeyOpacity, s.hotkeyHide, {
+      unhookHotkeys = await registerHotkeys(s.hotkeyOverlay, s.hotkeyOpacity, s.hotkeyHide, s.hotkeyShare, {
         toggleOverlay,
         cycleOpacity,
         toggleHidden,
+        shareShot: () => void shareShot(),
       });
     } catch (e) {
       app.toast(`Could not register hotkeys: ${e}`);
@@ -438,23 +439,22 @@
   }
 
   /** The poller runs in Rust; a failure to start it must not break startup. */
-  async function armMarkKey(vk: number, shotVk: number, shareVk: number) {
+  async function armMarkKey(vk: number, shotVk: number) {
     try {
-      await startMarkKey(vk, shotVk, shareVk);
+      await startMarkKey(vk, shotVk);
     } catch (e) {
-      app.toast(`Could not watch the mark-here and share keys: ${e}`);
+      app.toast(`Could not watch the mark-here key: ${e}`);
     }
   }
 
-  /** A screenshot taken with the share key held: shrunk here and sent to the squad, who see it pop up. */
+  /** The share hotkey: my latest screenshot, shrunk here and sent to the squad, who see it pop up. */
   async function shareShot() {
+    if (room.status !== "open") {
+      app.toast(room.code ? "Squad not connected: screenshot not shared" : "Join a squad to share screenshots");
+      return;
+    }
     try {
-      // Taken even when it cannot go out, so a stale one is never sent later.
       const png = await takeSharedShot();
-      if (room.status !== "open") {
-        app.toast(room.code ? "Squad not connected: screenshot not shared" : "Join a squad to share screenshots");
-        return;
-      }
       const sent = room.shareShot(await shrinkShot(png));
       if (sent === "sent") app.toast("Screenshot shared with the squad");
       else if (sent === "wait") app.toast("One shared screenshot per 10 s: not sent");
@@ -516,7 +516,8 @@
     if (
       after.hotkeyOverlay !== before.hotkeyOverlay ||
       after.hotkeyOpacity !== before.hotkeyOpacity ||
-      after.hotkeyHide !== before.hotkeyHide
+      after.hotkeyHide !== before.hotkeyHide ||
+      after.hotkeyShare !== before.hotkeyShare
     ) {
       await armHotkeys(after);
     }
@@ -578,7 +579,6 @@
           if (tab !== "raids") raidsUnseen = true;
         },
         onMarkKey: () => markPairer.press(),
-        onSharedShot: () => void shareShot(),
         // Rust already showed the window; the hide hotkey must not think it is still hidden.
         onSecondInstance: () => {
           hidden = false;
@@ -667,9 +667,7 @@
     const vk = settings?.markKeyVk;
     const shot = app.shotKeyVk ?? DEFAULT_SHOT_KEY_VK;
     if (vk === undefined) return;
-    // A share key that is the game's own screenshot key could never chord; the poller would refuse it and mark-here with it.
-    const share = settings?.shareKeyVk === shot ? 0 : (settings?.shareKeyVk ?? 0);
-    void armMarkKey(vk, shot, share);
+    void armMarkKey(vk, shot);
   });
 
   function placePin(p: { x: number; z: number; label: string; shared: boolean }) {

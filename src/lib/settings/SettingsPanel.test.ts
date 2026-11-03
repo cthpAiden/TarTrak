@@ -68,6 +68,13 @@ describe("SettingsPanel hotkeys", () => {
     void unmount(panel);
   });
 
+  it("rebinds the share hotkey", () => {
+    const { target, panel, changes } = open();
+    blurWith(target, "set-hk-share", "F9");
+    expect(changes).toEqual([{ hotkeyShare: "F9" }]);
+    void unmount(panel);
+  });
+
   it("rebinds the hide hotkey", () => {
     const { target, panel, changes, invalid } = open();
     blurWith(target, "set-hk-hide", "ctrl+h");
@@ -206,28 +213,6 @@ describe("SettingsPanel mark-here key", () => {
     flushSync();
     expect(btn.textContent?.trim()).toBe("Left Alt");
     expect(changes).toEqual([]);
-    void unmount(panel);
-  });
-
-  it("captures the share key into its own setting, the mark-here key by default", () => {
-    const { target, panel, changes } = open();
-    const btn = target.querySelector<HTMLButtonElement>("#set-share-key")!;
-    expect(btn.textContent?.trim()).toBe("Left Alt");
-    clickCapture(btn);
-    expect(btn.textContent?.trim()).toBe("Press a key…");
-    // Only the button being captured shows it.
-    expect(target.querySelector("#set-mark-key")!.textContent?.trim()).toBe("Left Alt");
-    key("ShiftLeft");
-    expect(changes).toEqual([{ shareKeyVk: 0xa0 }]);
-    void unmount(panel);
-  });
-
-  it("takes the mark-here key as the share key, so one chord does both", () => {
-    const { target, panel, changes, invalid } = open({ shareKeyVk: 0xa0 });
-    clickCapture(target.querySelector<HTMLButtonElement>("#set-share-key")!);
-    key("AltLeft");
-    expect(changes).toEqual([{ shareKeyVk: 0xa4 }]);
-    expect(invalid).toEqual([]);
     void unmount(panel);
   });
 });
