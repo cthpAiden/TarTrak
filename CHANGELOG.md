@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.20.2 - 2026-11-03
+
+### Fixed
+- **F8 right after a screenshot could still share the one before.** 0.20.1 waited for a screenshot the game was writing, but not for one it was still preparing before its file appeared. `F8` now waits up to 3 s after the screenshot key for that screenshot. This works while the mark-here key is on, as it is by default: TarTrak only watches the keys then.
+- **The screenshot popup could open on the wrong screen** with two screens at different Windows scaling, say a laptop at 150% and a monitor at 100%. It now opens where you put it. If you placed it in 0.20.0 or 0.20.1 on a screen scaled above 100%, place it again with Settings > Shared screenshots > **Move**.
+- A popup placed at the edge of a screen now opens wholly on that screen.
+- **A hotkey another app holds no longer turns off the others.** One key that would not register (more likely now that `F8` is taken by default) used to cost all of them. TarTrak now says which key failed and keeps the rest.
+- **Settings accepted a hotkey another action already had**, and then no hotkey worked. It now refuses it and says which action has it.
+- **F8 with nobody else in the squad** said the screenshot was shared. It now says nobody else is in the squad, and sends nothing.
+- Pressing `F8` again while a share is still being prepared no longer runs into the 10 s limit.
+- A popup dragged within a second of opening did not remember its new spot, and enlarging it right after a drag could store the enlarged window's spot instead.
+- When the last screenshot could not be read, `F8` now says so instead of "no screenshot taken since TarTrak started".
+
+### Changed
+- **The screenshot popup stays while your mouse is on it**, so it no longer closes as you reach for it. Its 10 s countdown starts once the pointer leaves.
+
 ## 0.20.1 - 2026-11-03
 
 ### Fixed

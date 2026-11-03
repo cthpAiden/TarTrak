@@ -22,7 +22,7 @@ export interface Settings {
   hotkeyHide: string;
   /** Sends my latest screenshot to the squad. Empty unbinds it. */
   hotkeyShare: string;
-  /** Where the shared-screenshot popup opens, in logical screen pixels; null is the bottom-left of the screen. */
+  /** Where the shared-screenshot popup opens, in physical screen pixels; null is the bottom-left of the screen. */
   shotPos: { x: number; y: number } | null;
   /** Windows virtual-key code of the mark-here key; 0 turns it off. */
   markKeyVk: number;

@@ -53,7 +53,7 @@ TarTrak never touches the game process. It reads three things:
 
 - The screenshots the game saves. Their filenames contain your coordinates and camera rotation. The latest image is kept in memory so `F8` can send it to your squad; it leaves your PC only when you press `F8`. It can delete those screenshots afterwards, and only the ones named with coordinates.
 - The game's text log, to learn which map you loaded.
-- Whether your mark-here key is held down, using the same Windows call push-to-talk apps use.
+- Whether your mark-here key and the game's screenshot key are held down, using the same Windows call push-to-talk apps use.
 
 It doesn't read memory, inject code, install keyboard hooks or send keystrokes to the game. There are no accounts and no telemetry. I can't speak for Battlestate's anti-cheat, but that is everything TarTrak does.
 

@@ -80,7 +80,7 @@ export interface BridgeHooks extends RaidHooks {
   onPosition?: (p: Position) => void;
   /** The mark-here key went down (Rust poller). */
   onMarkKey?: () => void;
-  /** The player dragged the screenshot popup here (logical pixels). */
+  /** The player dragged the screenshot popup here (physical pixels). */
   onShotMoved?: (p: { x: number; y: number }) => void;
   /** A second instance was launched; the OS-level plugin already brought the window back. */
   onSecondInstance?: () => void;

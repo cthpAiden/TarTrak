@@ -5,7 +5,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::Duration;
-use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, Manager, Monitor, PhysicalPosition, State, WebviewUrl, WebviewWindowBuilder};
 
 pub const LABEL: &str = "shot";
 /// Logical size: a 16:9 picture 320 wide under the 28 px header, plus the 1 px border top and bottom.
@@ -31,30 +31,43 @@ pub struct Shown {
     data: String,
 }
 
-/// A rectangle in logical pixels: x, y, width, height.
-type Rect = (f64, f64, f64, f64);
+/// A rectangle in physical pixels: x, y, width, height. Physical, because logical pixels are not
+/// one space across screens at different scales.
+type Rect = (i32, i32, i32, i32);
 
-/// Whether a popup at the logical point `(x, y)` would start inside one of the `screens`.
-pub fn on_a_screen(screens: &[Rect], x: f64, y: f64) -> bool {
-    screens.iter().any(|&(sx, sy, w, h)| x >= sx && y >= sy && x < sx + w && y < sy + h)
+/// The popup's size in physical pixels on a screen at `scale`.
+fn size_at(scale: f64) -> (i32, i32) {
+    ((WIDTH * scale).round() as i32, (HEIGHT * scale).round() as i32)
+}
+
+/// The saved spot `at`, moved just enough for the whole popup to fit in `work` (a screen's work
+/// area, at `scale`); None when `at` is not on that screen, say one since unplugged.
+pub fn fit_in(work: Rect, scale: f64, at: (i32, i32)) -> Option<(i32, i32)> {
+    let (x, y, w, h) = work;
+    let (ax, ay) = at;
+    if ax < x || ay < y || ax >= x + w || ay >= y + h {
+        return None;
+    }
+    let (pw, ph) = size_at(scale);
+    Some((ax.min(x + w - pw).max(x), ay.min(y + h - ph).max(y)))
 }
 
 /// The default spot: the bottom-left corner of `work`, inset by the margin.
-pub fn default_spot(work: Rect) -> (f64, f64) {
+pub fn default_spot(work: Rect, scale: f64) -> (i32, i32) {
     let (x, y, _, h) = work;
-    (x + MARGIN, y + h - HEIGHT - MARGIN)
+    let margin = (MARGIN * scale).round() as i32;
+    (x + margin, y + h - size_at(scale).1 - margin)
 }
 
-/// A monitor's work area (the screen less the taskbar) in logical pixels.
-fn logical_work_area(m: &tauri::Monitor) -> Rect {
-    let s = m.scale_factor();
+/// A monitor's work area (the screen less the taskbar) in physical pixels.
+fn work_area(m: &Monitor) -> Rect {
     let a = m.work_area();
-    (a.position.x as f64 / s, a.position.y as f64 / s, a.size.width as f64 / s, a.size.height as f64 / s)
+    (a.position.x, a.position.y, a.size.width as i32, a.size.height as i32)
 }
 
-/// Shows `data` in the popup at the logical point `(x, y)`, or the default spot when none is given or it
-/// is on no screen now. A popup already open keeps its place and shows the new data. Async: creating a
-/// window from a synchronous command deadlocks on Windows.
+/// Shows `data` in the popup at the physical point `(x, y)`, or the default spot when none is given
+/// or it is on no screen now. A popup already open keeps its place and shows the new data. Async:
+/// creating a window from a synchronous command deadlocks on Windows.
 #[tauri::command]
 pub async fn open_shot_window(
     app: AppHandle,
@@ -64,36 +77,42 @@ pub async fn open_shot_window(
     y: Option<f64>,
 ) -> Result<(), String> {
     let _one = state.opening.lock().map_err(|e| e.to_string())?;
-    let shown = {
+    {
         let mut cur = state.shown.lock().map_err(|e| e.to_string())?;
         *cur = (cur.0 + 1, data);
-        Shown { gen: cur.0, data: cur.1.clone() }
-    };
+    }
     // A popup that is closing is gone in a moment; wait for it rather than send it what it cannot show.
     for _ in 0..50 {
         match app.get_webview_window(LABEL) {
+            // It reads what to show itself: the screenshot is too big to send twice.
             Some(w) if !state.closing.load(Ordering::SeqCst) => {
-                return w.emit_to(LABEL, "shot-update", shown).map_err(|e| e.to_string());
+                return w.emit_to(LABEL, "shot-update", ()).map_err(|e| e.to_string());
             }
             Some(_) => std::thread::sleep(Duration::from_millis(20)),
             None => break,
         }
     }
     state.closing.store(false, Ordering::SeqCst);
-    let screens: Vec<Rect> = app.available_monitors().map_err(|e| e.to_string())?.iter().map(logical_work_area).collect();
-    let (x, y) = match (x, y) {
-        (Some(x), Some(y)) if on_a_screen(&screens, x, y) => (x, y),
-        _ => {
+    let monitors = app.available_monitors().map_err(|e| e.to_string())?;
+    let saved = x.zip(y).map(|(x, y)| (x.round() as i32, y.round() as i32));
+    let fitted = saved.and_then(|at| {
+        monitors.iter().find_map(|m| fit_in(work_area(m), m.scale_factor(), at).map(|p| (p, m.scale_factor())))
+    });
+    let ((px, py), scale) = match fitted {
+        Some(spot) => spot,
+        None => {
             // The screen TarTrak is on, else the primary one.
             let main = app.get_webview_window("main").and_then(|w| w.current_monitor().ok().flatten());
-            let mon = main.or(app.primary_monitor().map_err(|e| e.to_string())?);
-            mon.map(|m| default_spot(logical_work_area(&m))).unwrap_or((MARGIN, MARGIN))
+            match main.or(app.primary_monitor().map_err(|e| e.to_string())?) {
+                Some(m) => (default_spot(work_area(&m), m.scale_factor()), m.scale_factor()),
+                None => ((MARGIN as i32, MARGIN as i32), 1.0),
+            }
         }
     };
-    WebviewWindowBuilder::new(&app, LABEL, WebviewUrl::App("shot.html".into()))
+    let w = WebviewWindowBuilder::new(&app, LABEL, WebviewUrl::App("shot.html".into()))
         .title("TarTrak screenshot")
         .inner_size(WIDTH, HEIGHT)
-        .position(x, y)
+        .position(px as f64 / scale, py as f64 / scale)
         .decorations(false)
         .transparent(true)
         .shadow(false)
@@ -104,6 +123,13 @@ pub async fn open_shot_window(
         .focusable(false)
         .build()
         .map_err(|e| e.to_string())?;
+    // The builder takes logical pixels, and the window is placed with the scale of the first screen
+    // they land on: with screens at different scales that can be another screen. Moving it does not
+    // activate it.
+    let at = PhysicalPosition::new(px, py);
+    if w.outer_position().map_err(|e| e.to_string())? != at {
+        w.set_position(at).map_err(|e| e.to_string())?;
+    }
     Ok(())
 }
 
@@ -135,16 +161,26 @@ mod tests {
 
     #[test]
     fn a_saved_spot_counts_only_while_a_screen_holds_it() {
-        let screens = [(0.0, 0.0, 1920.0, 1040.0), (1920.0, 0.0, 2560.0, 1400.0)];
-        assert!(on_a_screen(&screens, 100.0, 100.0));
-        assert!(on_a_screen(&screens, 2000.0, 1300.0)); // second screen
-        assert!(!on_a_screen(&screens, 5000.0, 100.0)); // a screen since unplugged
-        assert!(!on_a_screen(&screens, -10.0, 100.0));
+        let screen = (0, 0, 1920, 1040);
+        assert_eq!(fit_in(screen, 1.0, (100, 100)), Some((100, 100)));
+        assert_eq!(fit_in(screen, 1.0, (5000, 100)), None); // a screen since unplugged
+        assert_eq!(fit_in(screen, 1.0, (-10, 100)), None);
+        // A screen to the left of the primary one has negative coordinates.
+        assert_eq!(fit_in((-2560, 0, 2560, 1400), 1.5, (-2000, 300)), Some((-2000, 300)));
+    }
+
+    #[test]
+    fn a_saved_spot_near_the_edge_is_moved_until_the_whole_popup_fits() {
+        // At 150% the popup is 480 x 315 pixels.
+        assert_eq!(fit_in((0, 0, 1920, 1040), 1.5, (1900, 1000)), Some((1920 - 480, 1040 - 315)));
+        // A screen smaller than the popup keeps its top-left corner on the screen.
+        assert_eq!(fit_in((0, 0, 300, 200), 1.0, (10, 10)), Some((0, 0)));
     }
 
     #[test]
     fn the_default_spot_is_the_bottom_left_of_the_work_area() {
-        assert_eq!(default_spot((0.0, 0.0, 1920.0, 1040.0)), (24.0, 1040.0 - HEIGHT - 24.0));
-        assert_eq!(default_spot((1920.0, 100.0, 2560.0, 1300.0)), (1944.0, 1400.0 - HEIGHT - 24.0));
+        assert_eq!(default_spot((0, 0, 1920, 1040), 1.0), (24, 1040 - 210 - 24));
+        // A second screen at 150%: margin and height scale with it.
+        assert_eq!(default_spot((1920, 100, 3840, 2100), 1.5), (1920 + 36, 2200 - 315 - 36));
     }
 }

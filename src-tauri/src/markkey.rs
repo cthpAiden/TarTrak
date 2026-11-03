@@ -1,12 +1,13 @@
 //! Mark-here chord poller. Reads the state of the mark key and the game's screenshot key with
 //! `GetAsyncKeyState` every 10 ms and emits `markkey` when the screenshot key goes down while the
-//! mark key is held. Either key alone does nothing. No keyboard hook is installed and no input is
-//! ever sent: this is the same call push-to-talk apps make, and it never touches the game process.
+//! mark key is held. Every press of the screenshot key is also noted for the share hotkey, which
+//! waits for that screenshot. No keyboard hook is installed and no input is ever sent: this is the
+//! same call push-to-talk apps make, and it never touches the game process.
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 const POLL: Duration = Duration::from_millis(10);
 
@@ -87,8 +88,13 @@ pub fn start_mark_key(
     let counter = Arc::clone(&state.0);
     std::thread::spawn(move || {
         let mut chord = Chord::new();
+        let mut shot = Edge::new();
         while counter.load(Ordering::SeqCst) == generation {
-            if chord.tick(key_down(vk), key_down(shot_vk)) {
+            let shot_down = key_down(shot_vk);
+            if shot.pressed(shot_down) {
+                app.state::<crate::shareshot::SharedShot>().pressed();
+            }
+            if chord.tick(key_down(vk), shot_down) {
                 let _ = app.emit("markkey", ());
             }
             std::thread::sleep(POLL);

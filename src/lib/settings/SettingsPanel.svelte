@@ -37,12 +37,22 @@
     shotKey?: string;
   } = $props();
 
+  const HOTKEY_NAMES = { hotkeyOverlay: "Overlay", hotkeyOpacity: "Opacity", hotkeyHide: "Hide", hotkeyShare: "Share screenshot" };
+  type HotkeyField = keyof typeof HOTKEY_NAMES;
+
   /** An unparseable hotkey would be stored and the key would then silently stop working. */
-  function commitHotkey(which: "hotkeyOverlay" | "hotkeyOpacity" | "hotkeyHide" | "hotkeyShare", raw: string) {
+  function commitHotkey(which: HotkeyField, raw: string) {
     const text = raw.trim();
+    const key = normalizeHotkey(text);
     // Empty is the way to unbind a key, so only a non-empty string can be invalid.
-    if (text !== "" && normalizeHotkey(text) === null) {
+    if (text !== "" && key === null) {
       onInvalid?.(`Invalid hotkey: ${text}`);
+      return;
+    }
+    // Two actions on one key would stop every hotkey registering.
+    const taken = (Object.keys(HOTKEY_NAMES) as HotkeyField[]).find((k) => k !== which && key !== null && normalizeHotkey(settings[k]) === key);
+    if (taken) {
+      onInvalid?.(`${key} is already the ${HOTKEY_NAMES[taken]} hotkey`);
       return;
     }
     onChange({ [which]: text });

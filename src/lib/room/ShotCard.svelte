@@ -16,20 +16,26 @@
     onBig?: (big: boolean) => void;
   } = $props();
 
-  /** A screenshot closes itself this long after it opens, or after it is shrunk again; never while enlarged. */
+  /**
+   * A screenshot closes itself this long after it opens, is shrunk again or the pointer leaves it;
+   * never while enlarged, or while the pointer is on it and the player may be reaching for it.
+   */
   const SHOW_MS = 10_000;
 
   /** The popup keys this component by what it shows, so a new screenshot opens small again. */
   let big = $state(false);
+  let hover = $state(false);
 
   $effect(() => {
-    if (big || data.kind !== "shot") return;
+    if (big || hover || data.kind !== "shot") return;
     const t = setTimeout(onClose, SHOW_MS);
     return () => clearTimeout(t);
   });
 
   function toggleBig() {
     big = !big;
+    // Shrinking takes the window out from under the pointer, and no leave event need follow.
+    if (!big) hover = false;
     onBig(big);
   }
 
@@ -40,7 +46,14 @@
 </script>
 
 <!-- The shared-screenshot popup's whole window: a header to drag it by, and the picture. -->
-<div class="shot" role="dialog" aria-label={data.kind === "shot" ? `Screenshot from ${data.from}` : "Shared screenshot position"}>
+<div
+  class="shot"
+  role="dialog"
+  tabindex="-1"
+  aria-label={data.kind === "shot" ? `Screenshot from ${data.from}` : "Shared screenshot position"}
+  onmouseenter={() => (hover = true)}
+  onmouseleave={() => (hover = false)}
+>
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="head" title="Drag to move" onmousedown={grab}>
     {#if data.kind === "shot"}

@@ -414,12 +414,14 @@
     unhookHotkeys = null;
     try {
       if (previous) await previous();
-      unhookHotkeys = await registerHotkeys(s.hotkeyOverlay, s.hotkeyOpacity, s.hotkeyHide, s.hotkeyShare, {
+      const { unhook, failed } = await registerHotkeys(s.hotkeyOverlay, s.hotkeyOpacity, s.hotkeyHide, s.hotkeyShare, {
         toggleOverlay,
         cycleOpacity,
         toggleHidden,
         shareShot: () => void shareShot(),
       });
+      unhookHotkeys = unhook;
+      if (failed.length) app.toast(`Could not register hotkey ${failed.map((f) => f.key).join(", ")}: ${failed[0].error}`);
     } catch (e) {
       app.toast(`Could not register hotkeys: ${e}`);
     }
@@ -446,19 +448,30 @@
   }
 
   /** The share hotkey: my latest screenshot, shrunk here and sent to the squad, who see it pop up. */
+  let sharing = false;
   async function shareShot() {
     if (room.status !== "open") {
       app.toast(room.code ? "Squad not connected: screenshot not shared" : "Join a squad to share screenshots");
       return;
     }
+    if (room.alone) {
+      app.toast("Nobody else is in the squad: screenshot not shared");
+      return;
+    }
+    // A second press while the first is still being read and shrunk would only hit the 10 s limit.
+    if (sharing) return;
+    sharing = true;
     try {
       const png = await takeSharedShot();
       const sent = room.shareShot(await shrinkShot(png));
       if (sent === "sent") app.toast("Screenshot shared with the squad");
+      else if (sent === "alone") app.toast("Nobody else is in the squad: screenshot not shared");
       else if (sent === "wait") app.toast("One shared screenshot per 10 s: not sent");
       else app.toast("Squad not connected: screenshot not shared");
     } catch (e) {
       app.toast(`Could not share the screenshot: ${e}`);
+    } finally {
+      sharing = false;
     }
   }
 

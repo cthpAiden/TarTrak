@@ -13,9 +13,9 @@ export const startLogTail = (logsRoot: string) => invoke<void>("start_log_tail_c
 export const stopLogTail = () => invoke<void>("stop_log_tail_cmd");
 /** Mark fires when `shotVk` goes down while `vk` is held; vk 0 stops the poller. */
 export const startMarkKey = (vk: number, shotVk: number) => invoke<void>("start_mark_key", { vk, shotVk });
-/** A copy of the latest screenshot's PNG; rejects when there is none or it could not be read. */
+/** A copy of the latest screenshot's PNG, once one the screenshot key just took is in; rejects when there is none or it could not be read. */
 export const takeSharedShot = () => invoke<ArrayBuffer>("take_shared_shot");
-/** Shows `data` (PopupData JSON) in the screenshot popup at `pos` (logical pixels), or the default spot when null. */
+/** Shows `data` (PopupData JSON) in the screenshot popup at `pos` (physical pixels), or the default spot when null. */
 export const openShotWindow = (data: string, pos: { x: number; y: number } | null) =>
   invoke<void>("open_shot_window", { data, x: pos?.x ?? null, y: pos?.y ?? null });
 /** What the popup shows: `gen` numbers it, so closing an older one leaves a newer one open. */

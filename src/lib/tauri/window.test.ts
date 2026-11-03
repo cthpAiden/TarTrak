@@ -73,24 +73,28 @@ describe("registerHotkeys", () => {
     expect(fired).toEqual(["hidden", "share"]);
   });
 
-  it("leaves nothing registered when a later key fails", async () => {
+  it("keeps the other keys when another app holds one, and says which", async () => {
     vi.mocked(register).mockImplementation(async (k) => {
       if (k === "F6") throw new Error("taken");
       live.add(k as string);
     });
-    await expect(registerHotkeys("F5", "F6", "F7", "F8", handlers)).rejects.toThrow("taken");
+    const { unhook, failed } = await registerHotkeys("F5", "F6", "F7", "F8", handlers);
+    expect([...live]).toEqual(["F5", "F7", "F8"]);
+    expect(failed).toEqual([{ key: "F6", error: new Error("taken") }]);
+    await unhook();
     expect([...live]).toEqual([]);
   });
 
   it("treats an empty binding as unbound and registers only the other", async () => {
-    const unhook = await registerHotkeys("", "F6", "", "", handlers);
+    const { unhook } = await registerHotkeys("", "F6", "", "", handlers);
     expect([...live]).toEqual(["F6"]);
     await unhook();
     expect([...live]).toEqual([]);
   });
 
   it("unhooks every registered key, and does nothing on a second call", async () => {
-    const unhook = await registerHotkeys("F5", "F6", "F7", "F8", handlers);
+    const { unhook, failed } = await registerHotkeys("F5", "F6", "F7", "F8", handlers);
+    expect(failed).toEqual([]);
     expect([...live]).toEqual(["F5", "F6", "F7", "F8"]);
     await unhook();
     expect([...live]).toEqual([]);

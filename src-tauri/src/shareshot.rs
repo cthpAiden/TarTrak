@@ -5,11 +5,14 @@
 use std::path::Path;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Mutex;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tauri::State;
 
 const READ_ATTEMPTS: u32 = 30;
 const READ_GAP: Duration = Duration::from_millis(100);
+/// How long after the screenshot key a share waits for that screenshot's file to appear: the game
+/// encodes the PNG before it writes it.
+const PRESS_WAIT: Duration = Duration::from_secs(3);
 /// A 4K PNG is ~25 MB; anything far past that is not a game screenshot.
 const MAX_PNG_BYTES: u64 = 64 * 1024 * 1024;
 /// Every PNG ends with the IEND chunk: length 0, "IEND", then its fixed CRC.
@@ -21,6 +24,9 @@ pub struct SharedShot {
     png: Mutex<Option<Vec<u8>>>,
     /// Screenshots being read now: the game may still be writing one the player wants to share.
     reading: AtomicU32,
+    /// When the screenshot key last went down (seen by the mark-key poller, while it runs) and when
+    /// the last screenshot file appeared.
+    times: Mutex<(Option<Instant>, Option<Instant>)>,
 }
 
 impl SharedShot {
@@ -28,7 +34,12 @@ impl SharedShot {
     /// watcher before the file is deleted. One that cannot be read clears the slot, so an older
     /// screenshot is never shared in its place.
     pub fn keep(&self, path: &Path) {
+        // Counted as being read before it counts as arrived: `latest_when_read` looks in the other
+        // order, so it always sees at least one of the two.
         self.reading.fetch_add(1, Ordering::SeqCst);
+        if let Ok(mut t) = self.times.lock() {
+            t.1 = Some(Instant::now());
+        }
         let bytes = read_whole_png(path, READ_ATTEMPTS, READ_GAP);
         if let Ok(mut slot) = self.png.lock() {
             *slot = bytes;
@@ -41,16 +52,37 @@ impl SharedShot {
         self.png.lock().ok()?.clone()
     }
 
-    /// The latest screenshot once any being read is in, so a share pressed right after the
+    /// The screenshot key went down: a screenshot is on its way.
+    pub fn pressed(&self) {
+        if let Ok(mut t) = self.times.lock() {
+            t.0 = Some(Instant::now());
+        }
+    }
+
+    /// True from a press of the screenshot key until its file appears, for `PRESS_WAIT` at most.
+    fn awaited(&self) -> bool {
+        let Ok(t) = self.times.lock() else { return false };
+        match *t {
+            (Some(pressed), arrived) => pressed.elapsed() < PRESS_WAIT && arrived.is_none_or(|a| a < pressed),
+            (None, _) => false,
+        }
+    }
+
+    /// The latest screenshot once any on its way is in, so a share pressed right after the
     /// screenshot key sends that screenshot and not the one before. Waits `attempts` x `gap` at most.
-    pub fn latest_when_read(&self, attempts: u32, gap: Duration) -> Option<Vec<u8>> {
+    /// None, with why, when there is nothing to share.
+    pub fn latest_when_read(&self, attempts: u32, gap: Duration) -> Result<Vec<u8>, &'static str> {
         for _ in 0..attempts {
-            if self.reading.load(Ordering::SeqCst) == 0 {
+            if !self.awaited() && self.reading.load(Ordering::SeqCst) == 0 {
                 break;
             }
             std::thread::sleep(gap);
         }
-        self.latest()
+        match self.latest() {
+            Some(png) => Ok(png),
+            None if self.times.lock().is_ok_and(|t| t.1.is_some()) => Err("the last screenshot could not be read"),
+            None => Err("no screenshot taken since TarTrak started"),
+        }
     }
 }
 
@@ -77,10 +109,8 @@ pub fn read_whole_png(path: &Path, attempts: u32, gap: Duration) -> Option<Vec<u
 /// the main thread.
 #[tauri::command]
 pub async fn take_shared_shot(state: State<'_, SharedShot>) -> Result<tauri::ipc::Response, String> {
-    state
-        .latest_when_read(READ_ATTEMPTS + 5, READ_GAP)
-        .map(tauri::ipc::Response::new)
-        .ok_or_else(|| "no screenshot taken since TarTrak started".to_string())
+    let wait = (PRESS_WAIT.as_millis() / READ_GAP.as_millis()) as u32 + READ_ATTEMPTS + 5;
+    state.latest_when_read(wait, READ_GAP).map(tauri::ipc::Response::new).map_err(String::from)
 }
 
 #[cfg(test)]
@@ -133,8 +163,52 @@ mod tests {
             fs::write(&new, &new_bytes).unwrap();
             new_bytes
         });
-        assert_eq!(s.latest_when_read(100, Duration::from_millis(20)), Some(writer.join().unwrap()));
+        assert_eq!(s.latest_when_read(100, Duration::from_millis(20)), Ok(writer.join().unwrap()));
         reader.join().unwrap();
+    }
+
+    #[test]
+    fn a_share_right_after_the_screenshot_key_waits_for_its_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = std::sync::Arc::new(SharedShot::default());
+        let old = dir.path().join("old.png");
+        let mut old_bytes = b"\x89PNG old".to_vec();
+        old_bytes.extend_from_slice(&IEND);
+        fs::write(&old, &old_bytes).unwrap();
+        s.keep(&old);
+
+        // The key is down; the game is still encoding, so no file exists yet.
+        s.pressed();
+        let (s2, new) = (std::sync::Arc::clone(&s), dir.path().join("new.png"));
+        let game = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(150));
+            let mut bytes = b"\x89PNG new".to_vec();
+            bytes.extend_from_slice(&IEND);
+            fs::write(&new, &bytes).unwrap();
+            s2.keep(&new);
+            bytes
+        });
+        let shared = s.latest_when_read(100, Duration::from_millis(20));
+        assert_eq!(shared, Ok(game.join().unwrap()));
+    }
+
+    #[test]
+    fn a_press_with_no_file_waits_only_so_long() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = SharedShot::default();
+        assert_eq!(s.latest_when_read(1, Duration::from_millis(1)), Err("no screenshot taken since TarTrak started"));
+        let old = dir.path().join("old.png");
+        let mut bytes = b"\x89PNG old".to_vec();
+        bytes.extend_from_slice(&IEND);
+        fs::write(&old, &bytes).unwrap();
+        s.keep(&old);
+        s.pressed(); // say the key was typed outside the game
+        let start = std::time::Instant::now();
+        assert_eq!(s.latest_when_read(5, Duration::from_millis(10)), Ok(bytes));
+        assert!(start.elapsed() < Duration::from_secs(1));
+        // One that cannot be read leaves nothing to share, and says so.
+        s.keep(&dir.path().join("missing.png"));
+        assert_eq!(s.latest_when_read(1, Duration::from_millis(1)), Err("the last screenshot could not be read"));
     }
 
     #[test]

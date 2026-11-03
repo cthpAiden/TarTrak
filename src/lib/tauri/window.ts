@@ -126,13 +126,17 @@ export function installAltDrag(): () => void {
   return () => window.removeEventListener("mousedown", onDown, true);
 }
 
+/**
+ * Registers the hotkeys. Returns the unhook for the keys that took, and the ones that did not, say
+ * because another app holds them: that must not cost the other keys theirs.
+ */
 export async function registerHotkeys(
   overlayKey: string,
   opacityKey: string,
   hideKey: string,
   shareKey: string,
   handlers: { toggleOverlay(): void; cycleOpacity(): void; toggleHidden(): void; shareShot(): void },
-): Promise<() => Promise<void>> {
+): Promise<{ unhook: () => Promise<void>; failed: { key: string; error: unknown }[] }> {
   const bound: [string | null, () => void][] = [
     [normalizeHotkey(overlayKey), handlers.toggleOverlay],
     [normalizeHotkey(opacityKey), handlers.cycleOpacity],
@@ -147,7 +151,7 @@ export async function registerHotkeys(
     keys.push([k, fn]);
   }
 
-  // Only keys that actually took are unhooked, so a failure part-way through cannot leak one.
+  // Only keys that actually took are unhooked.
   const registered: string[] = [];
   const unhook = async () => {
     for (const k of registered.splice(0)) {
@@ -159,17 +163,17 @@ export async function registerHotkeys(
     }
   };
 
-  try {
-    for (const [k, fn] of keys) {
+  const failed: { key: string; error: unknown }[] = [];
+  for (const [k, fn] of keys) {
+    try {
       if (await isRegistered(k)) await unregister(k);
       await register(k, (e) => {
         if (e.state === "Pressed") fn();
       });
       registered.push(k);
+    } catch (error) {
+      failed.push({ key: k, error });
     }
-  } catch (e) {
-    await unhook();
-    throw e;
   }
-  return unhook;
+  return { unhook, failed };
 }

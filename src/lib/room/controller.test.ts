@@ -545,6 +545,7 @@ describe("RoomController shared screenshots", () => {
 
   it("sends a shot at most once per gap, and says when not connected", () => {
     const { room, client } = makeController();
+    client.onMessage(hello("r1", "Bob"));
     expect(room.shareShot("/9j/4AEC", 100_000)).toBe("sent");
     expect(client.sentPins.at(-1)).toEqual({ type: "shot", data: "/9j/4AEC" });
     expect(room.shareShot("/9j/4AEC", 105_000)).toBe("wait");
@@ -552,5 +553,18 @@ describe("RoomController shared screenshots", () => {
     expect(room.shareShot("/9j/4AEC", 111_000)).toBe("offline");
     client.open = true;
     expect(room.shareShot("/9j/4AEC", 111_000)).toBe("sent");
+  });
+
+  it("sends nothing while nobody else is in the room", () => {
+    const { room, client } = makeController();
+    const sent = client.sentPins.length;
+    expect(room.alone).toBe(true);
+    expect(room.shareShot("/9j/4AEC", 100_000)).toBe("alone");
+    client.onMessage(hello("r1", "Bob"));
+    expect(room.alone).toBe(false);
+    client.onMessage(leave("r1"));
+    expect(room.alone).toBe(true);
+    expect(room.shareShot("/9j/4AEC", 100_000)).toBe("alone");
+    expect(client.sentPins.length).toBe(sent);
   });
 });

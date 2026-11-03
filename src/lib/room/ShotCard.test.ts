@@ -40,6 +40,39 @@ describe("ShotCard", () => {
     void unmount(card);
   });
 
+  it("stays while the pointer is on it, then closes 10 s after it leaves", () => {
+    vi.useFakeTimers();
+    const { target, card, closed } = open();
+    flushSync();
+    const shot = target.querySelector(".shot")!;
+    vi.advanceTimersByTime(9_000);
+    shot.dispatchEvent(new MouseEvent("mouseenter"));
+    flushSync();
+    vi.advanceTimersByTime(60_000);
+    expect(closed()).toBe(0);
+    shot.dispatchEvent(new MouseEvent("mouseleave"));
+    flushSync();
+    vi.advanceTimersByTime(9_999);
+    expect(closed()).toBe(0);
+    vi.advanceTimersByTime(1);
+    expect(closed()).toBe(1);
+    void unmount(card);
+  });
+
+  it("counts down again once shrunk, though the pointer that clicked it never left", () => {
+    vi.useFakeTimers();
+    const { target, card, closed } = open();
+    flushSync();
+    target.querySelector(".shot")!.dispatchEvent(new MouseEvent("mouseenter"));
+    target.querySelector<HTMLButtonElement>(".pic")!.click();
+    flushSync();
+    target.querySelector<HTMLButtonElement>(".pic")!.click();
+    flushSync();
+    vi.advanceTimersByTime(10_000);
+    expect(closed()).toBe(1);
+    void unmount(card);
+  });
+
   it("shows who shared the screenshot, in their colour", () => {
     const { target, card } = open();
     expect(target.querySelector(".from")?.textContent).toBe("Bob");

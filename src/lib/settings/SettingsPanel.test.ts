@@ -101,6 +101,18 @@ describe("SettingsPanel hotkeys", () => {
     void unmount(panel);
   });
 
+  it("refuses a hotkey another action already has", () => {
+    const { target, panel, changes, invalid } = open();
+    blurWith(target, "set-hk-share", "f5");
+    blurWith(target, "set-hk-overlay", "F8");
+    expect(changes).toEqual([]);
+    expect(invalid).toEqual(["F5 is already the Overlay hotkey", "F8 is already the Share screenshot hotkey"]);
+    // Its own key again is no clash.
+    blurWith(target, "set-hk-share", "F8");
+    expect(changes).toEqual([{ hotkeyShare: "F8" }]);
+    void unmount(panel);
+  });
+
   it("rebinds the hide hotkey", () => {
     const { target, panel, changes, invalid } = open();
     blurWith(target, "set-hk-hide", "ctrl+h");

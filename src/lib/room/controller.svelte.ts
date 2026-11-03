@@ -105,9 +105,14 @@ export class RoomController {
     if (app.ownPos) this.client.sendPosition(app.currentMap, app.ownPos);
   }
 
+  /** True while nobody else is in the room: nothing I send reaches anyone. */
+  get alone(): boolean {
+    return !Object.values(app.teammates).some((t) => !t.left);
+  }
+
   /** Positions go out only while someone else is in the room; a squad of one costs the relay nothing per screenshot. */
   private syncAudience(): void {
-    this.client?.setAudience(Object.values(app.teammates).some((t) => !t.left));
+    this.client?.setAudience(!this.alone);
   }
 
   /** A name or colour picked while in a room: the room learns it now instead of on the next join. */
@@ -167,8 +172,12 @@ export class RoomController {
     return sent;
   }
 
-  /** A shrunk screenshot (base64 JPEG) for the squad: "wait" within 10 s of the last, "offline" when not connected. */
-  shareShot(data: string, now: number = Date.now()): "sent" | "wait" | "offline" {
+  /**
+   * A shrunk screenshot (base64 JPEG) for the squad: "alone" when nobody else is in the room to see it,
+   * "wait" within 10 s of the last, "offline" when not connected.
+   */
+  shareShot(data: string, now: number = Date.now()): "sent" | "alone" | "wait" | "offline" {
+    if (this.alone) return "alone";
     if (now - this.lastShotAt < SHOT_GAP_MS) return "wait";
     if (!this.client?.send({ type: "shot", data })) return "offline";
     this.lastShotAt = now;
