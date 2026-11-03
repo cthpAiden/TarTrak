@@ -2,6 +2,7 @@ import { load } from "@tauri-apps/plugin-store";
 import { FILTER_KEY_RE } from "../layers/filters";
 import { GAME_MODES, type GameMode } from "../quests/jsonSource";
 import { DEFAULT_MARK_KEY_VK } from "./markKey";
+import { normalizeHotkey } from "../tauri/window";
 
 export interface Settings {
   screenshotsDir: string | null;
@@ -203,6 +204,9 @@ export function mergeSettings(partial: unknown): Settings {
   out.lineLengthM = clamp(out.lineLengthM, 5, 125);
   out.playerLevel = clamp(out.playerLevel, 0, 79);
   if (!Number.isInteger(out.markKeyVk) || out.markKeyVk < 0 || out.markKeyVk > 255) out.markKeyVk = DEFAULT_MARK_KEY_VK;
+  // The share hotkey came last (F8 by default): on a key another hotkey already has, it would stop all of them registering.
+  const share = normalizeHotkey(out.hotkeyShare);
+  if (share && [out.hotkeyOverlay, out.hotkeyOpacity, out.hotkeyHide].some((k) => normalizeHotkey(k) === share)) out.hotkeyShare = "";
   if (!GAME_MODES.includes(out.gameMode)) out.gameMode = DEFAULT_SETTINGS.gameMode;
   if (!FACTIONS.includes(out.faction)) out.faction = DEFAULT_SETTINGS.faction;
   if (!ROOM_CODE_RE.test(out.lastRoom)) out.lastRoom = "";

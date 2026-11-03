@@ -17,6 +17,7 @@
 
 - Puts your position and heading on an interactive map every time you take a screenshot.
 - Shows your squad on the same map, linked by a 6-character room code.
+- Sends your latest screenshot to your squad with `F8`. It pops up for them in a small window they can place anywhere.
 - Draws quests, extracts, bosses and loot, with filters for each.
 - Runs as an overlay on top of the game in borderless windowed mode.
 - Replays your last 10 raids afterwards: your screenshots and your squad's trails, on the map with a timeline.

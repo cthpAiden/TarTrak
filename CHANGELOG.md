@@ -1,9 +1,17 @@
 # Changelog
 
+## 0.20.1 - 2026-11-03
+
+### Fixed
+- **F8 right after a screenshot shared the one before.** If the game was still writing the new screenshot when you pressed `F8`, your previous screenshot went out instead. `F8` now waits for the new one.
+- **Hotkeys stopped working when F8 was already taken.** If you had bound overlay, opacity or hide to `F8`, the new share hotkey took the same key and none of the hotkeys registered. Sharing now starts unbound in that case; pick its key in Settings > Hotkeys.
+- **A screenshot could be lost** when it arrived just as the popup was closing, or together with another one. It now shows.
+- A screenshot arriving while the popup was still opening could be missed, and a popup with nothing to show could stay open as an invisible window.
+
 ## 0.20.0 - 2026-11-03
 
 ### Changed
-- **Shared screenshots get their own window.** A teammate's screenshot now opens in a small always-on-top window instead of inside TarTrak's map, so it can sit anywhere on your screens. Drag it by its top bar; it opens there from then on. Settings > Shared screenshots > **Move** shows a stand-in to drag into place, and **Reset** puts it back at the bottom-left of the screen. Opening it never takes focus from the game. Like the overlay, it shows over the game only in borderless or windowed mode. Click the picture to enlarge it, again to shrink it.
+- **Shared screenshots get their own window.** A teammate's screenshot now opens in a small always-on-top window instead of inside TarTrak's map, so it can sit anywhere on your screens. Drag it by its top bar; it opens there from then on. Settings > Shared screenshots > **Move** shows a stand-in to drag into place, and **Reset** puts it back at the bottom-left of the screen. The window cannot take focus, so opening it leaves the game in front. Like the overlay, it shows over the game only in borderless or windowed mode. Click the picture to enlarge it, again to shrink it.
 
 ## 0.19.0 - 2026-11-03
 
@@ -11,10 +19,26 @@
 - **Share a screenshot with F8.** Press `F8` and your latest screenshot pops up for everyone in your squad. Take screenshots as usual with the game's key, then press `F8` when you want to share the last one. Rebind it in Settings > Hotkeys > Share screenshot (empty unbinds it). One share per 10 s.
 - The Share-shot key chord (holding a key while taking a screenshot) is gone. `Left Alt` + screenshot key only drops your private marker again.
 
+## 0.18.2 - 2026-11-03
+
+### Changed
+- **Share-shot key defaults to Left Alt.** The game ignores its screenshot key while Ctrl is held, so Ctrl cannot share. The share key now defaults to the mark-here key, and the two may be the same: Left Alt + screenshot key drops your private marker and shares the screenshot.
+
 ## 0.18.1 - 2026-11-03
 
 ### Changed
 - **New fonts.** Text is now Geist and numbers Geist Mono, in place of Barlow and Barlow Semi Condensed.
+
+## 0.18.0 - 2026-11-03
+
+### Added
+- **Share a screenshot with your squad.** Hold the Share-shot key (Settings > Hotkeys, off by default) and press the game's screenshot key: that screenshot pops up for everyone in your squad as a card in the bottom-left of the map, under the disc on the round minimap. Click it to enlarge. It closes itself after 10 s, never while enlarged. One share per 10 s. Needs the updated relay.
+
+### Fixed
+- **Raid timer in step with the in-game watch.** It ticks on the raid end's second edges instead of up to a second behind, and setting the PC's clock mid-raid no longer throws it off.
+
+### Security
+- The relay charges any long message to the screenshot allowance before parsing it, so a client cannot make it parse large junk messages many times a second.
 
 ## 0.17.0 - 2026-11-03
 

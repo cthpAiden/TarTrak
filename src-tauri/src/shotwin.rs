@@ -2,7 +2,9 @@
 //! on the screen. It is created unfocused and unfocusable, so it never takes focus from the game: a
 //! hidden window shown again would be activated, which is why it is closed rather than hidden.
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
+use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
 
 pub const LABEL: &str = "shot";
@@ -14,7 +16,14 @@ const MARGIN: f64 = 24.0;
 
 /// What the popup shows: JSON from the app, numbered so a close meant for an older one is ignored.
 #[derive(Default)]
-pub struct ShotPopup(Mutex<(u64, String)>);
+pub struct ShotPopup {
+    shown: Mutex<(u64, String)>,
+    /// Held by one open at a time, so two screenshots at once cannot both try to create the window.
+    /// Only async commands take it: the main thread, which creates windows, never waits on it.
+    opening: Mutex<()>,
+    /// Set once the popup is being destroyed: it still exists for a moment but can show nothing more.
+    closing: AtomicBool,
+}
 
 #[derive(Clone, serde::Serialize)]
 pub struct Shown {
@@ -54,14 +63,23 @@ pub async fn open_shot_window(
     x: Option<f64>,
     y: Option<f64>,
 ) -> Result<(), String> {
+    let _one = state.opening.lock().map_err(|e| e.to_string())?;
     let shown = {
-        let mut cur = state.0.lock().map_err(|e| e.to_string())?;
+        let mut cur = state.shown.lock().map_err(|e| e.to_string())?;
         *cur = (cur.0 + 1, data);
         Shown { gen: cur.0, data: cur.1.clone() }
     };
-    if let Some(w) = app.get_webview_window(LABEL) {
-        return w.emit_to(LABEL, "shot-update", shown).map_err(|e| e.to_string());
+    // A popup that is closing is gone in a moment; wait for it rather than send it what it cannot show.
+    for _ in 0..50 {
+        match app.get_webview_window(LABEL) {
+            Some(w) if !state.closing.load(Ordering::SeqCst) => {
+                return w.emit_to(LABEL, "shot-update", shown).map_err(|e| e.to_string());
+            }
+            Some(_) => std::thread::sleep(Duration::from_millis(20)),
+            None => break,
+        }
     }
+    state.closing.store(false, Ordering::SeqCst);
     let screens: Vec<Rect> = app.available_monitors().map_err(|e| e.to_string())?.iter().map(logical_work_area).collect();
     let (x, y) = match (x, y) {
         (Some(x), Some(y)) if on_a_screen(&screens, x, y) => (x, y),
@@ -92,16 +110,19 @@ pub async fn open_shot_window(
 /// What the popup should show now.
 #[tauri::command]
 pub fn shot_popup_data(state: State<'_, ShotPopup>) -> Result<Shown, String> {
-    let cur = state.0.lock().map_err(|e| e.to_string())?;
+    let cur = state.shown.lock().map_err(|e| e.to_string())?;
     Ok(Shown { gen: cur.0, data: cur.1.clone() })
 }
 
 /// Closes the popup, unless it has been given something newer than `gen` meanwhile.
 #[tauri::command]
 pub fn close_shot_window(app: AppHandle, state: State<'_, ShotPopup>, gen: u64) -> Result<(), String> {
-    let cur = state.0.lock().map_err(|e| e.to_string())?;
+    let cur = state.shown.lock().map_err(|e| e.to_string())?;
     if cur.0 == gen {
         if let Some(w) = app.get_webview_window(LABEL) {
+            // Under the lock: an open that numbered something newer has either already reached the
+            // window (so gen differs and this does nothing) or will see this flag and wait.
+            state.closing.store(true, Ordering::SeqCst);
             w.destroy().map_err(|e| e.to_string())?;
         }
     }

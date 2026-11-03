@@ -145,6 +145,10 @@ describe("mergeSettings", () => {
   it("binds the share hotkey to F8 and drops the old share-key setting", () => {
     expect(mergeSettings({}).hotkeyShare).toBe("F8");
     expect(mergeSettings({ hotkeyShare: "" }).hotkeyShare).toBe("");
+    // A hotkey already on F8 keeps it, and sharing starts unbound rather than breaking every hotkey.
+    expect(mergeSettings({ hotkeyHide: "f8" }).hotkeyShare).toBe("");
+    expect(mergeSettings({ hotkeyHide: "f8" }).hotkeyHide).toBe("f8");
+    expect(mergeSettings({ hotkeyOverlay: "F9", hotkeyShare: "f9" }).hotkeyShare).toBe("");
     expect(mergeSettings({ shareKeyVk: 0xa4 })).not.toHaveProperty("shareKeyVk");
   });
 

@@ -22,6 +22,8 @@
     const s = await shotPopupData();
     gen = s.gen;
     data = readPopupData(s.data);
+    // Nothing it can show: an invisible window on top must not linger.
+    if (!data) close();
   }
 
   async function setBig(big: boolean) {
@@ -68,8 +70,9 @@
   }
 
   onMount(() => {
-    void refresh();
     const unlisten = [listen("shot-update", () => void refresh()), win.onMoved(moved)];
+    // Read only once listening, so a screenshot that comes while this page loads is not missed.
+    void unlisten[0].then(refresh);
     return () => unlisten.forEach((u) => void u.then((f) => f()));
   });
 </script>
@@ -81,5 +84,6 @@
 {/if}
 
 <style>
-  :global(html), :global(body) { background: transparent; }
+  /* "html body" outranks app.css's "body", whichever stylesheet loads last. */
+  :global(html), :global(html body) { background: transparent; }
 </style>

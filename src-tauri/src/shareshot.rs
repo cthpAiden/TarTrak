@@ -3,6 +3,7 @@
 //! with `take_shared_shot`, shrink it and send it to the squad.
 
 use std::path::Path;
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Mutex;
 use std::time::Duration;
 use tauri::State;
@@ -18,6 +19,8 @@ const IEND: [u8; 12] = [0, 0, 0, 0, b'I', b'E', b'N', b'D', 0xAE, 0x42, 0x60, 0x
 #[derive(Default)]
 pub struct SharedShot {
     png: Mutex<Option<Vec<u8>>>,
+    /// Screenshots being read now: the game may still be writing one the player wants to share.
+    reading: AtomicU32,
 }
 
 impl SharedShot {
@@ -25,15 +28,29 @@ impl SharedShot {
     /// watcher before the file is deleted. One that cannot be read clears the slot, so an older
     /// screenshot is never shared in its place.
     pub fn keep(&self, path: &Path) {
+        self.reading.fetch_add(1, Ordering::SeqCst);
         let bytes = read_whole_png(path, READ_ATTEMPTS, READ_GAP);
         if let Ok(mut slot) = self.png.lock() {
             *slot = bytes;
         }
+        self.reading.fetch_sub(1, Ordering::SeqCst);
     }
 
     /// A copy of the latest screenshot; it stays kept, so a share refused for the rate limit can be retried.
     pub fn latest(&self) -> Option<Vec<u8>> {
         self.png.lock().ok()?.clone()
+    }
+
+    /// The latest screenshot once any being read is in, so a share pressed right after the
+    /// screenshot key sends that screenshot and not the one before. Waits `attempts` x `gap` at most.
+    pub fn latest_when_read(&self, attempts: u32, gap: Duration) -> Option<Vec<u8>> {
+        for _ in 0..attempts {
+            if self.reading.load(Ordering::SeqCst) == 0 {
+                break;
+            }
+            std::thread::sleep(gap);
+        }
+        self.latest()
     }
 }
 
@@ -56,10 +73,14 @@ pub fn read_whole_png(path: &Path, attempts: u32, gap: Duration) -> Option<Vec<u
     None
 }
 
-/// The latest screenshot as raw PNG bytes.
+/// The latest screenshot as raw PNG bytes. Async, so waiting for one being read does not hold up
+/// the main thread.
 #[tauri::command]
-pub fn take_shared_shot(state: State<'_, SharedShot>) -> Result<tauri::ipc::Response, String> {
-    state.latest().map(tauri::ipc::Response::new).ok_or_else(|| "no screenshot to share yet".to_string())
+pub async fn take_shared_shot(state: State<'_, SharedShot>) -> Result<tauri::ipc::Response, String> {
+    state
+        .latest_when_read(READ_ATTEMPTS + 5, READ_GAP)
+        .map(tauri::ipc::Response::new)
+        .ok_or_else(|| "no screenshot taken since TarTrak started".to_string())
 }
 
 #[cfg(test)]
@@ -85,6 +106,35 @@ mod tests {
         fs::write(&second, &bytes).unwrap();
         s.keep(&second);
         assert_eq!(s.latest(), Some(bytes));
+    }
+
+    #[test]
+    fn a_share_waits_for_the_screenshot_still_being_written() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = std::sync::Arc::new(SharedShot::default());
+        let old = dir.path().join("old.png");
+        let mut old_bytes = b"\x89PNG old".to_vec();
+        old_bytes.extend_from_slice(&IEND);
+        fs::write(&old, &old_bytes).unwrap();
+        s.keep(&old);
+
+        // The game has created the new file but not finished it.
+        let new = dir.path().join("new.png");
+        fs::write(&new, b"\x89PNG").unwrap();
+        let (s2, new2) = (std::sync::Arc::clone(&s), new.clone());
+        let reader = std::thread::spawn(move || s2.keep(&new2));
+        while s.reading.load(Ordering::SeqCst) == 0 {
+            std::thread::yield_now();
+        }
+        let mut new_bytes = b"\x89PNG new".to_vec();
+        new_bytes.extend_from_slice(&IEND);
+        let writer = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(150));
+            fs::write(&new, &new_bytes).unwrap();
+            new_bytes
+        });
+        assert_eq!(s.latest_when_read(100, Duration::from_millis(20)), Some(writer.join().unwrap()));
+        reader.join().unwrap();
     }
 
     #[test]
