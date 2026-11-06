@@ -13,6 +13,8 @@ pub const WIDTH: f64 = 320.0;
 pub const HEIGHT: f64 = 210.0;
 /// The default spot's distance from the bottom-left corner of the work area.
 const MARGIN: f64 = 24.0;
+/// How many more times to try creating the popup after WebView2 refuses it.
+const OPEN_RETRIES: u32 = 2;
 
 /// What the popup shows: JSON from the app, numbered so a close meant for an older one is ignored.
 #[derive(Default)]
@@ -109,20 +111,35 @@ pub async fn open_shot_window(
             }
         }
     };
-    let w = WebviewWindowBuilder::new(&app, LABEL, WebviewUrl::App("shot.html".into()))
-        .title("TarTrak screenshot")
-        .inner_size(WIDTH, HEIGHT)
-        .position(px as f64 / scale, py as f64 / scale)
-        .decorations(false)
-        .transparent(true)
-        .shadow(false)
-        .resizable(false)
-        .always_on_top(true)
-        .skip_taskbar(true)
-        .focused(false)
-        .focusable(false)
-        .build()
-        .map_err(|e| e.to_string())?;
+    let build = || {
+        WebviewWindowBuilder::new(&app, LABEL, WebviewUrl::App("shot.html".into()))
+            .title("TarTrak screenshot")
+            .inner_size(WIDTH, HEIGHT)
+            .position(px as f64 / scale, py as f64 / scale)
+            .decorations(false)
+            .transparent(true)
+            .shadow(false)
+            .resizable(false)
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .focused(false)
+            .focusable(false)
+            .build()
+    };
+    // WebView2 can refuse a new webview for a moment (seen: RPC_E_DISCONNECTED, "The object invoked
+    // has disconnected from its clients"), so try a few times before giving up; the app then shows
+    // the screenshot in its own window instead.
+    let mut tries = 0;
+    let w = loop {
+        match build() {
+            Ok(w) => break w,
+            Err(e) if tries >= OPEN_RETRIES => return Err(e.to_string()),
+            Err(_) => {
+                tries += 1;
+                std::thread::sleep(Duration::from_millis(250));
+            }
+        }
+    };
     // The builder takes logical pixels, and the window is placed with the scale of the first screen
     // they land on: with screens at different scales that can be another screen. Moving it does not
     // activate it.

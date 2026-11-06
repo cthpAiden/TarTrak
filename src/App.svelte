@@ -19,6 +19,7 @@
   import { detectDirs, startScreenshotWatcher, startLogTail, startMarkKey, takeSharedShot, openShotWindow, type DetectedDirs } from "./lib/tauri/commands";
   import { shrinkShot } from "./lib/room/shot";
   import type { PopupData } from "./lib/room/popup";
+  import ShotCard from "./lib/room/ShotCard.svelte";
   import { MarkPairer } from "./lib/tauri/markHere";
   import { DEFAULT_SHOT_KEY_VK, markKeyLabel } from "./lib/settings/markKey";
   import type { Position } from "./lib/parse/screenshot";
@@ -382,9 +383,19 @@
     });
   });
 
+  /** A screenshot shown in this window because its popup could not be created; numbered so a new one opens small. */
+  let inlineShot = $state<{ n: number; data: PopupData } | null>(null);
+  let inlineBig = $state(false);
+
   /** Shows the screenshot popup at the saved spot; the preview is the Settings "Move" button's stand-in. */
   function openPopup(data: PopupData) {
-    openShotWindow(JSON.stringify(data), settings?.shotPos ?? null).catch((e) => app.toast(`Could not show the screenshot: ${e}`));
+    openShotWindow(JSON.stringify(data), settings?.shotPos ?? null).catch((e) => {
+      if (data.kind !== "shot") return app.toast(`Could not open the screenshot popup: ${e}`);
+      // The popup window could not be created (WebView2 can refuse one): show the screenshot here instead.
+      console.warn("screenshot popup failed, showing it in the main window:", e);
+      inlineBig = false;
+      inlineShot = { n: (inlineShot?.n ?? 0) + 1, data };
+    });
   }
 
   function focusNow(node: HTMLElement) {
@@ -1236,4 +1247,16 @@
     <span class="st-muted mono">v{version}</span>
   </footer>
 </div>
+{#if inlineShot}
+  {#key inlineShot.n}
+    <!-- The transform makes this box the card's frame: the card fills its window, here this box. -->
+    <div
+      style="position: fixed; z-index: 1500; transform: translateZ(0); {inlineBig
+        ? 'inset: 8px;'
+        : 'left: 8px; bottom: 8px; width: min(320px, calc(100vw - 16px)); height: min(210px, calc(100vh - 16px));'}"
+    >
+      <ShotCard data={inlineShot.data} onClose={() => (inlineShot = null)} onBig={(b) => (inlineBig = b)} />
+    </div>
+  {/key}
+{/if}
 <Toasts />
