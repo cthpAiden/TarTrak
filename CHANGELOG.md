@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.20.3 - 2026-11-06
 
 ### Fixed
 - **A teammate's screenshot could fail to show** with "Could not show the screenshot: ... WebView2 error ... The object invoked has disconnected from its clients". TarTrak now tries to open the popup a few more times, and if Windows still refuses it, shows the screenshot inside TarTrak's own window (bottom-left) instead.
