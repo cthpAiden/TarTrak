@@ -184,7 +184,7 @@ h1 kbd.k, h2 kbd.k { text-transform: none; letter-spacing: 0; font-size: 0.58em;
 .key.down kbd.k { transform: translateY(3px); border-bottom-width: 1px; }
 .key.lit kbd.k { border-color: var(--amber); box-shadow: 0 0 0 4px rgba(240, 180, 41, 0.18); }
 .key.f8 kbd.k { border-color: rgba(255, 64, 129, 0.6); }
-.shape { display: flex; align-items: center; gap: 2px; padding: 3px; border: 1px solid #2e3640; border-radius: 8px; background: rgba(18, 21, 26, 0.72); }
+.shape { position: absolute; z-index: 21; left: 0; top: 0; opacity: 0; display: flex; align-items: center; gap: 2px; padding: 3px; border: 1px solid #2e3640; border-radius: 8px; background: rgba(18, 21, 26, 0.72); }
 .shape > span { padding: 0 8px 0 6px; font: 600 10px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .shape button { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border: 0; border-radius: 5px; background: none; color: var(--fg-2); font: 600 11px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
 .shape button svg { width: 14px; height: 14px; }
@@ -339,7 +339,7 @@ footer .fine a { color: var(--fg-2); }
 @media (max-width: 900px) {
   .ov { width: calc(100vw - 32px); right: 16px; top: 66px; } .ov.full { width: calc(100vw - 32px); }
   .ov.circle { width: min(250px, calc(100vw - 32px)); } .ov.circle.full { width: calc(100vw - 32px); }
-  .hero { bottom: 196px; } .deck { left: 16px; right: 16px; bottom: 20px; justify-items: start; } .keys { justify-content: flex-start; }
+  .hero { bottom: 150px; } .deck { left: 16px; right: 16px; bottom: 20px; justify-items: start; } .keys { justify-content: flex-start; }
   .key kbd.k { min-width: 48px; height: 44px; } .lede, .scrollhint { display: none; }
   .toasts, .shot { display: none; }
   .rail ol span { display: none; }

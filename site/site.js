@@ -88,7 +88,7 @@
   const hbText = svgEl("text", { y: 0.5, "text-anchor": "middle", "dominant-baseline": "central" }, hb);
   const gap = (a, b) => { const d = Math.abs(a - b) % 360; return Math.min(d, 360 - d); };
 
-  MS.players = [me, ...mates]; MS.zoom = 1.25; MS.route = { from: "you", to: 0 }; MS.labels = false;
+  MS.players = [me, ...mates]; MS.zoom = 1.5; MS.route = { from: "you", to: 0 }; MS.labels = false;
   const bMarks = mates.map((p) => { const g = svgEl("g", {}); svgEl("path", { d: `M${BC - 5} ${BC - BR - 1}h10l-5 8z`, fill: p.color, stroke: "#000", "stroke-width": 1 }, g); return { p, g }; });
   function drawBezel() {
     const [x, y] = polar(89, me.h);
@@ -98,7 +98,7 @@
     const W = mini.W(), H = mini.H();
     bMarks.forEach(({ p, g }) => g.setAttribute("transform", `rotate(${((Math.atan2((p.x - me.x) * W, -(p.y - me.y) * H) * 180) / Math.PI).toFixed(1)} ${BC} ${BC})`));
   }
-  const shapes = $$(".shape button");
+  const shapeEl = $("#shape"), shapes = $$(".shape button");
   shapes.forEach((b) => b.addEventListener("click", () => {
     ov.classList.toggle("circle", b.dataset.shape === "circle");
     shapes.forEach((x) => { x.classList.toggle("on", x === b); x.setAttribute("aria-pressed", String(x === b)); });
@@ -115,7 +115,7 @@
     tape.style.transform = `translateX(${-(me.h + 360) * 2 - 1}px)`;
     hdgEl.textContent = String(Math.round(me.h)).padStart(3, "0") + "°";
     if (ov.classList.contains("circle")) drawBezel();
-    MS.cx += (me.x - MS.cx) * 0.1; MS.cy += (me.y - MS.cy) * 0.1;
+    MS.cx = me.x; MS.cy = me.y; // player-centred, like the app's follow-me
     for (const p of mates) {
       if (!p.next) p.next = now + 800 + rnd() * 2400;
       if (now > p.next) { p.tx = clamp(p.x + (rnd() - 0.5) * 0.12, 0.15, 0.85); p.ty = clamp(p.y + (rnd() - 0.5) * 0.12, 0.15, 0.85); p.h = (p.h + (rnd() - 0.5) * 90 + 360) % 360; p.ping = now; p.next = now + 1800 + rnd() * 2600; }
@@ -130,7 +130,7 @@
   function screenshot(auto) {
     lastAuto = performance.now();
     const a = ((me.h - 90) * Math.PI) / 180, d = 0.05 + rnd() * 0.05;
-    me.tx = clamp(me.x + Math.cos(a) * d, 0.15, 0.85); me.ty = clamp(me.y + Math.sin(a) * d * 1.6, 0.15, 0.85);
+    me.tx = clamp(me.x + Math.cos(a) * d, 0.34, 0.66); me.ty = clamp(me.y + Math.sin(a) * d * 1.6, 0.34, 0.66);
     me.ping = performance.now();
     const w = mini.toWorld(me.tx, me.ty), f = TT.filename(w.X, 2.1, w.Z, me.h);
     if (!auto) flash.animate([{ opacity: 0.3 }, { opacity: 0 }], { duration: 300 });
@@ -231,6 +231,11 @@
     const heroA = 1 - ss(0.03, 0.2, t0);
     hero.style.opacity = heroA; hero.style.transform = `translateY(${(1 - heroA) * -40}px)`; hero.style.pointerEvents = heroA > 0.5 ? "" : "none";
     deck.style.opacity = heroA; deck.style.pointerEvents = heroA > 0.5 ? "" : "none";
+    shapeEl.style.opacity = heroA; shapeEl.style.pointerEvents = heroA > 0.5 ? "" : "none";
+    if (t0 <= 0.02) { // the shape toggle sits centred under the overlay, wherever F5 has put it
+      const o = ov.getBoundingClientRect(), s = stage.getBoundingClientRect();
+      shapeEl.style.transform = `translate(${Math.round(o.left + o.width / 2 - s.left - shapeEl.offsetWidth / 2)}px, ${Math.round(o.bottom - s.top + 12)}px)`;
+    }
     toasts.style.opacity = heroA; shot.style.visibility = heroA > 0.05 ? "" : "hidden";
     const g = ss(0.15, 0.78, t0);
     if (t0 > 0.02) {
