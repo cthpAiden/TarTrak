@@ -207,11 +207,11 @@
       }
     }
     // area labels
-    b.font = `600 ${Math.round(13 / Math.sqrt(mpp))}px "IBM Plex Sans Condensed", sans-serif`;
+    b.font = `600 ${Math.round(13 / Math.sqrt(mpp))}px "Barlow Condensed", sans-serif`;
     b.fillStyle = "rgba(232,234,237,0.3)"; b.textAlign = "center";
     for (const [cx, cy, name] of clusters) b.fillText(name.split("").join(String.fromCharCode(8202)), cx * W, cy * H - 70 / mpp);
     // edge ticks
-    b.font = '10px "IBM Plex Mono", monospace'; b.fillStyle = "rgba(232,234,237,0.28)"; b.textAlign = "left";
+    b.font = '10px "JetBrains Mono", monospace'; b.fillStyle = "rgba(232,234,237,0.28)"; b.textAlign = "left";
     for (let x = W / 2 % step; x < W; x += step) b.fillText(String((Math.round((x - W / 2) * mpp / 100)) * 100), x + 4, H - 56);
   }
 
@@ -275,7 +275,7 @@
     ctx.strokeStyle = hexA(e.color, 0.7 * (1 - t)); ctx.lineWidth = 2; ctx.stroke();
   }
   function label(e, text, sub) {
-    ctx.font = '600 11px "IBM Plex Mono", monospace';
+    ctx.font = '600 11px "JetBrains Mono", monospace';
     const w1 = ctx.measureText(text).width, w2 = sub ? ctx.measureText(sub).width + 8 : 0;
     const x = e.x + 13, y = e.y - 22, w = w1 + w2 + 14;
     ctx.fillStyle = "rgba(11,13,16,0.86)"; ctx.strokeStyle = hexA(e.color, 0.55); ctx.lineWidth = 1;
@@ -302,7 +302,7 @@
     ctx.strokeStyle = "rgba(62,207,142,0.5)"; ctx.lineWidth = 1.5; ctx.setLineDash([2, 6]); ctx.lineDashOffset = -now / 40;
     ctx.beginPath(); ctx.moveTo(you.x, you.y); ctx.lineTo(exX, exY); ctx.stroke(); ctx.setLineDash([]);
     // extracts
-    ctx.font = '600 11px "IBM Plex Mono", monospace'; ctx.textBaseline = "middle";
+    ctx.font = '600 11px "JetBrains Mono", monospace'; ctx.textBaseline = "middle";
     for (const [fx, fy, name, col] of extracts) {
       const x = fx * W, y = fy * H;
       ctx.fillStyle = "rgba(11,13,16,0.85)"; ctx.strokeStyle = col; ctx.lineWidth = 1.5;
@@ -343,7 +343,7 @@
       const w = toWorld(pointer.x, pointer.y);
       ctx.strokeStyle = "rgba(240,180,41,0.9)"; ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.arc(pointer.x, pointer.y, 11, 0, Math.PI * 2); ctx.stroke();
-      ctx.font = '500 11px "IBM Plex Mono", monospace'; ctx.textAlign = "left"; ctx.textBaseline = "top";
+      ctx.font = '500 11px "JetBrains Mono", monospace'; ctx.textAlign = "left"; ctx.textBaseline = "top";
       const t = `X ${w.X.toFixed(1)}  Z ${w.Z.toFixed(1)}`;
       ctx.fillStyle = "rgba(11,13,16,0.86)"; ctx.fillRect(pointer.x + 16, pointer.y + 12, ctx.measureText(t).width + 12, 34);
       ctx.fillStyle = C.fg; ctx.fillText(t, pointer.x + 22, pointer.y + 16);

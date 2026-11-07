@@ -1,12 +1,11 @@
 /* TarTrak site. Direction A, "live map": the hero is the product, a map you click to take a screenshot; below it, quiet sections in the app's own panels. */
-@font-face { font-family: "IBM Plex Sans"; src: url("fonts/ibm-plex-sans-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
-@font-face { font-family: "IBM Plex Sans"; src: url("fonts/ibm-plex-sans-500.woff2") format("woff2"); font-weight: 500; font-display: swap; }
-@font-face { font-family: "IBM Plex Sans"; src: url("fonts/ibm-plex-sans-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
-@font-face { font-family: "IBM Plex Sans Condensed"; src: url("fonts/ibm-plex-sans-condensed-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
-@font-face { font-family: "IBM Plex Sans Condensed"; src: url("fonts/ibm-plex-sans-condensed-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
-@font-face { font-family: "IBM Plex Mono"; src: url("fonts/ibm-plex-mono-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
-@font-face { font-family: "IBM Plex Mono"; src: url("fonts/ibm-plex-mono-500.woff2") format("woff2"); font-weight: 500; font-display: swap; }
-@font-face { font-family: "IBM Plex Mono"; src: url("fonts/ibm-plex-mono-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Barlow"; src: url("fonts/barlow-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Barlow"; src: url("fonts/barlow-500.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Barlow"; src: url("fonts/barlow-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Barlow Condensed"; src: url("fonts/barlow-condensed-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Barlow Condensed"; src: url("fonts/barlow-condensed-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Barlow Condensed"; src: url("fonts/barlow-condensed-800.woff2") format("woff2"); font-weight: 800; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url("fonts/jetbrains-mono-400-600.woff2") format("woff2"); font-weight: 400 600; font-display: swap; }
 
 :root {
   color-scheme: dark;
@@ -24,9 +23,9 @@
   --ghost: #00e5ff;
   --nomad: #b388ff;
   --vex: #ff4081;
-  --display: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
-  --sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
-  --mono: "IBM Plex Mono", Consolas, ui-monospace, monospace;
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --sans: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", Consolas, ui-monospace, monospace;
   --gutter: max(16px, env(safe-area-inset-left, 0px));
   --gutter-r: max(16px, env(safe-area-inset-right, 0px));
 }
@@ -80,7 +79,7 @@ img, video { max-width: 100%; }
   pointer-events: none;
 }
 .eyebrow { margin: 0 0 18px; font: 500 13px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--amber); }
-h1 { margin: 0; font: 700 clamp(46px, 7.4vw, 108px)/0.92 var(--display); text-transform: uppercase; letter-spacing: -0.01em; text-wrap: balance; }
+h1 { margin: 0; font: 800 clamp(48px, 7.7vw, 112px)/0.9 var(--display); text-transform: uppercase; letter-spacing: 0; text-wrap: balance; }
 h1 .squad { color: var(--amber); }
 kbd.cap {
   display: inline-block; font: 600 0.46em/1 var(--mono); text-transform: none; padding: 0.2em 0.3em 0.24em; margin: 0 0.04em; vertical-align: 0.3em;
@@ -119,7 +118,7 @@ kbd.cap.down { transform: translateY(5px); border-bottom-width: 2px; border-colo
 /* ---------- sections ---------- */
 section.block { padding-block: clamp(72px, 10vw, 128px); border-top: 1px solid #191e24; }
 .kicker { margin: 0 0 14px; font: 500 12px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--amber); }
-h2 { margin: 0; font: 700 clamp(34px, 4.6vw, 60px)/1 var(--display); text-transform: uppercase; letter-spacing: -0.005em; text-wrap: balance; max-width: 16em; }
+h2 { margin: 0; font: 800 clamp(36px, 4.8vw, 62px)/0.95 var(--display); text-transform: uppercase; letter-spacing: 0; text-wrap: balance; max-width: 16em; }
 .sub { max-width: 36em; margin: 18px 0 0; color: var(--fg-2); font-size: 17px; }
 .note { margin: 24px 0 0; max-width: 52em; padding: 16px 20px; border-radius: 10px; border: 1px dashed var(--line); color: var(--muted); font-size: 15px; }
 .note b { color: var(--fg); }
@@ -249,7 +248,7 @@ h2 { margin: 0; font: 700 clamp(34px, 4.6vw, 60px)/1 var(--display); text-transf
 
 /* footer */
 footer { padding-block: clamp(80px, 12vw, 140px) calc(96px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid #191e24; background: radial-gradient(ellipse at 50% 120%, rgba(240, 180, 41, 0.1), transparent 60%), var(--deep); }
-footer .big { font: 700 clamp(40px, 7vw, 92px)/0.95 var(--display); text-transform: uppercase; margin: 0 0 28px; text-wrap: balance; }
+footer .big { font: 800 clamp(42px, 7.3vw, 96px)/0.92 var(--display); text-transform: uppercase; margin: 0 0 28px; text-wrap: balance; }
 .foot-links { display: flex; flex-wrap: wrap; gap: 10px 28px; margin-top: 56px; padding-top: 22px; border-top: 1px solid var(--line); font-size: 14.5px; }
 .foot-links a { color: var(--muted); text-decoration: none; }
 .foot-links a:hover { color: var(--fg); }
