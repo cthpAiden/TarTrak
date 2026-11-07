@@ -71,6 +71,7 @@
     <div class="ov" id="ov" aria-hidden="true">
       <div class="tape"><div class="tape-in" id="tape"></div><span class="needle"></span><span class="hdg" id="hdg">048°</span></div>
       <div class="ov-map" id="ovmap"><canvas id="mini"></canvas></div>
+      <svg class="bezel" id="bezel" viewBox="0 0 200 200"></svg>
       <div class="ov-foot"><span class="live">SQUAD</span><span>ROOM <b>K7Q2XM</b></span><span class="grow"></span><span class="rw" id="rw">◂◂ REWIND</span><span>RAID <b id="ovclock">31:42</b></span></div>
     </div>
 
@@ -92,6 +93,11 @@
     </div>
     <div class="deck" id="deck">
       <span class="try"><b>Try it:</b> press the keys, move your mouse to look</span>
+      <div class="shape" role="group" aria-label="Overlay shape">
+        <span>Overlay</span>
+        <button type="button" class="on" data-shape="box" aria-pressed="true"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3.5" width="12" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>Box</button>
+        <button type="button" data-shape="circle" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>Circle</button>
+      </div>
       <div class="keys">
         <button class="key" data-k="PrintScreen"><kbd class="k">PrtSc</kbd><span>Screenshot</span></button>
         <button class="key" data-k="F5"><kbd class="k">F5</kbd><span>Overlay</span></button>

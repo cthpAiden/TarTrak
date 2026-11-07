@@ -66,7 +66,43 @@
     { id: "nomad", label: "NOMAD", color: C.nomad, x: 0.66, y: 0.7, h: 310, floor: "2F", len: 70 },
     { id: "vex", label: "VEX", color: C.vex, x: 0.62, y: 0.32, h: 20, len: 70 },
   ];
+  // circle mode: the compass bezel the app draws round the disc (north up, the heading box rides round it)
+  const bezel = $("#bezel"), NS = "http://www.w3.org/2000/svg", BC = 100, BR = 78; // 200-unit box; the ring is the outer 22
+  const svgEl = (tag, attrs, parent = bezel) => { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); parent.append(n); return n; };
+  const polar = (R, a) => [BC + R * Math.sin((a * Math.PI) / 180), BC - R * Math.cos((a * Math.PI) / 180)];
+  const ring = (r, stroke, more) => svgEl("circle", { cx: BC, cy: BC, r, fill: "none", stroke, ...more });
+  ring(89, "#0f1318", { "stroke-opacity": 0.92, "stroke-width": 22 });
+  ring(99.5, "#fff", { "stroke-opacity": 0.3 });
+  ring(BR, "#fff", { "stroke-opacity": 0.22 });
+  for (const [r, w, n, len, col] of [[98, 4, 72, 1, "#8b95a1"], [96, 8, 12, 1.6, "#d9dee4"]]) {
+    ring(r, col, { "stroke-width": w, "stroke-dasharray": `${len} ${(2 * Math.PI * r) / n - len}`, "stroke-dashoffset": len / 2 });
+  }
+  const bLabels = ["N", 30, 60, "E", 120, 150, "S", 210, 240, "W", 300, 330].map((t, i) => {
+    const d = i * 30, [x, y] = polar(86, d);
+    const n = svgEl("text", { x: x.toFixed(1), y: y.toFixed(1), "text-anchor": "middle", "dominant-baseline": "central" });
+    if (typeof t === "string") n.classList.add("l"); if (d === 0) n.classList.add("n");
+    n.textContent = t; return { d, n };
+  });
+  const hb = svgEl("g", { class: "hb" });
+  svgEl("rect", { x: -15, y: -7.5, width: 30, height: 15, rx: 3 }, hb);
+  const hbText = svgEl("text", { y: 0.5, "text-anchor": "middle", "dominant-baseline": "central" }, hb);
+  const gap = (a, b) => { const d = Math.abs(a - b) % 360; return Math.min(d, 360 - d); };
+
   MS.players = [me, ...mates]; MS.zoom = 1.25; MS.route = { from: "you", to: 0 }; MS.labels = false;
+  const bMarks = mates.map((p) => { const g = svgEl("g", {}); svgEl("path", { d: `M${BC - 5} ${BC - BR - 1}h10l-5 8z`, fill: p.color, stroke: "#000", "stroke-width": 1 }, g); return { p, g }; });
+  function drawBezel() {
+    const [x, y] = polar(89, me.h);
+    hb.setAttribute("transform", `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
+    hbText.textContent = String(Math.round(me.h) % 360).padStart(3, "0");
+    bLabels.forEach((l) => l.n.classList.toggle("off", gap(l.d, me.h) < 13));
+    const W = mini.W(), H = mini.H();
+    bMarks.forEach(({ p, g }) => g.setAttribute("transform", `rotate(${((Math.atan2((p.x - me.x) * W, -(p.y - me.y) * H) * 180) / Math.PI).toFixed(1)} ${BC} ${BC})`));
+  }
+  const shapes = $$(".shape button");
+  shapes.forEach((b) => b.addEventListener("click", () => {
+    ov.classList.toggle("circle", b.dataset.shape === "circle");
+    shapes.forEach((x) => { x.classList.toggle("on", x === b); x.setAttribute("aria-pressed", String(x === b)); });
+  }));
   const rnd = TT.rng(5);
   let lastAuto = performance.now();
   let cur = 0; // eased scroll progress through the track, 0..1
@@ -78,6 +114,7 @@
     me.h = (48 + mx * 120 + 360) % 360;
     tape.style.transform = `translateX(${-(me.h + 360) * 2 - 1}px)`;
     hdgEl.textContent = String(Math.round(me.h)).padStart(3, "0") + "°";
+    if (ov.classList.contains("circle")) drawBezel();
     MS.cx += (me.x - MS.cx) * 0.1; MS.cy += (me.y - MS.cy) * 0.1;
     for (const p of mates) {
       if (!p.next) p.next = now + 800 + rnd() * 2400;
@@ -198,14 +235,18 @@
     const g = ss(0.15, 0.78, t0);
     if (t0 > 0.02) {
       if (!ov.classList.contains("diving")) { ov.classList.add("diving"); ov.classList.remove("full", "hidden"); ov.style.opacity = ""; opIdx = 0; }
-      const L = ov.offsetLeft, Tp = ov.offsetTop, mw = ovmap.offsetWidth, mh = ovmap.offsetHeight, my0 = ovmap.offsetTop;
+      const L = ov.offsetLeft, Tp = ov.offsetTop, mw = ovmap.offsetWidth, mh = ovmap.offsetHeight, mx0 = ovmap.offsetLeft, my0 = ovmap.offsetTop;
       const vw = innerWidth, vh = stage.offsetHeight;
       const sEnd = Math.max(vw / mw, vh / mh) * 1.02, k = lerp(1, sEnd, g * g * (3 - 2 * g) * 0.5 + g * 0.5);
-      const cx = lerp(L + mw / 2, vw / 2, g), cy = lerp(Tp + my0 + mh / 2, vh / 2, g);
-      ov.style.transform = `translate(${cx - L - k * (mw / 2)}px, ${cy - Tp - k * (my0 + mh / 2)}px) scale(${k})`;
+      const cx = lerp(L + mx0 + mw / 2, vw / 2, g), cy = lerp(Tp + my0 + mh / 2, vh / 2, g);
+      ov.style.transform = `translate(${cx - L - k * (mx0 + mw / 2)}px, ${cy - Tp - k * (my0 + mh / 2)}px) scale(${k})`;
+      // a round map opens out to a square so it can fill the page
+      ov.style.borderRadius = ov.classList.contains("circle") ? `${50 * (1 - ss(0.1, 0.6, g))}%` : "";
+      ovmap.style.borderRadius = ov.style.borderRadius;
+      bezel.style.opacity = 1 - ss(0, 0.35, g);
       ov.style.opacity = 1 - ss(0.8, 0.97, t0);
       ov.style.visibility = t0 > 1 ? "hidden" : "";
-    } else if (ov.classList.contains("diving")) { ov.classList.remove("diving"); ov.style.transform = ""; ov.style.opacity = ""; ov.style.visibility = ""; }
+    } else if (ov.classList.contains("diving")) { ov.classList.remove("diving"); ov.style.transform = ""; ov.style.opacity = ""; ov.style.visibility = ""; ov.style.borderRadius = ""; ovmap.style.borderRadius = ""; bezel.style.opacity = ""; }
     // the scene falls away behind it
     world.style.opacity = 1 - ss(0.3, 0.8, t0);
     world.style.transform = `scale(${1 + g * 0.18})`;
