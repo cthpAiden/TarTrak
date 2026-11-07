@@ -83,8 +83,8 @@ Kênh https://www.youtube.com/@TarTrak (account datcsgogamer@gmail.com). Đã c�
   > TarTrak is a free, open-source squad map for Escape from Tarkov. Take a screenshot in raid and see where you and your teammates are, and press F8 to show your squad what you see. Not affiliated with Battlestate Games.
   > Download: https://cthpaiden.github.io/TarTrak/
 - Links: site (trên), GitHub https://github.com/cthpAiden/TarTrak
-- Avatar: `public/logo.png` tạm được (128 px, YouTube nhận từ 98 px; đẹp nhất 800 px, render lại từ `site/favicon.svg`).
-- Banner: `docs/assets/banner.png` là 1920x1080, dưới mức tối thiểu 2048x1152 của YouTube. Cần làm bản 2560x1440.
+- Avatar: dùng `promo/channel/youtube-avatar-2048.png` (render từ `site/favicon.svg`, nét ở mọi cỡ).
+- Banner: README banner now `docs/assets/banner.jpg` 3840x2160. YouTube banner: upload `promo/channel/youtube-banner-2560.png` (lossless, YouTube max 2560x1440). Avatar: `promo/channel/youtube-avatar-2048.png`.
 
 ## Rủi ro BSG (ghi lại 2026-11-08)
 

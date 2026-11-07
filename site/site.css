@@ -51,7 +51,7 @@ img, video { max-width: 100%; }
 }
 .nav > * { pointer-events: auto; }
 .brand { display: flex; align-items: center; gap: 10px; font: 700 20px/1 var(--display); letter-spacing: 0.06em; text-transform: uppercase; text-decoration: none; }
-.brand svg { width: 26px; height: 26px; }
+.brand svg, .brand .logo { width: 26px; height: 26px; }
 .nav .links { display: flex; gap: 24px; margin-left: auto; font-size: 14px; color: var(--fg-2); }
 .nav .links a { text-decoration: none; }
 .nav .links a:hover { color: var(--fg); }
