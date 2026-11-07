@@ -60,38 +60,38 @@
 
   const mini = TT.map($("#mini"), { seed: 23, scale: 520 });
   const MS = mini.scene;
-  const me = { id: "you", label: "YOU", color: C.you, x: 0.5, y: 0.55, h: 48, len: 80 };
+  const me = { id: "you", color: C.you, x: 0.5, y: 0.55, h: 48, len: 80 };
   const mates = [
     { id: "ghost", label: "GHOST", color: C.ghost, x: 0.38, y: 0.38, h: 70, len: 70 },
     { id: "nomad", label: "NOMAD", color: C.nomad, x: 0.66, y: 0.7, h: 310, floor: "2F", len: 70 },
     { id: "vex", label: "VEX", color: C.vex, x: 0.62, y: 0.32, h: 20, len: 70 },
   ];
   // circle mode: the compass bezel the app draws round the disc (north up, the heading box rides round it)
-  const bezel = $("#bezel"), NS = "http://www.w3.org/2000/svg", BC = 100, BR = 78; // 200-unit box; the ring is the outer 22
+  const bezel = $("#bezel"), NS = "http://www.w3.org/2000/svg", BC = 100, BR = 86; // 200-unit box; the ring is the outer 14
   const svgEl = (tag, attrs, parent = bezel) => { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); parent.append(n); return n; };
   const polar = (R, a) => [BC + R * Math.sin((a * Math.PI) / 180), BC - R * Math.cos((a * Math.PI) / 180)];
   const ring = (r, stroke, more) => svgEl("circle", { cx: BC, cy: BC, r, fill: "none", stroke, ...more });
-  ring(89, "#0f1318", { "stroke-opacity": 0.92, "stroke-width": 22 });
+  ring(93, "#0f1318", { "stroke-opacity": 0.92, "stroke-width": 14 });
   ring(99.5, "#fff", { "stroke-opacity": 0.3 });
   ring(BR, "#fff", { "stroke-opacity": 0.22 });
-  for (const [r, w, n, len, col] of [[98, 4, 72, 1, "#8b95a1"], [96, 8, 12, 1.6, "#d9dee4"]]) {
+  for (const [r, w, n, len, col] of [[98.5, 3, 72, 0.8, "#8b95a1"], [97.5, 5, 12, 1.4, "#d9dee4"]]) {
     ring(r, col, { "stroke-width": w, "stroke-dasharray": `${len} ${(2 * Math.PI * r) / n - len}`, "stroke-dashoffset": len / 2 });
   }
   const bLabels = ["N", 30, 60, "E", 120, 150, "S", 210, 240, "W", 300, 330].map((t, i) => {
-    const d = i * 30, [x, y] = polar(86, d);
+    const d = i * 30, [x, y] = polar(90.5, d);
     const n = svgEl("text", { x: x.toFixed(1), y: y.toFixed(1), "text-anchor": "middle", "dominant-baseline": "central" });
     if (typeof t === "string") n.classList.add("l"); if (d === 0) n.classList.add("n");
     n.textContent = t; return { d, n };
   });
   const hb = svgEl("g", { class: "hb" });
-  svgEl("rect", { x: -15, y: -7.5, width: 30, height: 15, rx: 3 }, hb);
+  svgEl("rect", { x: -12, y: -5.5, width: 24, height: 11, rx: 2.5 }, hb);
   const hbText = svgEl("text", { y: 0.5, "text-anchor": "middle", "dominant-baseline": "central" }, hb);
   const gap = (a, b) => { const d = Math.abs(a - b) % 360; return Math.min(d, 360 - d); };
 
-  MS.players = [me, ...mates]; MS.zoom = 1.5; MS.route = { from: "you", to: 0 }; MS.labels = false;
-  const bMarks = mates.map((p) => { const g = svgEl("g", {}); svgEl("path", { d: `M${BC - 5} ${BC - BR - 1}h10l-5 8z`, fill: p.color, stroke: "#000", "stroke-width": 1 }, g); return { p, g }; });
+  MS.players = [me, ...mates]; MS.zoom = 1.5; MS.markScale = 1 / MS.zoom; MS.route = { from: "you", to: 0 }; MS.labels = false;
+  const bMarks = mates.map((p) => { const g = svgEl("g", {}); svgEl("path", { d: `M${BC - 4} ${BC - BR - 0.5}h8l-4 6.5z`, fill: p.color, stroke: "#000", "stroke-width": 1 }, g); return { p, g }; });
   function drawBezel() {
-    const [x, y] = polar(89, me.h);
+    const [x, y] = polar(93, me.h);
     hb.setAttribute("transform", `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
     hbText.textContent = String(Math.round(me.h) % 360).padStart(3, "0");
     bLabels.forEach((l) => l.n.classList.toggle("off", gap(l.d, me.h) < 13));

@@ -147,23 +147,22 @@ window.TT = (() => {
       }
     }
     function dot(x, y, color, alpha, r) {
-      ctx.beginPath(); ctx.arc(x, y, r + 2.5, 0, Math.PI * 2); ctx.fillStyle = hexA("#0b0d10", 0.9 * alpha); ctx.fill();
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = hexA(color, alpha); ctx.fill();
+      ctx.lineWidth = 1.5; ctx.strokeStyle = hexA("#000000", alpha); ctx.stroke();
     }
     function ping(x, y, color, t0, now) {
       const t = (now - t0) / 900; if (t < 0 || t > 1) return;
       ctx.beginPath(); ctx.arc(x, y, 8 + t * 46, 0, Math.PI * 2); ctx.strokeStyle = hexA(color, 0.7 * (1 - t)); ctx.lineWidth = 2; ctx.stroke();
     }
-    function tag(x, y, color, text, sub, alpha = 1) {
+    // the app's name tag: white text on a faint dark box, centred above the dot (Leaflet tooltip, .tt-label)
+    function tag(x, y, text, alpha = 1) {
       ctx.globalAlpha = alpha;
-      ctx.font = `600 11px ${TT_F.mono}`;
-      const w1 = ctx.measureText(text).width, w2 = sub ? ctx.measureText(sub).width + 8 : 0;
-      const bx = x + 13, by = y - 22, w = w1 + w2 + 14;
-      ctx.fillStyle = "rgba(11,13,16,0.86)"; ctx.strokeStyle = hexA(color, 0.55); ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.roundRect(bx, by, w, 19, 4); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = color; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(text, bx + 7, by + 10);
-      if (sub) { ctx.fillStyle = "#e8eaed"; ctx.fillText(sub, bx + 7 + w1 + 8, by + 10); }
-      ctx.globalAlpha = 1;
+      ctx.font = '11px "Helvetica Neue", Arial, Helvetica, sans-serif';
+      const w = ctx.measureText(text).width + 10, h = 18, bx = x - w / 2, by = y - 14 - h;
+      ctx.fillStyle = "rgba(0,0,0,0.35)"; ctx.fillRect(bx, by, w, h);
+      ctx.shadowColor = "#000"; ctx.shadowBlur = 3;
+      ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(text, x, by + h / 2 + 0.5);
+      ctx.shadowBlur = 0; ctx.globalAlpha = 1;
     }
     function trail(tr) {
       const P = tr.pts.map(([x, y]) => [x * W, y * H]);
@@ -218,7 +217,6 @@ window.TT = (() => {
       }
       for (const tr of scene.trails) trail(tr);
       // players glide to targets
-      const you = scene.players[0];
       for (const p of [...scene.players].reverse()) {
         if (p.show === false) continue;
         if (p.tx != null) {
@@ -226,11 +224,13 @@ window.TT = (() => {
           p.x += (p.tx - p.x) * k; p.y += (p.ty - p.y) * k;
         }
         const [x, y] = px(p), a = p.alpha ?? 1;
-        headingLine(x, y, p.h, p.color, a, p.len ?? 100); ping(x, y, p.color, p.ping ?? -9e9, now); dot(x, y, p.color, a, p === you ? 7.5 : 6);
-        if (p.label) {
-          const dist = p !== you && you && you.show !== false ? `${Math.round(Math.hypot((p.x - you.x) * W, (p.y - you.y) * H) * mpp)} m` : p.sub;
-          tag(x, y, p.color, p.floor ? `${p.label} [${p.floor}]` : p.label, dist, a);
-        }
+        headingLine(x, y, p.h, p.color, a, p.len ?? 100);
+        // markScale: 1 / zoom keeps dots and tags at screen size, like the app's Leaflet markers
+        const ms = scene.markScale ?? 1;
+        ctx.save(); ctx.translate(x, y); ctx.scale(ms, ms);
+        ping(0, 0, p.color, p.ping ?? -9e9, now); dot(0, 0, p.color, a, 6);
+        if (p.label) tag(0, 0, p.floor ? `${p.label} [${p.floor}]` : p.label, a);
+        ctx.restore();
       }
       ctx.restore();
       if (scene.fog) {
