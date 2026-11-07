@@ -1,4 +1,4 @@
-// TarTrak site: the dial in the hero, the squad panel's ages, and the latest version from GitHub.
+// TarTrak site: the live map in the hero, the filename anatomy, the squad panel's ages, and the latest version from GitHub.
 (() => {
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -37,240 +37,377 @@
     a.textContent = n === 0 ? "now" : `${n}s ago`;
   }), 1000);
 
+  // ---------- filename anatomy: light the two groups in turn ----------
+  const groups = [...document.querySelectorAll("#fname .grp[data-g]")];
+  let gi = 0;
+  if (!reduce) setInterval(() => { groups.forEach((g, i) => g.classList.toggle("hot", i === gi % 2)); gi++; }, 1800);
+  else groups.forEach((g) => g.classList.add("hot"));
+
   // ---------- terrain: seeded simplex noise and marching-squares contours ----------
   function rng(seed) {
     let a = seed | 0;
-    return () => {
+    return function () {
       a = (a + 0x6d2b79f5) | 0;
       let t = Math.imul(a ^ (a >>> 15), 1 | a);
       t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
   }
+  // 2D simplex noise, summed over octaves. Returns roughly -1..1.
   function noise(seed) {
-    const r = rng(seed), perm = [...Array(256).keys()];
-    for (let i = 255; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [perm[i], perm[j]] = [perm[j], perm[i]]; }
+    const r = rng(seed);
+    const perm = [...Array(256).keys()];
+    for (let i = 255; i > 0; i--) {
+      const j = Math.floor(r() * (i + 1));
+      [perm[i], perm[j]] = [perm[j], perm[i]];
+    }
     const p = new Uint8Array(512);
     for (let i = 0; i < 512; i++) p[i] = perm[i & 255];
     const g = [[1, 1], [-1, 1], [1, -1], [-1, -1], [1, 0], [-1, 0], [0, 1], [0, -1]];
     const F2 = 0.5 * (Math.sqrt(3) - 1), G2 = (3 - Math.sqrt(3)) / 6;
-    const c = (gi, x, y) => { let q = 0.5 - x * x - y * y; if (q < 0) return 0; q *= q; return q * q * (g[gi][0] * x + g[gi][1] * y); };
     function n2(xin, yin) {
-      const s = (xin + yin) * F2, i = Math.floor(xin + s), j = Math.floor(yin + s), t = (i + j) * G2;
-      const x0 = xin - (i - t), y0 = yin - (j - t), i1 = x0 > y0 ? 1 : 0, j1 = 1 - i1;
-      const x1 = x0 - i1 + G2, y1 = y0 - j1 + G2, x2 = x0 - 1 + 2 * G2, y2 = y0 - 1 + 2 * G2, ii = i & 255, jj = j & 255;
+      const s = (xin + yin) * F2;
+      const i = Math.floor(xin + s), j = Math.floor(yin + s);
+      const t = (i + j) * G2;
+      const x0 = xin - (i - t), y0 = yin - (j - t);
+      const i1 = x0 > y0 ? 1 : 0, j1 = x0 > y0 ? 0 : 1;
+      const x1 = x0 - i1 + G2, y1 = y0 - j1 + G2, x2 = x0 - 1 + 2 * G2, y2 = y0 - 1 + 2 * G2;
+      const ii = i & 255, jj = j & 255;
+      const c = (gi, x, y) => {
+        let q = 0.5 - x * x - y * y;
+        if (q < 0) return 0;
+        q *= q;
+        return q * q * (g[gi][0] * x + g[gi][1] * y);
+      };
       return 70 * (c(p[ii + p[jj]] & 7, x0, y0) + c(p[ii + i1 + p[jj + j1]] & 7, x1, y1) + c(p[ii + 1 + p[jj + 1]] & 7, x2, y2));
     }
-    return (x, y) => { let a = 1, f = 1, s = 0, n = 0; for (let k = 0; k < 4; k++) { s += a * n2(x * f, y * f); n += a; a *= 0.5; f *= 2; } return s / n; };
+    return function (x, y, oct = 4) {
+      let a = 1, f = 1, s = 0, n = 0;
+      for (let k = 0; k < oct; k++) { s += a * n2(x * f, y * f); n += a; a *= 0.5; f *= 2; }
+      return s / n;
+    };
   }
   // Edges: 0 top, 1 right, 2 bottom, 3 left.
-  const CASES = [[], [[3, 2]], [[2, 1]], [[3, 1]], [[0, 1]], [[3, 0], [2, 1]], [[0, 2]], [[3, 0]], [[3, 0]], [[0, 2]], [[0, 1], [3, 2]], [[0, 1]], [[3, 1]], [[2, 1]], [[3, 2]], []];
+  const CASES = [[], [[3, 2]], [[2, 1]], [[3, 1]], [[0, 1]], [[3, 0], [2, 1]], [[0, 2]], [[3, 0]],
+    [[3, 0]], [[0, 2]], [[0, 1], [3, 2]], [[0, 1]], [[3, 1]], [[2, 1]], [[3, 2]], []];
+  // field(x, y) in px -> value. Returns { minor, major } Path2D in px; every `majorEvery`-th level is major.
   function contours(field, w, h, cell, levels, majorEvery) {
-    const cols = Math.ceil(w / cell) + 2, rows = Math.ceil(h / cell) + 2, v = new Float32Array(cols * rows);
+    const cols = Math.ceil(w / cell) + 2, rows = Math.ceil(h / cell) + 2;
+    const v = new Float32Array(cols * rows);
     for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) v[j * cols + i] = field(i * cell, j * cell);
     const minor = new Path2D(), major = new Path2D();
     levels.forEach((l, k) => {
-      const path = k % majorEvery === 0 ? major : minor;
-      for (let j = 0; j < rows - 1; j++) for (let i = 0; i < cols - 1; i++) {
-        const a = v[j * cols + i], b = v[j * cols + i + 1], cc = v[(j + 1) * cols + i + 1], d = v[(j + 1) * cols + i];
-        const idx = (a > l ? 8 : 0) | (b > l ? 4 : 0) | (cc > l ? 2 : 0) | (d > l ? 1 : 0);
-        if (idx === 0 || idx === 15) continue;
-        const pt = (e) => e === 0 ? [(i + (l - a) / (b - a)) * cell, j * cell] : e === 1 ? [(i + 1) * cell, (j + (l - b) / (cc - b)) * cell]
-          : e === 2 ? [(i + (l - d) / (cc - d)) * cell, (j + 1) * cell] : [i * cell, (j + (l - a) / (d - a)) * cell];
-        for (const [e1, e2] of CASES[idx]) { const p1 = pt(e1), p2 = pt(e2); path.moveTo(p1[0], p1[1]); path.lineTo(p2[0], p2[1]); }
+      const path = majorEvery && k % majorEvery === 0 ? major : minor;
+      for (let j = 0; j < rows - 1; j++) {
+        for (let i = 0; i < cols - 1; i++) {
+          const a = v[j * cols + i], b = v[j * cols + i + 1], c = v[(j + 1) * cols + i + 1], d = v[(j + 1) * cols + i];
+          const idx = (a > l ? 8 : 0) | (b > l ? 4 : 0) | (c > l ? 2 : 0) | (d > l ? 1 : 0);
+          if (idx === 0 || idx === 15) continue;
+          const pt = (e) => {
+            if (e === 0) return [(i + (l - a) / (b - a)) * cell, j * cell];
+            if (e === 1) return [(i + 1) * cell, (j + (l - b) / (c - b)) * cell];
+            if (e === 2) return [(i + (l - d) / (c - d)) * cell, (j + 1) * cell];
+            return [i * cell, (j + (l - a) / (d - a)) * cell];
+          };
+          for (const [e1, e2] of CASES[idx]) {
+            const p1 = pt(e1), p2 = pt(e2);
+            path.moveTo(p1[0], p1[1]);
+            path.lineTo(p2[0], p2[1]);
+          }
+        }
       }
     });
     return { minor, major };
   }
-  const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`; };
-
-  // ---------- the dial ----------
-  const NS = "http://www.w3.org/2000/svg";
-  const svgEl = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; };
-  const ring = document.getElementById("ring"), hbox = document.getElementById("hbox"), hlabel = document.getElementById("hlabel"), htext = document.getElementById("htext");
-  if (!ring) return;
-
-  // engraved degree ring: ticks every 2°, numbers every 30°, cardinals
-  for (let d = 0; d < 360; d += 2) {
-    const a = d * Math.PI / 180, s = Math.sin(a), c = -Math.cos(a), len = d % 30 === 0 ? 26 : d % 10 === 0 ? 17 : 9;
-    svgEl("line", { x1: 500 + s * 420, y1: 500 + c * 420, x2: 500 + s * (420 - len), y2: 500 + c * (420 - len),
-      stroke: d === 0 ? "#e8513f" : "#dcd8c6", "stroke-width": d % 30 === 0 ? 3.5 : d % 10 === 0 ? 2.2 : 1.2, opacity: d % 10 === 0 ? 1 : 0.7 }, ring);
+  function range(from, to, step) {
+    const out = [];
+    for (let x = from; x <= to + 1e-9; x += step) out.push(x);
+    return out;
   }
-  for (let d = 0; d < 360; d += 30) {
-    const a = d * Math.PI / 180, x = 500 + Math.sin(a) * 365, y = 500 - Math.cos(a) * 365, card = { 0: "N", 90: "E", 180: "S", 270: "W" }[d];
-    svgEl("text", { x, y, "text-anchor": "middle", "dominant-baseline": "central", transform: `rotate(${d} ${x} ${y})`,
-      fill: d === 0 ? "#e8513f" : "#dcd8c6", "font-family": "Michroma, sans-serif", "font-size": card ? 34 : 19 }, ring).textContent = card || String(d / 10).padStart(2, "0");
+  const pad = (n, w = 2) => String(n).padStart(w, "0");
+  // The filename Tarkov saves on PrintScreen. heading in degrees, 0 = north, clockwise.
+  function filename(x, y, z, heading, date = new Date()) {
+    const half = (heading * Math.PI) / 360;
+    const q = [0, Math.sin(half), 0, Math.cos(half)].map((n) => n.toFixed(5));
+    const stamp = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}[${pad(date.getHours())}-${pad(date.getMinutes())}]`;
+    return { stamp, pos: [x, y, z].map((n) => n.toFixed(2)), rot: q };
+  }
+  function hexA(hex, a) {
+    const n = parseInt(hex.slice(1), 16);
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
   }
 
-  // squad, metres from you (x east, y south)
-  const mates = [
-    { name: "GHOST", color: "#00e5ff", x: -28, y: -38, h: 330 },
-    { name: "NOMAD", floor: "2F", color: "#b388ff", x: 62, y: 57, h: 120 },
-    { name: "VEX", color: "#ff4081", x: -96, y: 91, h: 210 },
-  ];
-  for (const m of mates) {
-    m.d = Math.round(Math.hypot(m.x, m.y));
-    m.b = (Math.atan2(m.x, -m.y) * 180 / Math.PI + 360) % 360;
-    m.ping = -9;
-    const g = svgEl("g", { transform: `rotate(${m.b} 500 500)` }, ring);
-    svgEl("path", { d: "M500 330 l-11 -18 h22 z", fill: m.color, stroke: "#0c0e0a", "stroke-width": 2 }, g);
-  }
+  // ---------- the live map ----------
+  const C = { ground: "#20251d", contour: "#343d2e", major: "#465140", water: "#18252a", waterEdge: "#2c4046",
+    road: "#6a705f", roadEdge: "#2b3026", roof: "#3a4136", wall: "#262b23", amber: "#f0b429", fg: "#e8eaed", deep: "#0b0d10" };
+  const cv = document.getElementById("map"), ctx = cv.getContext("2d");
+  const wrap = cv.parentElement;
+  const field = noise(11);
+  let W = 0, H = 0, DPR = 1, mpp = 1, base = null, born = performance.now();
+  const rnd = rng(4);
 
-  // raid timer and teammate distances step up the lower right of the rim, closest first
-  const chips = document.getElementById("chips");
-  [{ raid: true }, ...mates.slice().sort((a, b) => a.d - b.d).map((m) => ({ m }))].forEach((r, i) => {
-    const ang = (165 - i * 17) * Math.PI / 180;
-    const c = document.createElement("div");
-    c.className = "chip" + (r.m ? " mate" : "");
-    c.style.left = 50 + Math.sin(ang) * 47 + "%";
-    c.style.top = 50 - Math.cos(ang) * 47 + "%";
-    const s = document.createElement("span");
-    if (r.m) {
-      const dot = document.createElement("i"); dot.style.background = r.m.color;
-      s.textContent = r.m.name;
-      c.append(dot, s, `${r.m.d} m`);
-    } else {
-      const v = document.createElement("b"); v.id = "raid"; v.textContent = "31:42";
-      s.textContent = "RAID";
-      c.append(s, v);
+  // world features, in fractions of the map box (all made up)
+  const river = [[-0.05, 0.82], [0.2, 0.7], [0.38, 0.76], [0.55, 0.58], [0.72, 0.52], [0.86, 0.3], [1.05, 0.22]];
+  const road = [[-0.05, 0.38], [0.25, 0.42], [0.48, 0.34], [0.7, 0.4], [1.05, 0.36]];
+  const road2 = [[0.62, -0.05], [0.6, 0.3], [0.66, 0.6], [0.6, 1.05]];
+  const clusters = [[0.72, 0.24, "SAWMILL"], [0.88, 0.62, "DEPOT"], [0.44, 0.22, "RAIL YARD"], [0.3, 0.6, "RIVERSIDE"]];
+  const extracts = [[0.86, 0.86, "NORTH GATE", "#3ecf8e"], [0.5, 0.9, "PIER 4", "#4fb3ff"], [0.12, 0.2, "TUNNEL", "#f0b429"]];
+
+  function smooth(g, pts) {
+    const P = pts.map(([x, y]) => [x * W, y * H]);
+    g.moveTo(P[0][0], P[0][1]);
+    for (let i = 1; i < P.length - 1; i++) {
+      const mx = (P[i][0] + P[i + 1][0]) / 2, my = (P[i][1] + P[i + 1][1]) / 2;
+      g.quadraticCurveTo(P[i][0], P[i][1], mx, my);
     }
-    chips.appendChild(c);
-  });
-  let left = 31 * 60 + 42;
-  const raid = document.getElementById("raid");
-  setInterval(() => { left = Math.max(0, left - 1); raid.textContent = `${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`; }, 1000);
+    g.lineTo(P[P.length - 1][0], P[P.length - 1][1]);
+  }
 
-  // map
-  const cv = document.getElementById("dmap"), ctx = cv.getContext("2d");
-  const field = noise(31);
-  let size = 0, D = 1, span = 170, base = null;  // span: metres from the centre to the edge
   function build() {
-    size = cv.clientWidth; D = Math.min(2, devicePixelRatio || 1);
-    if (!size) return;
-    cv.width = cv.height = Math.round(size * D);
-    const ppm = size / 2 / span, s = Math.ceil(size * 1.45);
-    base = document.createElement("canvas"); base.width = base.height = Math.round(s * D);
-    const b = base.getContext("2d"); b.scale(D, D);
-    b.fillStyle = "#1e2419"; b.fillRect(0, 0, s, s);
-    const k = 1 / (ppm * 260), levels = [];
-    for (let l = -0.75; l <= 0.75001; l += 0.075) levels.push(l);
-    const p = contours((x, y) => field((x - s / 2) * k + 4, (y - s / 2) * k + 2), s, s, 6, levels, 4);
-    b.strokeStyle = "#323b2b"; b.lineWidth = 1; b.stroke(p.minor);
-    b.strokeStyle = "#45503b"; b.lineWidth = 1.5; b.stroke(p.major);
-    b.strokeStyle = "rgba(220,216,198,0.05)"; b.beginPath();
-    for (let v = (s / 2) % (50 * ppm); v < s; v += 50 * ppm) { b.moveTo(v, 0); b.lineTo(v, s); b.moveTo(0, v); b.lineTo(s, v); }
+    const r = wrap.getBoundingClientRect();
+    W = r.width; H = r.height; DPR = Math.min(2, devicePixelRatio || 1);
+    cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+    mpp = Math.max(0.5, Math.min(1.25, 760 / W));
+    base = document.createElement("canvas");
+    base.width = cv.width; base.height = cv.height;
+    const b = base.getContext("2d");
+    b.scale(DPR, DPR);
+    b.fillStyle = C.ground; b.fillRect(0, 0, W, H);
+    // terrain
+    const k = mpp / 300;
+    const paths = contours((x, y) => field(x * k + 3, y * k + 7), W, H, 7, range(-0.75, 0.75, 0.075), 4);
+    b.lineWidth = 1; b.strokeStyle = C.contour; b.stroke(paths.minor);
+    b.lineWidth = 1.5; b.strokeStyle = C.major; b.stroke(paths.major);
+    // 100 m grid
+    b.strokeStyle = "rgba(255,255,255,0.035)"; b.lineWidth = 1;
+    const step = 100 / mpp;
+    b.beginPath();
+    for (let x = W / 2 % step; x < W; x += step) { b.moveTo(x, 0); b.lineTo(x, H); }
+    for (let y = H / 2 % step; y < H; y += step) { b.moveTo(0, y); b.lineTo(W, y); }
     b.stroke();
-    const road = () => { b.beginPath(); b.moveTo(0, s * 0.62); b.quadraticCurveTo(s * 0.5, s * 0.42, s, s * 0.5); b.stroke(); };
-    b.strokeStyle = "#2b3026"; b.lineWidth = 9 * ppm + 2; b.lineCap = "round"; road();
-    b.strokeStyle = "#6a705f"; b.lineWidth = 2; b.setLineDash([10, 8]); road(); b.setLineDash([]);
-    const r = rng(3);
-    for (let i = 0; i < 14; i++) {
-      const x = s / 2 + (r() - 0.3) * 120 * ppm, y = s / 2 + (r() - 0.75) * 110 * ppm, w = (8 + r() * 18) * ppm, h = (8 + r() * 14) * ppm;
-      b.fillStyle = "#3a4136"; b.fillRect(x, y, w, h); b.strokeStyle = "#262b23"; b.lineWidth = 2; b.strokeRect(x, y, w, h);
+    // river
+    b.lineCap = "round"; b.lineJoin = "round";
+    b.beginPath(); smooth(b, river); b.strokeStyle = C.waterEdge; b.lineWidth = 24 / mpp; b.stroke();
+    b.beginPath(); smooth(b, river); b.strokeStyle = C.water; b.lineWidth = 20 / mpp; b.stroke();
+    // roads
+    for (const rd of [road, road2]) {
+      b.beginPath(); smooth(b, rd); b.strokeStyle = C.roadEdge; b.lineWidth = 9 / mpp + 2; b.stroke();
+      b.beginPath(); smooth(b, rd); b.strokeStyle = C.road; b.lineWidth = 2; b.setLineDash([10, 8]); b.stroke(); b.setLineDash([]);
     }
+    // buildings
+    const br = rng(9);
+    for (const [cx, cy] of clusters) {
+      for (let i = 0; i < 9; i++) {
+        const x = cx * W + (br() - 0.5) * 150 / mpp, y = cy * H + (br() - 0.5) * 110 / mpp;
+        const w = (10 + br() * 26) / mpp, h = (8 + br() * 18) / mpp, a = (br() - 0.5) * 0.5;
+        b.save(); b.translate(x, y); b.rotate(a);
+        b.fillStyle = C.roof; b.fillRect(-w / 2, -h / 2, w, h);
+        b.strokeStyle = C.wall; b.lineWidth = 2; b.strokeRect(-w / 2, -h / 2, w, h);
+        b.restore();
+      }
+    }
+    // area labels
+    b.font = `600 ${Math.round(13 / Math.sqrt(mpp))}px "IBM Plex Sans Condensed", sans-serif`;
+    b.fillStyle = "rgba(232,234,237,0.3)"; b.textAlign = "center";
+    for (const [cx, cy, name] of clusters) b.fillText(name.split("").join(String.fromCharCode(8202)), cx * W, cy * H - 70 / mpp);
+    // edge ticks
+    b.font = '10px "IBM Plex Mono", monospace'; b.fillStyle = "rgba(232,234,237,0.28)"; b.textAlign = "left";
+    for (let x = W / 2 % step; x < W; x += step) b.fillText(String((Math.round((x - W / 2) * mpp / 100)) * 100), x + 4, H - 56);
   }
 
-  const st = { ht: 48, hd: 48, mode: 0, md: 0, ping: -9, aim: null, last: performance.now(), lastShot: performance.now() };
-  const ad = (a, b) => ((a - b + 540) % 360) - 180;
+  // entities
+  const deg = (a) => (a * Math.PI) / 180;
+  const you = { x: 0, y: 0, h: 48, ping: -9, label: "YOU", color: C.amber };
+  const mates = [
+    { label: "GHOST", color: "#00e5ff", off: [-60, -40] },
+    { label: "NOMAD", color: "#b388ff", off: [70, 30], floor: "2F" },
+    { label: "VEX", color: "#ff4081", off: [-40, 110] },
+  ];
+  let lastClick = 0, pointer = null;
 
-  function line(x, y, h, color, alpha, ppm) {
-    const a = (h - 90) * Math.PI / 180, cs = Math.cos(a), sn = Math.sin(a), len = 100 * ppm;
-    const g = ctx.createLinearGradient(x, y, x + cs * len, y + sn * len);
-    g.addColorStop(0, hexA(color, alpha)); g.addColorStop(1, hexA(color, 0));
-    ctx.strokeStyle = g; ctx.lineWidth = 2; ctx.setLineDash([7, 5]);
-    ctx.beginPath(); ctx.moveTo(x + cs * 9, y + sn * 9); ctx.lineTo(x + cs * len, y + sn * len); ctx.stroke(); ctx.setLineDash([]);
-    ctx.lineWidth = 1.5;
-    for (const [m, o] of [[50, 0.8], [100, 0.55], [150, 0.35]]) {
-      const d = m * ppm, px = x + cs * d, py = y + sn * d;
-      ctx.strokeStyle = hexA(color, o * alpha); ctx.beginPath();
-      ctx.moveTo(px - sn * 3.5, py + cs * 3.5); ctx.lineTo(px - sn * 8, py + cs * 8);
-      ctx.moveTo(px + sn * 3.5, py - cs * 3.5); ctx.lineTo(px + sn * 8, py - cs * 8); ctx.stroke();
-    }
-  }
-
-  let visible = true;
-  new IntersectionObserver((es) => { visible = es[0].isIntersecting; }).observe(cv);
-
-  function frame(now) {
-    requestAnimationFrame(frame);
-    if (!visible || document.hidden) { st.last = now; return; }
-    const dt = Math.min(0.05, (now - st.last) / 1000); st.last = now;
-    const k = reduce ? 1 : 1 - Math.exp(-dt * 7);
-    st.hd = (st.hd + ad(st.ht, st.hd) * k + 360) % 360;
-    st.md += (st.mode - st.md) * k;
-    const ringRot = -st.hd * st.md, boxRot = st.hd * (1 - st.md);
-    ring.setAttribute("transform", `rotate(${ringRot} 500 500)`);
-    hbox.setAttribute("transform", `rotate(${boxRot} 500 500)`);
-    hlabel.setAttribute("transform", `rotate(${-boxRot} 500 63)`);
-    htext.textContent = String(Math.round(st.ht) % 360).padStart(3, "0") + "°";
-    if (!base) return;
-
-    const ppm = size / 2 / span, c = size / 2, s = base.width / D;
-    ctx.setTransform(D, 0, 0, D, 0, 0);
-    ctx.clearRect(0, 0, size, size);
-    ctx.save();
-    ctx.beginPath(); ctx.arc(c, c, c, 0, Math.PI * 2); ctx.clip();
-    ctx.translate(c, c); ctx.rotate(ringRot * Math.PI / 180);
-    ctx.drawImage(base, -s / 2, -s / 2, s, s);
+  function place() {
+    you.x = W > 760 ? W * 0.66 : W * 0.5;
+    you.y = H * 0.48;
     for (const m of mates) {
-      const x = m.x * ppm, y = m.y * ppm;
-      if (!reduce && now > (m.next || 0)) { m.ping = now; m.next = now + 2200 + Math.random() * 3000; m.h = (m.h + (Math.random() - 0.5) * 60 + 360) % 360; }
-      line(x, y, m.h, m.color, 1, ppm);
-      const t = (now - m.ping) / 900;
-      if (t >= 0 && t < 1) { ctx.beginPath(); ctx.arc(x, y, 7 + t * 34, 0, Math.PI * 2); ctx.strokeStyle = hexA(m.color, 0.7 * (1 - t)); ctx.lineWidth = 2; ctx.stroke(); }
-      ctx.beginPath(); ctx.arc(x, y, 8, 0, Math.PI * 2); ctx.fillStyle = "#0c0e0a"; ctx.fill();
-      ctx.beginPath(); ctx.arc(x, y, 5.5, 0, Math.PI * 2); ctx.fillStyle = m.color; ctx.fill();
-      // labels stay upright on a turned map
-      ctx.save(); ctx.translate(x, y); ctx.rotate(-ringRot * Math.PI / 180);
-      ctx.font = '600 11px "IBM Plex Mono", monospace'; ctx.textBaseline = "middle";
-      const label = m.floor ? `${m.name} [${m.floor}]` : m.name, w = ctx.measureText(label).width + 12;
-      ctx.fillStyle = "rgba(12,14,10,0.88)"; ctx.fillRect(11, -24, w, 18);
-      ctx.fillStyle = m.color; ctx.fillText(label, 17, -15);
-      ctx.restore();
+      m.tx = m.x = you.x + m.off[0] / mpp; m.ty = m.y = you.y + m.off[1] / mpp;
+      m.h = Math.round(rnd() * 360); m.ping = -9; m.next = performance.now() + 600 + rnd() * 1800;
+      pickWaypoint(m);
     }
-    // where a screenshot taken now would point you
-    if (st.aim !== null) {
-      const a = (st.aim - 90) * Math.PI / 180;
-      ctx.strokeStyle = "rgba(240,180,41,0.35)"; ctx.lineWidth = 1.5; ctx.setLineDash([2, 6]);
-      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * c, Math.sin(a) * c); ctx.stroke(); ctx.setLineDash([]);
+  }
+  const clampX = (x) => Math.max(W > 760 ? W * 0.44 : 24, Math.min(W - 24, x));
+  const clampY = (y) => Math.max(110, Math.min(H - 70, y));
+  function pickWaypoint(m) {
+    const a = rnd() * Math.PI * 2, d = (40 + rnd() * 120) / mpp;
+    m.wx = clampX(you.x + Math.cos(a) * d); m.wy = clampY(you.y + Math.sin(a) * d);
+  }
+
+  const bearing = (dx, dy) => ((Math.atan2(dx, -dy) * 180) / Math.PI + 360) % 360;
+  const toWorld = (x, y) => ({ X: -182.4 + (x - you.x0) * mpp, Z: -71.0 - (y - you.y0) * mpp });
+
+  function headingLine(e, alpha) {
+    const a = deg(e.h - 90), len = 100 / mpp, cs = Math.cos(a), sn = Math.sin(a);
+    const g = ctx.createLinearGradient(e.x, e.y, e.x + cs * len, e.y + sn * len);
+    g.addColorStop(0, hexA(e.color, 0.95 * alpha)); g.addColorStop(1, hexA(e.color, 0));
+    ctx.strokeStyle = g; ctx.lineWidth = 2; ctx.setLineDash([7, 5]);
+    ctx.beginPath(); ctx.moveTo(e.x + cs * 9, e.y + sn * 9); ctx.lineTo(e.x + cs * len, e.y + sn * len); ctx.stroke();
+    ctx.setLineDash([]);
+    // range marks at 50, 100, 150 m: split ticks either side of the line
+    if (len > 40) {
+      ctx.lineWidth = 1.5;
+      for (const [m, o] of [[50, 0.8], [100, 0.55], [150, 0.35]]) {
+        const d = m / mpp, cx = e.x + cs * d, cy = e.y + sn * d;
+        ctx.strokeStyle = hexA(e.color, o * alpha);
+        ctx.beginPath();
+        ctx.moveTo(cx - sn * 3.5, cy + cs * 3.5); ctx.lineTo(cx - sn * 8, cy + cs * 8);
+        ctx.moveTo(cx + sn * 3.5, cy - cs * 3.5); ctx.lineTo(cx + sn * 8, cy - cs * 8);
+        ctx.stroke();
+      }
     }
-    line(0, 0, st.hd, "#f0b429", 1, ppm);
-    const t = (now - st.ping) / 900;
-    if (t >= 0 && t < 1) { ctx.beginPath(); ctx.arc(0, 0, 9 + t * 44, 0, Math.PI * 2); ctx.strokeStyle = `rgba(240,180,41,${0.75 * (1 - t)})`; ctx.lineWidth = 2; ctx.stroke(); }
-    ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fillStyle = "#0c0e0a"; ctx.fill();
-    ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2); ctx.fillStyle = "#f0b429"; ctx.fill();
+  }
+  function dot(e, alpha, r) {
+    ctx.beginPath(); ctx.arc(e.x, e.y, r + 2.5, 0, Math.PI * 2); ctx.fillStyle = hexA("#0b0d10", 0.9 * alpha); ctx.fill();
+    ctx.beginPath(); ctx.arc(e.x, e.y, r, 0, Math.PI * 2); ctx.fillStyle = hexA(e.color, alpha); ctx.fill();
+  }
+  function ping(e, now) {
+    const t = (now - e.ping) / 900;
+    if (t < 0 || t > 1) return;
+    ctx.beginPath(); ctx.arc(e.x, e.y, 8 + t * 46, 0, Math.PI * 2);
+    ctx.strokeStyle = hexA(e.color, 0.7 * (1 - t)); ctx.lineWidth = 2; ctx.stroke();
+  }
+  function label(e, text, sub) {
+    ctx.font = '600 11px "IBM Plex Mono", monospace';
+    const w1 = ctx.measureText(text).width, w2 = sub ? ctx.measureText(sub).width + 8 : 0;
+    const x = e.x + 13, y = e.y - 22, w = w1 + w2 + 14;
+    ctx.fillStyle = "rgba(11,13,16,0.86)"; ctx.strokeStyle = hexA(e.color, 0.55); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(x, y, w, 19, 4); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = e.color; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(text, x + 7, y + 10);
+    if (sub) { ctx.fillStyle = C.fg; ctx.fillText(sub, x + 7 + w1 + 8, y + 10); }
+  }
+
+  function draw(now) {
+    const dt = Math.min(50, now - (draw.last || now)); draw.last = now;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.drawImage(base, 0, 0, W, H);
+    const age = reduce ? 99 : (now - born) / 1000;
+    const R = Math.hypot(W, H) * (1 - Math.pow(2, -6 * Math.min(1, age / 1.8)));
+    const revealing = age < 1.8;
+    ctx.save();
+    if (revealing) {
+      ctx.fillStyle = C.deep; ctx.fillRect(0, 0, W, H);
+      ctx.beginPath(); ctx.arc(you.x, you.y, R, 0, Math.PI * 2); ctx.clip();
+      ctx.drawImage(base, 0, 0, W, H);
+    }
+    // route to the first extract
+    const ex = extracts[0], exX = ex[0] * W, exY = ex[1] * H;
+    ctx.strokeStyle = "rgba(62,207,142,0.5)"; ctx.lineWidth = 1.5; ctx.setLineDash([2, 6]); ctx.lineDashOffset = -now / 40;
+    ctx.beginPath(); ctx.moveTo(you.x, you.y); ctx.lineTo(exX, exY); ctx.stroke(); ctx.setLineDash([]);
+    // extracts
+    ctx.font = '600 11px "IBM Plex Mono", monospace'; ctx.textBaseline = "middle";
+    for (const [fx, fy, name, col] of extracts) {
+      const x = fx * W, y = fy * H;
+      ctx.fillStyle = "rgba(11,13,16,0.85)"; ctx.strokeStyle = col; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.roundRect(x - 9, y - 9, 18, 18, 4); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x - 3, y + 4); ctx.lineTo(x + 4, y - 3); ctx.moveTo(x - 1, y - 3); ctx.lineTo(x + 4, y - 3); ctx.lineTo(x + 4, y + 2);
+      ctx.strokeStyle = col; ctx.stroke();
+      const right = x < W - 120;
+      ctx.textAlign = right ? "left" : "right"; ctx.fillStyle = col;
+      const dist = name === ex[2] ? `  ${Math.round(Math.hypot(exX - you.x, exY - you.y) * mpp)} m` : "";
+      ctx.fillText(name + dist, right ? x + 15 : x - 15, y);
+    }
+    // teammates
+    for (const m of mates) {
+      if (!reduce) {
+        const sp = (2.6 / mpp) * (dt / 1000) * 3;
+        const dx = m.wx - m.tx, dy = m.wy - m.ty, d = Math.hypot(dx, dy);
+        if (d < 4) pickWaypoint(m); else { m.tx += (dx / d) * sp; m.ty += (dy / d) * sp; m.dir = bearing(dx, dy); }
+        if (now > m.next) {
+          m.x = m.tx; m.y = m.ty; m.h = (m.dir ?? m.h) + (rnd() - 0.5) * 70; m.ping = now;
+          m.next = now + 1600 + rnd() * 2600;
+        }
+      }
+      const stale = Math.min(1, Math.max(0, (now - m.ping) / 1000 - 30) / 270);
+      const a = 1 - 0.65 * stale;
+      headingLine(m, a); ping(m, now); dot(m, a, 6);
+      label(m, m.floor ? `${m.label} [${m.floor}]` : m.label, `${Math.round(Math.hypot(m.x - you.x, m.y - you.y) * mpp)} m`);
+    }
+    // you
+    headingLine(you, 1); ping(you, now); dot(you, 1, 7.5);
+    if (revealing) {
+      ctx.restore(); ctx.save();
+      ctx.beginPath(); ctx.arc(you.x, you.y, R, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(240,180,41,0.75)"; ctx.lineWidth = 2; ctx.stroke();
+    }
     ctx.restore();
-    const g = ctx.createRadialGradient(c, c, c * 0.82, c, c, c);
-    g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(1, "rgba(0,0,0,0.55)");
-    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(c, c, c, 0, Math.PI * 2); ctx.fill();
-
-    if (!reduce && now - st.lastShot > 6000) shoot((st.ht + (Math.random() - 0.5) * 100 + 360) % 360, now);
+    // cursor readout
+    if (pointer) {
+      const w = toWorld(pointer.x, pointer.y);
+      ctx.strokeStyle = "rgba(240,180,41,0.9)"; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(pointer.x, pointer.y, 11, 0, Math.PI * 2); ctx.stroke();
+      ctx.font = '500 11px "IBM Plex Mono", monospace'; ctx.textAlign = "left"; ctx.textBaseline = "top";
+      const t = `X ${w.X.toFixed(1)}  Z ${w.Z.toFixed(1)}`;
+      ctx.fillStyle = "rgba(11,13,16,0.86)"; ctx.fillRect(pointer.x + 16, pointer.y + 12, ctx.measureText(t).width + 12, 34);
+      ctx.fillStyle = C.fg; ctx.fillText(t, pointer.x + 22, pointer.y + 16);
+      ctx.fillStyle = C.amber; ctx.fillText("click = PrtSc", pointer.x + 22, pointer.y + 31);
+    }
+    // idle demo: you take a screenshot now and then
+    if (!reduce && now - lastClick > 5200 && age > 2.4) {
+      const a = deg(you.h - 90 + (rnd() - 0.5) * 80), d = (50 + rnd() * 70) / mpp;
+      snap(clampX(you.x + Math.cos(a) * d), clampY(you.y + Math.sin(a) * d), now, true);
+    }
+    if (!reduce) requestAnimationFrame(draw);
   }
-  function shoot(h, now) { st.ht = h; st.ping = now; st.lastShot = now; }
 
-  const angleAt = (e) => {
-    const r = cv.getBoundingClientRect(), x = e.clientX - r.left - r.width / 2, y = e.clientY - r.top - r.height / 2;
-    return ((Math.atan2(x, -y) * 180 / Math.PI) + st.hd * st.md + 720) % 360;
-  };
-  cv.addEventListener("pointermove", (e) => { st.aim = angleAt(e); });
-  cv.addEventListener("pointerleave", () => { st.aim = null; });
-  cv.addEventListener("click", (e) => shoot(angleAt(e), performance.now()));
-
-  // rotation: rim button and the segmented control stay in sync
-  const rot = document.getElementById("rot"), mn = document.getElementById("mn"), mh = document.getElementById("mh");
-  function setMode(m) {
-    st.mode = m;
-    rot.setAttribute("aria-pressed", String(m === 1)); rot.textContent = m ? "H" : "N";
-    mn.setAttribute("aria-pressed", String(m === 0)); mh.setAttribute("aria-pressed", String(m === 1));
+  const logEl = document.getElementById("log"), cap = document.getElementById("cap"), flash = document.getElementById("flash");
+  function logShot() {
+    const w = toWorld(you.x, you.y);
+    const elev = 2 + field(you.x * 0.01, you.y * 0.01) * 6;
+    const f = filename(w.X, elev, w.Z, you.h);
+    const li = document.createElement("li");
+    const em = (t) => { const e = document.createElement("em"); e.textContent = t; return e; };
+    li.append(f.stamp + "_", em(f.pos.join(", ")), "_", em(f.rot.join(", ")), " (0).png");
+    const relay = document.createElement("span"); relay.className = "relay"; relay.textContent = "→ sent to room K7Q2XM (3 teammates)";
+    li.append(relay);
+    logEl.prepend(li);
+    while (logEl.children.length > 3) logEl.lastChild.remove();
+    for (const r of logEl.querySelectorAll("li:not(:first-child) .relay")) r.remove();
+    document.getElementById("sx").textContent = w.X.toFixed(1);
+    document.getElementById("sz").textContent = w.Z.toFixed(1);
+    document.getElementById("sh").textContent = String(Math.round(you.h) % 360).padStart(3, "0") + "°";
   }
-  rot.addEventListener("click", () => setMode(st.mode ? 0 : 1));
-  mn.addEventListener("click", () => setMode(0));
-  mh.addEventListener("click", () => setMode(1));
-  document.getElementById("zin").addEventListener("click", () => { span = Math.max(80, span / 1.35); build(); });
-  document.getElementById("zout").addEventListener("click", () => { span = Math.min(420, span * 1.35); build(); });
+  function snap(x, y, now, auto) {
+    const dx = x - you.x, dy = y - you.y;
+    if (Math.hypot(dx, dy) > 3) you.h = bearing(dx, dy);
+    you.x = x; you.y = y; you.ping = now; lastClick = now;
+    logShot();
+    if (!auto) { flash.classList.remove("on"); void flash.offsetWidth; flash.classList.add("on"); }
+    cap.classList.add("down"); setTimeout(() => cap.classList.remove("down"), 140);
+  }
 
-  document.fonts.ready.then(() => { build(); requestAnimationFrame(frame); });
-  let rt;
-  // phones fire resize when the address bar slides; only a new width or pixel ratio needs new contours
-  addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if (cv.clientWidth !== size || Math.min(2, devicePixelRatio || 1) !== D) build(); }, 150); });
+  cv.addEventListener("pointermove", (e) => { const r = cv.getBoundingClientRect(); pointer = { x: e.clientX - r.left, y: e.clientY - r.top }; if (reduce) requestAnimationFrame(draw); });
+  cv.addEventListener("pointerleave", () => { pointer = null; if (reduce) requestAnimationFrame(draw); });
+  cv.addEventListener("click", (e) => { const r = cv.getBoundingClientRect(); snap(e.clientX - r.left, e.clientY - r.top, performance.now()); if (reduce) requestAnimationFrame(draw); });
+
+  function init() {
+    build(); place();
+    you.x0 = you.x; you.y0 = you.y;
+    logEl.textContent = ""; logShot();
+    requestAnimationFrame(draw);
+  }
+  // phones fire resize when the address bar slides; only a new map size or pixel ratio needs new contours
+  let t;
+  addEventListener("resize", () => {
+    clearTimeout(t);
+    t = setTimeout(() => {
+      const r = wrap.getBoundingClientRect();
+      if (Math.round(r.width) === Math.round(W) && Math.round(r.height) === Math.round(H) && Math.min(2, devicePixelRatio || 1) === DPR) return;
+      const ox = you.x / W, oy = you.y / H;
+      build(); you.x = ox * W; you.y = oy * H;
+      requestAnimationFrame(draw);
+    }, 150);
+  });
+  document.fonts.ready.then(init);
+
+  // raid clock
+  let left = 31 * 60 + 42;
+  setInterval(() => { left = Math.max(0, left - 1); document.getElementById("raid").textContent = `${pad(Math.floor(left / 60))}:${pad(left % 60)}`; }, 1000);
 })();

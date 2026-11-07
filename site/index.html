@@ -5,245 +5,328 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; media-src 'self'; connect-src https://api.github.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>TarTrak · Free squad map for Escape from Tarkov</title>
-<meta name="description" content="A free, open-source squad map and overlay for Escape from Tarkov. Take a screenshot in raid and see where you and your teammates are. Nothing touches the game.">
-<meta name="theme-color" content="#171a14">
+<meta name="description" content="A free, open-source squad map and overlay for Escape from Tarkov. Take a screenshot in raid and see where you and your teammates are, and press F8 to show your squad what you see. Nothing touches the game.">
+<meta name="theme-color" content="#0b0d10">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="canonical" href="https://cthpaiden.github.io/TarTrak/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="TarTrak · Free squad map for Escape from Tarkov">
-<meta property="og:description" content="Take a screenshot in raid and see where you and your teammates are. Free, open source, nothing touches the game.">
+<meta property="og:description" content="See where your squad is, and press F8 to show them what you see. Free, open source, nothing touches the game.">
 <meta property="og:url" content="https://cthpaiden.github.io/TarTrak/">
 <meta property="og:image" content="https://cthpaiden.github.io/TarTrak/media/og.png">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="preload" href="fonts/archivo-400-800.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/ibm-plex-sans-condensed-700.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/ibm-plex-sans-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="site.css">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 
-<header class="wrap nav">
-  <a class="brand" href="#top" aria-label="TarTrak, back to top">
-    <svg viewBox="0 0 512 512" aria-hidden="true"><circle cx="256" cy="256" r="170" fill="none" stroke="#f0b429" stroke-width="44"/><rect x="238" y="30" width="36" height="140" fill="#f0b429"/></svg>
-    TARTRAK
-  </a>
-  <nav class="links" aria-label="Sections">
-    <a href="#reel">Reel</a>
-    <a href="#squad">Squad</a>
-    <a href="#setup">Setup</a>
-    <a href="#spec">Specs</a>
-    <a href="#faq">FAQ</a>
-    <a href="https://github.com/cthpAiden/TarTrak">GitHub</a>
-  </nav>
-  <a class="btn btn-lume" data-dl href="https://github.com/cthpAiden/TarTrak/releases/latest">Download</a>
-</header>
+<section class="hero" id="top">
+  <header class="nav">
+    <a class="brand" href="#top" aria-label="TarTrak, back to top">
+      <svg viewBox="0 0 512 512" aria-hidden="true"><circle cx="256" cy="256" r="170" fill="none" stroke="#f0b429" stroke-width="44"/><rect x="238" y="30" width="36" height="140" fill="#f0b429"/></svg>
+      TarTrak
+    </a>
+    <nav class="links" aria-label="Sections">
+      <a href="#how">How it works</a>
+      <a href="#share">Share</a>
+      <a href="#squad">Squad</a>
+      <a href="#safe">Is it safe?</a>
+      <a href="#faq">FAQ</a>
+      <a href="https://github.com/cthpAiden/TarTrak">GitHub</a>
+    </nav>
+    <a class="btn btn-amber" data-dl href="https://github.com/cthpAiden/TarTrak/releases/latest">Download</a>
+  </header>
 
-<main id="main">
-<section class="wrap hero" id="top">
-  <div>
-    <p class="label">Squad map and overlay for Escape from Tarkov</p>
-    <h1>The whole squad, on <em>one dial.</em></h1>
-    <p class="lede">A round minimap that sits on top of the game. Your position and heading come from your own screenshots, your squad's from theirs, joined by a six-character room code.</p>
-    <div class="btns">
-      <a class="btn btn-lume" data-dl href="https://github.com/cthpAiden/TarTrak/releases/latest">
+  <div class="map-wrap">
+    <canvas id="map" role="img" aria-label="A made-up topographic map with your amber marker and three teammates, each with a heading line"></canvas>
+    <div class="flash" id="flash"></div>
+    <aside class="log" aria-label="Recent screenshots">
+      <p class="log-head"><span>Screenshots/</span><b>Click the map to take one</b></p>
+      <ol id="log"></ol>
+    </aside>
+    <div class="status mono" aria-label="Status bar">
+      <span class="live">Squad</span>
+      <span>ROOM <b>K7Q2XM</b></span>
+      <span class="hide-sm">PLAYERS <b>4</b></span>
+      <span class="grow"></span>
+      <span>X <b id="sx">-182.4</b></span>
+      <span>Z <b id="sz">-71.0</b></span>
+      <span>HDG <b id="sh">048°</b></span>
+      <span>RAID <b id="raid">31:42</b></span>
+    </div>
+  </div>
+
+  <div class="hero-copy">
+    <p class="eyebrow">Free squad map for Escape from Tarkov</p>
+    <h1>Press <kbd class="cap" id="cap">PrtSc</kbd>.<br>Your <span class="squad">squad</span> sees you.</h1>
+    <p class="lede">TarTrak puts you and your teammates on a live map, using the coordinates Tarkov already writes into every screenshot's filename. Press F8 and they see your screenshot too. Free, open source, and nothing touches the game.</p>
+    <div class="ctas">
+      <a class="btn btn-amber" data-dl href="https://github.com/cthpAiden/TarTrak/releases/latest">
         <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8m0 0L4.5 6.5M8 10l3.5-3.5M2.5 13.5h11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Download for Windows
       </a>
-      <a class="btn btn-line" href="https://github.com/cthpAiden/TarTrak">Source on GitHub</a>
+      <a class="btn btn-ghost" href="https://github.com/cthpAiden/TarTrak">View the source</a>
     </div>
-    <div class="facts">
-      <div><span class="label">Version</span><b data-ver>0.14.5</b></div>
-      <div><span class="label">Released</span><b data-date>29 Oct 2026</b></div>
-      <div><span class="label">Price</span><b>Free</b></div>
-      <div><span class="label">System</span><b>Win 10, 11</b></div>
-    </div>
-  </div>
-
-  <div class="dialcol">
-    <div class="dial" id="dial">
-      <div class="knurl"></div>
-      <div class="bezel"></div>
-      <div class="well"></div>
-      <canvas id="dmap" role="img" aria-label="Round minimap: you at the centre with a heading line, three teammates around you"></canvas>
-      <svg id="dsvg" viewBox="0 0 1000 1000" aria-hidden="true">
-        <g id="ring"></g>
-        <g id="hbox">
-          <path d="M500 110 l-9 -12 h18 z" fill="#f0b429"/>
-          <g id="hlabel">
-            <rect x="452" y="40" width="96" height="46" rx="5" fill="#0c0e0a" stroke="#f0b429" stroke-width="2"/>
-            <text id="htext" x="500" y="72" text-anchor="middle" fill="#f0b429" font-family="IBM Plex Mono, monospace" font-weight="600" font-size="26">048°</text>
-          </g>
-        </g>
-      </svg>
-      <button class="rim rot" id="rot" type="button" aria-pressed="false" aria-label="Heading-up rotation">N</button>
-      <button class="rim zin" id="zin" type="button" aria-label="Zoom in"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M9 3v12M3 9h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
-      <button class="rim zout" id="zout" type="button" aria-label="Zoom out"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 9h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
-      <div id="chips"></div>
-    </div>
-    <div class="seg" role="group" aria-label="Map rotation">
-      <button type="button" id="mn" aria-pressed="true">NORTH-UP</button>
-      <button type="button" id="mh" aria-pressed="false">HEADING-UP</button>
-    </div>
-    <p class="hint">Click the map to take a screenshot. The heading only changes when you do.</p>
+    <p class="meta mono">v<span data-ver>0.20.2</span> · <span data-date>3 Nov 2026</span> · Windows 10 and 11 · GPL-3.0</p>
   </div>
 </section>
 
-<section class="sheet" id="reel">
+<main id="main">
+<section class="block" id="why">
+  <div class="wrap split top">
+    <div>
+      <p class="kicker">Who it's for</p>
+      <h2>For squads that can't share a screen.</h2>
+      <p class="sub">Most squads talk on Discord. Voice can say "by the trees", but not which trees. Streaming your screen to each other takes a strong PC or a second monitor, and plenty of players have neither.</p>
+    </div>
+    <ol class="story">
+      <li><span class="n">01</span><div><b>"Where are you?"</b><span>Your teammate presses the screenshot key. Their marker, and the way they're facing, show up on your map.</span></div></li>
+      <li><span class="n">02</span><div><b>"What do you see?"</b><span>Trees in the way, and you can't tell what they're looking at. They press F8.</span></div></li>
+      <li><span class="n">03</span><div><b>Push.</b><span>Their screenshot pops up on your screen. You see the enemy they see, and you push.</span></div></li>
+    </ol>
+  </div>
+</section>
+
+<section class="block" id="reel">
   <div class="wrap">
-    <p class="label">Showreel</p>
+    <p class="kicker">Showreel</p>
     <h2>Fifteen seconds, start to finish.</h2>
     <div class="reel">
       <video controls playsinline preload="none" poster="media/poster.jpg" aria-label="TarTrak showreel">
         <source src="media/showreel.mp4" type="video/mp4">
       </video>
-      <div class="reel-meta">
-        <span class="label">00:15 · 1080p60 · sound on</span>
-        <span class="label">Map, interface and score all made in code</span>
+      <div class="reel-meta mono"><span>00:15 · 1080p60 · sound on</span><span>Map, interface and score all made in code</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="how">
+  <div class="wrap">
+    <p class="kicker">How it works</p>
+    <h2>Tarkov already writes your position down. TarTrak reads it.</h2>
+    <div class="steps">
+      <div class="step"><span class="n">1</span><h3>Install</h3><p>Download the installer from the latest release and run it. It needs Windows 10 or 11.</p></div>
+      <div class="step"><span class="n">2</span><h3>Borderless windowed</h3><p>Set the game to borderless windowed so the overlay can sit on top of it.</p></div>
+      <div class="step"><span class="n">3</span><h3>Press PrtSc in raid</h3><p>Your marker lands on the map with the way you are facing. Every screenshot moves it. TarTrak finds the map from the game's log.</p></div>
+    </div>
+
+    <div class="anatomy" aria-label="Parts of a screenshot filename">
+      <p class="path">Documents\Escape from Tarkov\Screenshots\</p>
+      <div class="fname" id="fname">
+        <span class="grp"><span class="t">2026-10-30[21-14]_</span><span class="lbl">Date, time</span></span>
+        <span class="grp" data-g="1"><span class="t">-182.40, 2.10, -71.03</span><span class="lbl">Position in metres</span></span>
+        <span class="grp"><span class="t">_</span></span>
+        <span class="grp" data-g="2"><span class="t">0.00000, 0.40674, 0.00000, 0.91355</span><span class="lbl">Rotation, becomes your heading</span></span>
+        <span class="grp"><span class="t">&nbsp;(0).png</span></span>
+      </div>
+      <div class="result">
+        <span class="chip"><span>X</span>-182.4</span>
+        <span class="chip"><span>Z</span>-71.0</span>
+        <span class="chip"><span>Elevation</span>2.1 m</span>
+        <span class="chip"><span>Heading</span>048°</span>
+      </div>
+    </div>
+    <p class="note"><b>Why it asks for administrator rights.</b> The game runs as administrator too. Without the same rights, Windows hides the game's key state from TarTrak, and the mark-here key only works after an Alt+Tab.</p>
+  </div>
+</section>
+
+<section class="block" id="share">
+  <div class="wrap split">
+    <div>
+      <p class="kicker">Shared screenshot</p>
+      <h2>Press F8. Your squad sees what you see.</h2>
+      <p class="sub">A dot on the map says where a teammate is. Their screenshot says what they're looking at.</p>
+      <ul class="facts">
+        <li><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 9.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Take screenshots with the game's key as usual, then press F8 to send the last one to your room.</span></li>
+        <li><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 9.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>It pops up in a small window over the game, wherever each teammate placed it. Click to enlarge.</span></li>
+        <li><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 9.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>It closes after 10 s, and stays while the mouse is on it. The window never takes focus from the game.</span></li>
+        <li><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 9.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Only that one picture, never a live stream. The relay passes it on and stores nothing.</span></li>
+      </ul>
+    </div>
+    <figure class="popup-fig">
+      <div class="popup" role="img" aria-label="The shared screenshot window: VEX shared a screenshot of a forest, with a figure between the trees">
+        <div class="popup-head" aria-hidden="true"><span class="dot vex"></span><b>VEX</b><span>shared a screenshot</span><span class="x">×</span></div>
+        <svg class="popup-pic" viewBox="0 0 640 360" aria-hidden="true">
+          <defs>
+            <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5d6a63"/><stop offset="0.55" stop-color="#8c8f7a"/><stop offset="1" stop-color="#b5a57c"/></linearGradient>
+            <linearGradient id="gnd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a4e36"/><stop offset="1" stop-color="#23261a"/></linearGradient>
+          </defs>
+          <rect width="640" height="360" fill="url(#sky)"/>
+          <path d="M0 196 L60 170 L110 186 L170 150 L230 182 L300 160 L360 184 L430 146 L500 178 L560 158 L640 176 V360 H0 Z" fill="#4c5646" opacity="0.8"/>
+          <rect y="214" width="640" height="146" fill="url(#gnd)"/>
+          <g fill="#3a4033"><path d="M232 220 l12 -64 l12 64 z"/><path d="M384 222 l10 -52 l10 52 z"/><path d="M455 218 l14 -70 l14 70 z"/></g>
+          <g fill="#2a2e22"><rect x="318" y="196" width="7" height="22" rx="2"/><circle cx="321.5" cy="191" r="5"/></g>
+          <g fill="#151810">
+            <rect x="60" y="0" width="58" height="360"/><path d="M40 0 h100 l-30 90 h-40 z"/>
+            <rect x="500" y="0" width="44" height="360"/><path d="M480 0 h90 l-24 70 h-40 z"/>
+            <rect x="180" y="40" width="22" height="320"/>
+            <path d="M0 360 C80 300 180 312 240 360 Z M400 360 C470 316 560 300 640 340 V360 Z"/>
+          </g>
+        </svg>
+        <div class="popup-time" aria-hidden="true"><span></span></div>
+      </div>
+      <figcaption class="mono">Illustration. The real window shows the game's own screenshot.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="block" id="squad">
+  <div class="wrap split">
+    <div>
+      <p class="kicker">Squad</p>
+      <h2>Six characters and everyone is on your map.</h2>
+      <p class="sub">One player clicks Create and shares the code. Everyone else types it in. You see each other's position, heading and floor, plus shared markers, routes and live drawings.</p>
+      <ul class="facts">
+        <li><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 9.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Up to 12 players per room. A Hide button keeps the code off your stream.</span></li>
+        <li><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 9.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>The relay keeps nothing and logs nothing. You can run your own.</span></li>
+        <li><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 9.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Markers never vanish. A teammate who goes quiet stays on the map, slowly dimming to 35%.</span></li>
+      </ul>
+    </div>
+    <div class="panel" role="img" aria-label="The app's squad panel: room code K7Q2XM and three teammates with their distance and last update">
+      <div class="panel-title" aria-hidden="true"><span>Room</span><span class="mono ok">connected</span></div>
+      <div class="code mono" aria-hidden="true"><span>K</span><span>7</span><span>Q</span><span>2</span><span>X</span><span>M</span></div>
+      <div class="code-actions" aria-hidden="true"><span class="mini">Copy</span><span class="mini">Hide</span><span class="mini">Leave</span></div>
+      <ul class="mates" aria-hidden="true">
+        <li><span class="dot ghost"></span><span>GHOST</span><span class="m">47 m</span><span class="age" data-age="2">2s ago</span></li>
+        <li><span class="dot nomad"></span><span>NOMAD <span class="mono floor">[2F]</span></span><span class="m">84 m</span><span class="age" data-age="6">6s ago</span></li>
+        <li><span class="dot vex"></span><span>VEX</span><span class="m">132 m</span><span class="age" data-age="1">1s ago</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="replay">
+  <div class="wrap split">
+    <div>
+      <p class="kicker">Raid replay</p>
+      <h2>Watch the raid back.</h2>
+      <p class="sub">TarTrak records every raid you take a screenshot in: your positions and your squad's. Pick one of your last 10 raids in the Raids tab and the map plays it back.</p>
+      <ul class="facts">
+        <li><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 9.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Every player's trail in their colour, bright for the last 3 minutes.</span></li>
+        <li><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 9.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Play at 1× to 64×, or step from one screenshot to the next. Drag the timeline to jump anywhere.</span></li>
+        <li><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 9.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>A card counts your screenshots, how often you took one, and your longest gap.</span></li>
+      </ul>
+    </div>
+    <div class="replay" role="img" aria-label="A raid replay: three players' trails on a made-up map, with the playback timeline below">
+      <svg class="replay-map" viewBox="0 0 600 360" aria-hidden="true">
+        <rect width="600" height="360" fill="#20251d"/>
+        <g fill="none" stroke="#343d2e" stroke-width="1.2">
+          <path d="M0 110 C120 90 200 150 330 120 S520 50 600 80"/>
+          <path d="M0 150 C130 130 210 190 340 160 S530 90 600 120"/>
+          <path d="M60 360 C90 260 160 220 150 150 S110 30 140 0"/>
+          <path d="M380 360 C400 280 470 250 520 190 S560 80 600 50"/>
+        </g>
+        <path d="M-10 300 C120 260 200 290 300 250 S480 230 610 200" fill="none" stroke="#2c4046" stroke-width="16" stroke-linecap="round"/>
+        <path d="M-10 300 C120 260 200 290 300 250 S480 230 610 200" fill="none" stroke="#18252a" stroke-width="12" stroke-linecap="round"/>
+        <g fill="#3a4136" stroke="#262b23" stroke-width="2"><rect x="250" y="190" width="40" height="26"/><rect x="300" y="196" width="22" height="30"/><rect x="420" y="120" width="34" height="24"/><rect x="460" y="128" width="20" height="18"/><rect x="96" y="210" width="26" height="36"/></g>
+        <g fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M70 330 L110 290 L150 280 L200 240 L240 222" stroke="#f0b429" opacity="0.3"/>
+          <path d="M240 222 L290 180 L340 176 L372 150" stroke="#f0b429"/>
+          <path d="M30 180 L90 170 L140 150 L190 130" stroke="#00e5ff" opacity="0.3"/>
+          <path d="M190 130 L250 120 L300 130 L350 108" stroke="#00e5ff"/>
+          <path d="M570 320 L530 280 L505 240 L470 220" stroke="#b388ff" opacity="0.3"/>
+          <path d="M470 220 L440 200 L420 180 L400 176" stroke="#b388ff"/>
+        </g>
+        <g stroke-linecap="round">
+          <line x1="372" y1="150" x2="404" y2="126" stroke="#f0b429" stroke-width="2" stroke-dasharray="6 4"/>
+          <line x1="350" y1="108" x2="388" y2="98" stroke="#00e5ff" stroke-width="2" stroke-dasharray="6 4"/>
+          <line x1="400" y1="176" x2="372" y2="196" stroke="#b388ff" stroke-width="2" stroke-dasharray="6 4"/>
+        </g>
+        <g stroke="#0b0d10" stroke-width="2.5">
+          <circle cx="372" cy="150" r="7" fill="#f0b429"/>
+          <circle cx="350" cy="108" r="6" fill="#00e5ff"/>
+          <circle cx="400" cy="176" r="6" fill="#b388ff"/>
+        </g>
+      </svg>
+      <div class="dock" aria-hidden="true">
+        <div class="dock-top mono"><span class="play"></span><span class="speed">16×</span><span class="grow"></span><span>24:31</span></div>
+        <div class="lanes">
+          <div class="lane"><span class="dot amber"></span><span class="ticks you"></span></div>
+          <div class="lane"><span class="dot ghost"></span><span class="ticks ghost"></span></div>
+          <div class="lane"><span class="dot nomad"></span><span class="ticks nomad"></span></div>
+          <span class="playhead"></span>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
-<section class="sheet" id="squad">
-  <div class="wrap two even">
-    <div>
-      <p class="label">Squad</p>
-      <h2>Six characters. Everyone on the map.</h2>
-      <ol class="procedure">
-        <li><span class="n">01</span><div><b>Create</b><span>One player clicks Create and gets a room code.</span></div></li>
-        <li><span class="n">02</span><div><b>Share</b><span>Send it in your party chat. A Hide button keeps it off your stream.</span></div></li>
-        <li><span class="n">03</span><div><b>Join</b><span>Everyone else types it in and clicks Join. Up to 12 players per room.</span></div></li>
-      </ol>
-    </div>
-    <div class="panel" role="img" aria-label="The app's squad panel: room code K7Q2XM and three teammates with their distance and last update">
-      <div class="panel-head"><span class="label">Room</span><span class="live">Connected</span></div>
-      <div class="code" aria-hidden="true"><span>K</span><span>7</span><span>Q</span><span>2</span><span>X</span><span>M</span></div>
-      <div class="fake-btns" aria-hidden="true"><span>Copy</span><span>Hide</span><span>Leave</span></div>
-      <ul class="mates" aria-hidden="true">
-        <li><i class="dot ghost"></i><span>GHOST</span><span class="m">47 m</span><span class="age" data-age="2">2s ago</span></li>
-        <li><i class="dot nomad"></i><span>NOMAD <span class="floor">[2F]</span></span><span class="m">84 m</span><span class="age" data-age="6">6s ago</span></li>
-        <li><i class="dot vex"></i><span>VEX</span><span class="m">132 m</span><span class="age" data-age="1">1s ago</span></li>
-      </ul>
-    </div>
-  </div>
-  <div class="wrap squad-notes">
-    <p><b>Nothing kept</b>Positions pass through a small relay that keeps nothing and logs nothing. You can run your own.</p>
-    <p><b>More than dots</b>Shared markers, live drawings and quest lists reach the whole room.</p>
-    <p><b>Never lost</b>A teammate who goes quiet stays on the map, dimming slowly to 35%. Their last spot is often the one you need.</p>
-  </div>
-</section>
-
-<section class="sheet" id="setup">
+<section class="block" id="controls">
   <div class="wrap">
-    <p class="label">Setup</p>
-    <h2>Three steps to your first marker.</h2>
-    <ol class="setup">
-      <li>
-        <span class="n">1</span>
-        <h3>Install</h3>
-        <p>Download the installer from the latest release and run it. It needs Windows 10 or 11.</p>
-        <a class="btn btn-line" data-dl href="https://github.com/cthpAiden/TarTrak/releases/latest">Get v<span data-ver>0.14.5</span></a>
-      </li>
-      <li>
-        <span class="n">2</span>
-        <h3>Borderless windowed</h3>
-        <p>Set the game's screen mode to borderless windowed, so the overlay can sit on top of it.</p>
-      </li>
-      <li>
-        <span class="n">3</span>
-        <h3>Press PrtSc in raid</h3>
-        <p>Your marker shows up on the map with your heading. Each screenshot moves it. TarTrak finds the map from the game's log.</p>
-      </li>
-    </ol>
-    <p class="note"><b>Why it asks for administrator rights.</b> The game runs as administrator too. Without them, Windows hides the game's key state from TarTrak and the mark-here key only works after an Alt+Tab.</p>
-  </div>
-</section>
-
-<section class="sheet" id="spec">
-  <div class="wrap two">
-    <div>
-      <p class="label">Data sheet</p>
-      <h2>Specifications</h2>
-      <p class="intro">What TarTrak <span data-ver>0.14.5</span> does, in numbers and plain words.</p>
-    </div>
-    <dl class="spec">
-      <dt>Position source</dt><dd>The screenshot filename: <span class="mono">X, Y, Z</span> and rotation</dd>
-      <dt>Map detection</dt><dd>The game's text log, with a manual picker as fallback</dd>
-      <dt>Overlay</dt><dd>Circle with compass bezel, or box. Size, bezel and rim buttons adjustable</dd>
-      <dt>Rotation</dt><dd>North-up by default, heading-up as a toggle</dd>
-      <dt>Heading line</dt><dd><span class="mono">100 m</span>, range marks at <span class="mono">50 / 100 / 150 m</span></dd>
-      <dt>Squad</dt><dd>Up to <span class="mono">12</span> players per room, joined by a <span class="mono">6</span>-character code</dd>
-      <dt>Relay</dt><dd>Keeps nothing, logs nothing. You can run your own</dd>
-      <dt>Old markers</dt><dd>Full for <span class="mono">30 s</span>, settle at <span class="mono">35%</span> after <span class="mono">5 min</span>. Never hidden</dd>
-      <dt>Raid timer</dt><dd>Read from the game's own raid clock, PMC and Scav</dd>
-      <dt>Map layers</dt><dd>Quests, extracts, bosses, loot, containers, locks and more, each with a filter</dd>
-      <dt>Map data</dt><dd>tarkov.dev, PvP or PvE</dd>
-      <dt>Accounts, telemetry</dt><dd>None, none</dd>
-    </dl>
-  </div>
-</section>
-
-<section class="sheet" id="controls">
-  <div class="wrap">
-    <p class="label">Controls</p>
-    <h2>Five keys. Every one rebindable.</h2>
+    <p class="kicker">Controls</p>
+    <h2>Six keys. Rebind any of them.</h2>
     <div class="keys">
       <div class="key"><div class="caps"><kbd>F5</kbd></div><p><b>Overlay mode</b>Switch between the full window and the overlay.</p></div>
       <div class="key"><div class="caps"><kbd>F6</kbd></div><p><b>Opacity</b>Change how see-through the overlay is.</p></div>
       <div class="key"><div class="caps"><kbd>F7</kbd></div><p><b>Hide</b>Hide the window until you press it again.</p></div>
-      <div class="key"><div class="caps"><kbd>ALT</kbd>+ drag</div><p><b>Move</b>Drag the overlay where you want it.</p></div>
-      <div class="key"><div class="caps"><kbd>L ALT</kbd>+<kbd>PRTSC</kbd></div><p><b>Mark here</b>Drop a private marker where you stand.</p></div>
+      <div class="key hot"><div class="caps"><kbd>F8</kbd></div><p><b>Share screenshot</b>Send your latest screenshot to the squad.</p></div>
+      <div class="key"><div class="caps"><kbd>Alt</kbd>+ drag</div><p><b>Move</b>Drag the overlay where you want it.</p></div>
+      <div class="key"><div class="caps"><kbd>L Alt</kbd>+<kbd>PrtSc</kbd></div><p><b>Mark here</b>Drop a private marker where you stand.</p></div>
     </div>
   </div>
 </section>
 
-<section class="sheet" id="wiring">
+<section class="block" id="safe">
   <div class="wrap">
-    <p class="label">What it reads</p>
-    <h2>Three inputs. No line to the game.</h2>
-    <div class="wire" role="img" aria-label="Diagram: the game writes screenshots and a text log; Windows reports one key's state; TarTrak reads those three and has no connection to the game process">
-      <div class="node big game"><b>Escape from Tarkov</b><span>The game process. TarTrak never opens it.</span></div>
-      <div class="arrow in"></div>
-      <div class="node src"><b>Screenshots folder</b><span>Filenames hold position and rotation</span></div>
-      <div class="arrow out"></div>
-      <div class="node big tt"><b>TarTrak</b><span>Map, squad, overlay</span></div>
-      <div class="arrow in"></div>
-      <div class="node src"><b>Text log</b><span>Which map you loaded, the raid clock</span></div>
-      <div class="arrow out"></div>
-      <div class="arrow in none"></div>
-      <div class="node src"><b>Windows key state</b><span>Is the mark-here key held? Same call as push-to-talk apps</span></div>
-      <div class="arrow out"></div>
+    <p class="kicker">Is it safe?</p>
+    <h2>It never touches the game process.</h2>
+    <p class="sub">Here is the complete list of what TarTrak reads, and what it does not do.</p>
+    <div class="ledger">
+      <div class="reads">
+        <h3>Reads</h3>
+        <ul>
+          <li><b>Screenshots the game saves</b>The filename holds your coordinates and rotation. The picture itself is only read when you press F8 to share it. By default TarTrak deletes the screenshots named with coordinates once read.</li>
+          <li><b>The game's text log</b>To learn which map you loaded, your screenshot key, and the raid clock.</li>
+          <li><b>Whether your mark-here key is held</b>The same Windows call push-to-talk apps use.</li>
+        </ul>
+      </div>
+      <div class="never">
+        <h3>Never</h3>
+        <ul>
+          <li><s>Reads game memory</s></li>
+          <li><s>Injects code</s></li>
+          <li><s>Installs keyboard hooks</s></li>
+          <li><s>Sends keystrokes to the game</s></li>
+          <li><s>Accounts or telemetry</s></li>
+        </ul>
+      </div>
     </div>
-    <div class="cut"><span>Never:</span><s>memory reads</s><s>code injection</s><s>keyboard hooks</s><s>keystrokes to the game</s></div>
     <p class="quote">"I can't speak for Battlestate's anti-cheat, but that is everything TarTrak does."<cite>From the README</cite></p>
   </div>
 </section>
 
-<section class="sheet" id="faq">
-  <div class="wrap two">
+<section class="block" id="faq">
+  <div class="wrap split top">
     <div>
-      <p class="label">FAQ</p>
+      <p class="kicker">FAQ</p>
       <h2>Questions people ask</h2>
     </div>
     <div class="faq">
       <details>
         <summary>Can this get me banned?</summary>
-        <div class="a"><p>TarTrak never touches the game process. It reads the filenames of the screenshots the game saves, the game's text log, and whether your mark-here key is held down, using the same Windows call push-to-talk apps use. It doesn't read memory, inject code, install keyboard hooks or send keystrokes to the game.</p><p>Nobody outside Battlestate can promise how their anti-cheat behaves, but that list is everything TarTrak does, and the source is public so you can check.</p></div>
+        <div class="a"><p>TarTrak never touches the game process. It reads the screenshots the game saves, the game's text log, and whether your mark-here key is held down, using the same Windows call push-to-talk apps use. It doesn't read memory, inject code, install keyboard hooks or send keystrokes to the game.</p><p>Nobody outside Battlestate can promise how their anti-cheat behaves, but that list is everything TarTrak does, and the source is public so you can check.</p></div>
+      </details>
+      <details>
+        <summary>Windows says the installer is from an unknown publisher.</summary>
+        <div class="a"><p>The installer isn't code-signed yet; a signing certificate costs money every year. SmartScreen shows "Windows protected your PC": click More info, then Run anyway.</p><p>Every release is built by GitHub Actions from the public source, so you can see exactly what went into it.</p></div>
       </details>
       <details>
         <summary>Why does it ask for administrator rights?</summary>
         <div class="a"><p>Because the game runs as administrator too. Without the same rights, Windows hides the game's key state from TarTrak, and the mark-here key only works after an Alt+Tab.</p></div>
       </details>
       <details>
+        <summary>Does F8 share my whole screen?</summary>
+        <div class="a"><p>No. It sends one picture: the last screenshot the game saved, and only when you press F8. There is no live stream. The relay passes it to your room and stores nothing.</p></div>
+      </details>
+      <details>
         <summary>Is it really free?</summary>
-        <div class="a"><p>Yes. It's MIT licensed, with no accounts, no ads and no paid tier. If it helps your raids you can chip in on <a href="https://paypal.me/HeyAiden">PayPal</a>; tips go toward keeping the map working after each patch.</p></div>
+        <div class="a"><p>Yes. It's open source under GPL-3.0, with no accounts, no ads and no paid tier. If it helps your raids you can chip in on <a href="https://paypal.me/HeyAiden">PayPal</a>; tips go toward keeping the map working after each patch.</p></div>
       </details>
       <details>
         <summary>Do my teammates need it too?</summary>
         <div class="a"><p>Yes. Each player's position comes from their own screenshots, so everyone who wants to show up on the map runs TarTrak and joins the same room.</p></div>
-      </details>
-      <details>
-        <summary>Will it fill up my screenshots folder?</summary>
-        <div class="a"><p>No. By default it deletes the screenshots named with coordinates once it has read them, and only those. Turn that off in Settings if you want to keep them.</p></div>
       </details>
       <details>
         <summary>I rebound the screenshot key. Does it still work?</summary>
@@ -264,22 +347,21 @@
 
 <footer>
   <div class="wrap">
-    <div class="end">
-      <h2>Free, and staying that way.</h2>
-      <div class="btns">
-        <a class="btn btn-lume" data-dl href="https://github.com/cthpAiden/TarTrak/releases/latest">Download v<span data-ver>0.14.5</span></a>
-        <a class="btn btn-line" href="https://paypal.me/HeyAiden">Chip in</a>
-      </div>
+    <p class="big">Free. Open source.<br>One key.</p>
+    <div class="ctas">
+      <a class="btn btn-amber" data-dl href="https://github.com/cthpAiden/TarTrak/releases/latest">Download v<span data-ver>0.20.2</span> for Windows</a>
+      <a class="btn btn-ghost" href="https://paypal.me/HeyAiden">Chip in on PayPal</a>
     </div>
     <nav class="foot-links" aria-label="More">
       <a href="https://github.com/cthpAiden/TarTrak/blob/main/docs/guide.md">Guide</a>
       <a href="https://github.com/cthpAiden/TarTrak/blob/main/CHANGELOG.md">Changelog</a>
       <a href="https://github.com/cthpAiden/TarTrak/issues">Report a bug</a>
       <a href="https://github.com/cthpAiden/TarTrak/blob/main/SECURITY.md">Security</a>
+      <a href="https://www.youtube.com/@TarTrak">YouTube</a>
       <a href="https://github.com/cthpAiden/TarTrak">Source</a>
     </nav>
     <div class="fine">
-      <span>The map on this page is made up. In the app, maps come from <a href="https://github.com/the-hideout/tarkov-dev-svg-maps">tarkov-dev-svg-maps</a> (CC BY-NC-SA 4.0) and data from <a href="https://tarkov.dev">tarkov.dev</a>.</span>
+      <span>Maps and pictures on this page are made up. In the app, maps come from <a href="https://github.com/the-hideout/tarkov-dev-svg-maps">tarkov-dev-svg-maps</a> (CC BY-NC-SA 4.0) and data from <a href="https://tarkov.dev">tarkov.dev</a>.</span>
       <span>Escape from Tarkov is a trademark of Battlestate Games. TarTrak is not affiliated with or endorsed by them.</span>
       <span>This site sets no cookies and loads nothing from third parties. It asks the GitHub API for the latest version number.</span>
     </div>
