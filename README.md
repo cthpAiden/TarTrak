@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://github.com/cthpAiden/TarTrak/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/cthpAiden/TarTrak?color=f0b429"></a>
   <img alt="Platform: Windows" src="https://img.shields.io/badge/platform-Windows-555">
-  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-555"></a>
+  <a href="LICENSE"><img alt="GPL-3.0 license" src="https://img.shields.io/badge/license-GPL--3.0-555"></a>
   <a href="https://paypal.me/HeyAiden"><img alt="Support on PayPal" src="https://img.shields.io/badge/support-PayPal-00457C?logo=paypal&logoColor=white"></a>
 </p>
 
@@ -71,8 +71,8 @@ TarTrak is free. If it helps your raids, you can chip in through [PayPal](https:
 - Map images: [tarkov-dev-svg-maps](https://github.com/the-hideout/tarkov-dev-svg-maps), CC BY-NC-SA 4.0, fetched at runtime.
 - Map transforms and quest data: [tarkov.dev](https://tarkov.dev) (MIT). Coordinate math adapted from tarkov.dev.
 - Marker icons: [the-hideout/tarkov-dev](https://github.com/the-hideout/tarkov-dev) `public/maps/interactive` (MIT), copied to `public/icons/` with its licence.
-- Trader portraits: Battlestate Games' artwork, loaded at runtime from tarkov.dev (assets.tarkov.dev). Not bundled and not covered by the MIT licence.
+- Trader portraits: Battlestate Games' artwork, loaded at runtime from tarkov.dev (assets.tarkov.dev). Not bundled and not covered by the TarTrak licence.
 - Screenshot filename format documented by the community (TarkovMonitor).
 - Fonts: IBM Plex Sans and IBM Plex Mono (SIL Open Font License 1.1), bundled through `@fontsource`.
 
-TarTrak is MIT licensed. Escape from Tarkov is a trademark of Battlestate Games. TarTrak is not affiliated with or endorsed by them.
+TarTrak is licensed under the GNU General Public License v3.0 (GPL-3.0). Versions up to and including 0.20.4 were released under the MIT license. Escape from Tarkov is a trademark of Battlestate Games. TarTrak is not affiliated with or endorsed by them.

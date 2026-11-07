@@ -333,7 +333,7 @@
   <details>
     <summary>About</summary>
     <p class="small">
-      TarTrak is free and open source (MIT). It only reads the screenshots the game saves and its text logs.
+      TarTrak is free and open source (GPL-3.0). It only reads the screenshots the game saves and its text logs.
       Map images: <a href="https://github.com/the-hideout/tarkov-dev-svg-maps" onclick={external}>tarkov-dev-svg-maps</a> (CC BY-NC-SA 4.0).
       Map math and quest data: <a href="https://tarkov.dev" onclick={external}>tarkov.dev</a> (MIT). Escape from Tarkov and its trader portraits belong to Battlestate Games; TarTrak is not affiliated with or endorsed by them.
       In a squad room, your name, colour, position, shared markers, drawings and to-do list go through the relay to
