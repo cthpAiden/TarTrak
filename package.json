@@ -22,7 +22,7 @@
     "@tauri-apps/plugin-fs": "^2",
     "@tauri-apps/plugin-global-shortcut": "^2",
     "@tauri-apps/plugin-http": "^2",
-    "@tauri-apps/plugin-opener": "^2.5.5",
+    "@tauri-apps/plugin-opener": "^2.7.2",
     "@tauri-apps/plugin-process": "^2",
     "@tauri-apps/plugin-store": "^2",
     "@tauri-apps/plugin-updater": "^2",
@@ -33,11 +33,11 @@
     "@tauri-apps/cli": "^2",
     "@tsconfig/svelte": "^5",
     "@types/leaflet": "^1.9",
-    "@types/node": "^26.6.5",
+    "@types/node": "^26.6.6",
     "jsdom": "^30",
     "svelte": "^5",
     "svelte-check": "^4",
-    "typescript": "^6",
+    "typescript": "^7",
     "vite": "^8.3.5",
     "vitest": "^5.0.5"
   }
