@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- **Shared screenshots are sharper.** They are sent up to 1920 px wide (was 1280) at higher JPEG quality, and shrunk with a smoother filter, so text and edges look cleaner, most of all when enlarged. A very busy screenshot still steps down in size or quality until it fits the squad server's limit, as before. Each share is bigger to download, up to about 1 MB.
+
 ## 0.20.3 - 2026-11-06
 
 ### Fixed

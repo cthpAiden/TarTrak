@@ -4,10 +4,16 @@ import { MAX_SHOT_MESSAGE_BYTES } from "./protocol";
 export const SHOT_MAX_CHARS = MAX_SHOT_MESSAGE_BYTES - 4096;
 /** The relay lets two through at once, then one per 10 s; the app keeps to the steady rate. */
 export const SHOT_GAP_MS = 10_000;
-/** Tried in order until the JPEG fits: a 1440p shot fits at the first, a busy 4K one may need the last. */
+/**
+ * Tried in order until the JPEG fits, best first. 1920 wide fills the enlarged popup (960 logical) even
+ * on a 200% screen; most shots fit near the top, and the small ones at the end are the last resort.
+ */
 const ATTEMPTS: [maxWidth: number, quality: number][] = [
-  [1280, 0.8],
-  [1280, 0.6],
+  [1920, 0.92],
+  [1920, 0.85],
+  [1600, 0.85],
+  [1280, 0.85],
+  [1280, 0.7],
   [960, 0.6],
   [640, 0.5],
 ];
@@ -32,7 +38,10 @@ export async function shrinkShot(png: ArrayBuffer): Promise<string> {
     for (const [maxWidth, quality] of ATTEMPTS) {
       const { w, h } = fitWidth(bmp.width, bmp.height, maxWidth);
       const canvas = new OffscreenCanvas(w, h);
-      canvas.getContext("2d")!.drawImage(bmp, 0, 0, w, h);
+      const ctx = canvas.getContext("2d")!;
+      // The default smoothing shrinks a 1440p or 4K shot with visible jaggies on text and edges.
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(bmp, 0, 0, w, h);
       const jpeg = await canvas.convertToBlob({ type: "image/jpeg", quality });
       const data = toBase64(new Uint8Array(await jpeg.arrayBuffer()));
       if (data.length <= SHOT_MAX_CHARS) return data;
