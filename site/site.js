@@ -1,6 +1,8 @@
-// TarTrak site: the live map in the hero, the filename anatomy, the squad panel's ages, and the latest version from GitHub.
+// TarTrak site: the playable hero, the scrolled raid story, the sections below it, and the latest version from GitHub.
+// Needs map.js (window.TT). Styles are only set through CSSOM (el.style.x), which the CSP allows.
 (() => {
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const $ = (s) => document.querySelector(s), $$ = (s) => [...document.querySelectorAll(s)];
 
   // ---------- latest release ----------
   // The page ships with the current version filled in; this only updates it.
@@ -8,11 +10,11 @@
   function applyRelease(r) {
     const ver = String(r.tag_name || "").replace(/^v/, "");
     if (!/^\d+\.\d+\.\d+$/.test(ver)) return;
-    document.querySelectorAll("[data-ver]").forEach((el) => (el.textContent = ver));
-    if (r.published_at) document.querySelectorAll("[data-date]").forEach((el) => (el.textContent = fmtDate(r.published_at)));
+    $$("[data-ver]").forEach((el) => (el.textContent = ver));
+    if (r.published_at) $$("[data-date]").forEach((el) => (el.textContent = fmtDate(r.published_at)));
     const exe = (r.assets || []).find((a) => /-setup\.exe$/i.test(a.name));
     if (exe && /^https:\/\/github\.com\/cthpAiden\/TarTrak\/releases\/download\//.test(exe.browser_download_url)) {
-      document.querySelectorAll("[data-dl]").forEach((a) => (a.href = exe.browser_download_url));
+      $$("[data-dl]").forEach((a) => (a.href = exe.browser_download_url));
     }
   }
   const KEY = "tartrak-release";
@@ -28,386 +30,277 @@
     })
     .catch(() => {});
 
-  // ---------- squad panel: ages tick and reset like real updates ----------
-  const ages = [...document.querySelectorAll(".age")];
-  if (!reduce) setInterval(() => ages.forEach((a) => {
-    let n = +a.dataset.age + 1;
-    if (n > 4 + Math.random() * 6) n = 0;
-    a.dataset.age = n;
-    a.textContent = n === 0 ? "now" : `${n}s ago`;
-  }), 1000);
-
   // ---------- filename anatomy: light the two groups in turn ----------
-  const groups = [...document.querySelectorAll("#fname .grp[data-g]")];
+  const groups = $$("#fname .grp[data-g]");
   let gi = 0;
   if (!reduce) setInterval(() => { groups.forEach((g, i) => g.classList.toggle("hot", i === gi % 2)); gi++; }, 1800);
   else groups.forEach((g) => g.classList.add("hot"));
 
-  // ---------- terrain: seeded simplex noise and marching-squares contours ----------
-  function rng(seed) {
-    let a = seed | 0;
-    return function () {
-      a = (a + 0x6d2b79f5) | 0;
-      let t = Math.imul(a ^ (a >>> 15), 1 | a);
-      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-  }
-  // 2D simplex noise, summed over octaves. Returns roughly -1..1.
-  function noise(seed) {
-    const r = rng(seed);
-    const perm = [...Array(256).keys()];
-    for (let i = 255; i > 0; i--) {
-      const j = Math.floor(r() * (i + 1));
-      [perm[i], perm[j]] = [perm[j], perm[i]];
-    }
-    const p = new Uint8Array(512);
-    for (let i = 0; i < 512; i++) p[i] = perm[i & 255];
-    const g = [[1, 1], [-1, 1], [1, -1], [-1, -1], [1, 0], [-1, 0], [0, 1], [0, -1]];
-    const F2 = 0.5 * (Math.sqrt(3) - 1), G2 = (3 - Math.sqrt(3)) / 6;
-    function n2(xin, yin) {
-      const s = (xin + yin) * F2;
-      const i = Math.floor(xin + s), j = Math.floor(yin + s);
-      const t = (i + j) * G2;
-      const x0 = xin - (i - t), y0 = yin - (j - t);
-      const i1 = x0 > y0 ? 1 : 0, j1 = x0 > y0 ? 0 : 1;
-      const x1 = x0 - i1 + G2, y1 = y0 - j1 + G2, x2 = x0 - 1 + 2 * G2, y2 = y0 - 1 + 2 * G2;
-      const ii = i & 255, jj = j & 255;
-      const c = (gi, x, y) => {
-        let q = 0.5 - x * x - y * y;
-        if (q < 0) return 0;
-        q *= q;
-        return q * q * (g[gi][0] * x + g[gi][1] * y);
-      };
-      return 70 * (c(p[ii + p[jj]] & 7, x0, y0) + c(p[ii + i1 + p[jj + j1]] & 7, x1, y1) + c(p[ii + 1 + p[jj + 1]] & 7, x2, y2));
-    }
-    return function (x, y, oct = 4) {
-      let a = 1, f = 1, s = 0, n = 0;
-      for (let k = 0; k < oct; k++) { s += a * n2(x * f, y * f); n += a; a *= 0.5; f *= 2; }
-      return s / n;
-    };
-  }
-  // Edges: 0 top, 1 right, 2 bottom, 3 left.
-  const CASES = [[], [[3, 2]], [[2, 1]], [[3, 1]], [[0, 1]], [[3, 0], [2, 1]], [[0, 2]], [[3, 0]],
-    [[3, 0]], [[0, 2]], [[0, 1], [3, 2]], [[0, 1]], [[3, 1]], [[2, 1]], [[3, 2]], []];
-  // field(x, y) in px -> value. Returns { minor, major } Path2D in px; every `majorEvery`-th level is major.
-  function contours(field, w, h, cell, levels, majorEvery) {
-    const cols = Math.ceil(w / cell) + 2, rows = Math.ceil(h / cell) + 2;
-    const v = new Float32Array(cols * rows);
-    for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) v[j * cols + i] = field(i * cell, j * cell);
-    const minor = new Path2D(), major = new Path2D();
-    levels.forEach((l, k) => {
-      const path = majorEvery && k % majorEvery === 0 ? major : minor;
-      for (let j = 0; j < rows - 1; j++) {
-        for (let i = 0; i < cols - 1; i++) {
-          const a = v[j * cols + i], b = v[j * cols + i + 1], c = v[(j + 1) * cols + i + 1], d = v[(j + 1) * cols + i];
-          const idx = (a > l ? 8 : 0) | (b > l ? 4 : 0) | (c > l ? 2 : 0) | (d > l ? 1 : 0);
-          if (idx === 0 || idx === 15) continue;
-          const pt = (e) => {
-            if (e === 0) return [(i + (l - a) / (b - a)) * cell, j * cell];
-            if (e === 1) return [(i + 1) * cell, (j + (l - b) / (c - b)) * cell];
-            if (e === 2) return [(i + (l - d) / (c - d)) * cell, (j + 1) * cell];
-            return [i * cell, (j + (l - a) / (d - a)) * cell];
-          };
-          for (const [e1, e2] of CASES[idx]) {
-            const p1 = pt(e1), p2 = pt(e2);
-            path.moveTo(p1[0], p1[1]);
-            path.lineTo(p2[0], p2[1]);
-          }
-        }
-      }
-    });
-    return { minor, major };
-  }
-  function range(from, to, step) {
-    const out = [];
-    for (let x = from; x <= to + 1e-9; x += step) out.push(x);
-    return out;
-  }
-  const pad = (n, w = 2) => String(n).padStart(w, "0");
-  // The filename Tarkov saves on PrintScreen. heading in degrees, 0 = north, clockwise.
-  function filename(x, y, z, heading, date = new Date()) {
-    const half = (heading * Math.PI) / 360;
-    const q = [0, Math.sin(half), 0, Math.cos(half)].map((n) => n.toFixed(5));
-    const stamp = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}[${pad(date.getHours())}-${pad(date.getMinutes())}]`;
-    return { stamp, pos: [x, y, z].map((n) => n.toFixed(2)), rot: q };
-  }
-  function hexA(hex, a) {
-    const n = parseInt(hex.slice(1), 16);
-    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+  const C = TT.COL, pad = TT.pad;
+  const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+  const ss = (a, b, x) => { const t = clamp((x - a) / (b - a)); return t * t * (3 - 2 * t); };
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const mobile = () => innerWidth <= 760;
+  const U = 7; // scroll units: 0 = play + dive, 1..6 = the raid
+
+  // ======================= HERO: the playable scene =======================
+  const stage = $("#stage"), world = $("#world"), ov = $("#ov"), flash = $("#flash"), toasts = $("#toasts"), shot = $("#shot"), hero = $("#hero"), deck = $("#deck");
+  const layers = $$(".layer");
+  let mx = 0, my = 0, tx = 0, ty = 0;
+  stage.addEventListener("pointermove", (e) => { tx = e.clientX / innerWidth - 0.5; ty = e.clientY / innerHeight - 0.5; });
+
+  // compass tape on the overlay
+  const tape = $("#tape"), hdgEl = $("#hdg");
+  const names = { 0: "N", 45: "NE", 90: "E", 135: "SE", 180: "S", 225: "SW", 270: "W", 315: "NW" };
+  for (let d = -360; d < 720; d += 5) {
+    const s = document.createElement("span"), a = ((d % 360) + 360) % 360;
+    if (a % 15 === 0) { s.className = "m5"; const b = document.createElement("b"); b.textContent = names[a] ?? a; if (names[a]) b.className = "card"; s.append(b); }
+    tape.append(s);
   }
 
-  // ---------- the live map ----------
-  const C = { ground: "#20251d", contour: "#343d2e", major: "#465140", water: "#18252a", waterEdge: "#2c4046",
-    road: "#6a705f", roadEdge: "#2b3026", roof: "#3a4136", wall: "#262b23", amber: "#f0b429", fg: "#e8eaed", deep: "#0b0d10" };
-  const cv = document.getElementById("map"), ctx = cv.getContext("2d");
-  const wrap = cv.parentElement;
-  const field = noise(11);
-  let W = 0, H = 0, DPR = 1, mpp = 1, base = null, born = performance.now();
-  const rnd = rng(4);
-
-  // world features, in fractions of the map box (all made up)
-  const river = [[-0.05, 0.82], [0.2, 0.7], [0.38, 0.76], [0.55, 0.58], [0.72, 0.52], [0.86, 0.3], [1.05, 0.22]];
-  const road = [[-0.05, 0.38], [0.25, 0.42], [0.48, 0.34], [0.7, 0.4], [1.05, 0.36]];
-  const road2 = [[0.62, -0.05], [0.6, 0.3], [0.66, 0.6], [0.6, 1.05]];
-  const clusters = [[0.72, 0.24, "SAWMILL"], [0.88, 0.62, "DEPOT"], [0.44, 0.22, "RAIL YARD"], [0.3, 0.6, "RIVERSIDE"]];
-  const extracts = [[0.86, 0.86, "NORTH GATE", "#3ecf8e"], [0.5, 0.9, "PIER 4", "#4fb3ff"], [0.12, 0.2, "TUNNEL", "#f0b429"]];
-
-  function smooth(g, pts) {
-    const P = pts.map(([x, y]) => [x * W, y * H]);
-    g.moveTo(P[0][0], P[0][1]);
-    for (let i = 1; i < P.length - 1; i++) {
-      const mx = (P[i][0] + P[i + 1][0]) / 2, my = (P[i][1] + P[i + 1][1]) / 2;
-      g.quadraticCurveTo(P[i][0], P[i][1], mx, my);
-    }
-    g.lineTo(P[P.length - 1][0], P[P.length - 1][1]);
-  }
-
-  function build() {
-    const r = wrap.getBoundingClientRect();
-    W = r.width; H = r.height; DPR = Math.min(2, devicePixelRatio || 1);
-    cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
-    mpp = Math.max(0.5, Math.min(1.25, 760 / W));
-    base = document.createElement("canvas");
-    base.width = cv.width; base.height = cv.height;
-    const b = base.getContext("2d");
-    b.scale(DPR, DPR);
-    b.fillStyle = C.ground; b.fillRect(0, 0, W, H);
-    // terrain
-    const k = mpp / 300;
-    const paths = contours((x, y) => field(x * k + 3, y * k + 7), W, H, 7, range(-0.75, 0.75, 0.075), 4);
-    b.lineWidth = 1; b.strokeStyle = C.contour; b.stroke(paths.minor);
-    b.lineWidth = 1.5; b.strokeStyle = C.major; b.stroke(paths.major);
-    // 100 m grid
-    b.strokeStyle = "rgba(255,255,255,0.035)"; b.lineWidth = 1;
-    const step = 100 / mpp;
-    b.beginPath();
-    for (let x = W / 2 % step; x < W; x += step) { b.moveTo(x, 0); b.lineTo(x, H); }
-    for (let y = H / 2 % step; y < H; y += step) { b.moveTo(0, y); b.lineTo(W, y); }
-    b.stroke();
-    // river
-    b.lineCap = "round"; b.lineJoin = "round";
-    b.beginPath(); smooth(b, river); b.strokeStyle = C.waterEdge; b.lineWidth = 24 / mpp; b.stroke();
-    b.beginPath(); smooth(b, river); b.strokeStyle = C.water; b.lineWidth = 20 / mpp; b.stroke();
-    // roads
-    for (const rd of [road, road2]) {
-      b.beginPath(); smooth(b, rd); b.strokeStyle = C.roadEdge; b.lineWidth = 9 / mpp + 2; b.stroke();
-      b.beginPath(); smooth(b, rd); b.strokeStyle = C.road; b.lineWidth = 2; b.setLineDash([10, 8]); b.stroke(); b.setLineDash([]);
-    }
-    // buildings
-    const br = rng(9);
-    for (const [cx, cy] of clusters) {
-      for (let i = 0; i < 9; i++) {
-        const x = cx * W + (br() - 0.5) * 150 / mpp, y = cy * H + (br() - 0.5) * 110 / mpp;
-        const w = (10 + br() * 26) / mpp, h = (8 + br() * 18) / mpp, a = (br() - 0.5) * 0.5;
-        b.save(); b.translate(x, y); b.rotate(a);
-        b.fillStyle = C.roof; b.fillRect(-w / 2, -h / 2, w, h);
-        b.strokeStyle = C.wall; b.lineWidth = 2; b.strokeRect(-w / 2, -h / 2, w, h);
-        b.restore();
-      }
-    }
-    // area labels
-    b.font = `600 ${Math.round(13 / Math.sqrt(mpp))}px "Barlow Condensed", sans-serif`;
-    b.fillStyle = "rgba(232,234,237,0.3)"; b.textAlign = "center";
-    for (const [cx, cy, name] of clusters) b.fillText(name.split("").join(String.fromCharCode(8202)), cx * W, cy * H - 70 / mpp);
-    // edge ticks
-    b.font = '10px "JetBrains Mono", monospace'; b.fillStyle = "rgba(232,234,237,0.28)"; b.textAlign = "left";
-    for (let x = W / 2 % step; x < W; x += step) b.fillText(String((Math.round((x - W / 2) * mpp / 100)) * 100), x + 4, H - 56);
-  }
-
-  // entities
-  const deg = (a) => (a * Math.PI) / 180;
-  const you = { x: 0, y: 0, h: 48, ping: -9, label: "YOU", color: C.amber };
+  const mini = TT.map($("#mini"), { seed: 23, scale: 520 });
+  const MS = mini.scene;
+  const me = { id: "you", label: "YOU", color: C.you, x: 0.5, y: 0.55, h: 48, len: 80 };
   const mates = [
-    { label: "GHOST", color: "#00e5ff", off: [-60, -40] },
-    { label: "NOMAD", color: "#b388ff", off: [70, 30], floor: "2F" },
-    { label: "VEX", color: "#ff4081", off: [-40, 110] },
+    { id: "ghost", label: "GHOST", color: C.ghost, x: 0.38, y: 0.38, h: 70, len: 70 },
+    { id: "nomad", label: "NOMAD", color: C.nomad, x: 0.66, y: 0.7, h: 310, floor: "2F", len: 70 },
+    { id: "vex", label: "VEX", color: C.vex, x: 0.62, y: 0.32, h: 20, len: 70 },
   ];
-  let lastClick = 0, pointer = null;
+  MS.players = [me, ...mates]; MS.zoom = 1.25; MS.route = { from: "you", to: 0 }; MS.labels = false;
+  const rnd = TT.rng(5);
+  let lastAuto = performance.now();
+  let cur = 0; // eased scroll progress through the track, 0..1
+  const atTop = () => cur * U < 0.12;
 
-  function place() {
-    you.x = W > 760 ? W * 0.66 : W * 0.5;
-    you.y = H * 0.48;
-    for (const m of mates) {
-      m.tx = m.x = you.x + m.off[0] / mpp; m.ty = m.y = you.y + m.off[1] / mpp;
-      m.h = Math.round(rnd() * 360); m.ping = -9; m.next = performance.now() + 600 + rnd() * 1800;
-      pickWaypoint(m);
+  MS.beforeFrame = (now) => {
+    mx += (tx - mx) * 0.08; my += (ty - my) * 0.08;
+    layers.forEach((l) => { const d = +l.dataset.d; l.style.transform = `translate3d(${-mx * d}px, ${-my * d * 0.5}px, 0)`; });
+    me.h = (48 + mx * 120 + 360) % 360;
+    tape.style.transform = `translateX(${-(me.h + 360) * 2 - 1}px)`;
+    hdgEl.textContent = String(Math.round(me.h)).padStart(3, "0") + "°";
+    MS.cx += (me.x - MS.cx) * 0.1; MS.cy += (me.y - MS.cy) * 0.1;
+    for (const p of mates) {
+      if (!p.next) p.next = now + 800 + rnd() * 2400;
+      if (now > p.next) { p.tx = clamp(p.x + (rnd() - 0.5) * 0.12, 0.15, 0.85); p.ty = clamp(p.y + (rnd() - 0.5) * 0.12, 0.15, 0.85); p.h = (p.h + (rnd() - 0.5) * 90 + 360) % 360; p.ping = now; p.next = now + 1800 + rnd() * 2600; }
     }
-  }
-  const clampX = (x) => Math.max(W > 760 ? W * 0.44 : 24, Math.min(W - 24, x));
-  const clampY = (y) => Math.max(110, Math.min(H - 70, y));
-  function pickWaypoint(m) {
-    const a = rnd() * Math.PI * 2, d = (40 + rnd() * 120) / mpp;
-    m.wx = clampX(you.x + Math.cos(a) * d); m.wy = clampY(you.y + Math.sin(a) * d);
-  }
+    if (now - lastAuto > 7000 && atTop()) screenshot(true);
+  };
 
-  const bearing = (dx, dy) => ((Math.atan2(dx, -dy) * 180) / Math.PI + 360) % 360;
-  const toWorld = (x, y) => ({ X: -182.4 + (x - you.x0) * mpp, Z: -71.0 - (y - you.y0) * mpp });
-
-  function headingLine(e, alpha) {
-    const a = deg(e.h - 90), len = 100 / mpp, cs = Math.cos(a), sn = Math.sin(a);
-    const g = ctx.createLinearGradient(e.x, e.y, e.x + cs * len, e.y + sn * len);
-    g.addColorStop(0, hexA(e.color, 0.95 * alpha)); g.addColorStop(1, hexA(e.color, 0));
-    ctx.strokeStyle = g; ctx.lineWidth = 2; ctx.setLineDash([7, 5]);
-    ctx.beginPath(); ctx.moveTo(e.x + cs * 9, e.y + sn * 9); ctx.lineTo(e.x + cs * len, e.y + sn * len); ctx.stroke();
-    ctx.setLineDash([]);
-    // range marks at 50, 100, 150 m: split ticks either side of the line
-    if (len > 40) {
-      ctx.lineWidth = 1.5;
-      for (const [m, o] of [[50, 0.8], [100, 0.55], [150, 0.35]]) {
-        const d = m / mpp, cx = e.x + cs * d, cy = e.y + sn * d;
-        ctx.strokeStyle = hexA(e.color, o * alpha);
-        ctx.beginPath();
-        ctx.moveTo(cx - sn * 3.5, cy + cs * 3.5); ctx.lineTo(cx - sn * 8, cy + cs * 8);
-        ctx.moveTo(cx + sn * 3.5, cy - cs * 3.5); ctx.lineTo(cx + sn * 8, cy - cs * 8);
-        ctx.stroke();
-      }
-    }
+  function toast(html, cls) {
+    const t = document.createElement("div"); t.className = "toast " + (cls || ""); t.innerHTML = html; toasts.prepend(t);
+    setTimeout(() => t.remove(), 3300); while (toasts.children.length > 3) toasts.lastChild.remove();
   }
-  function dot(e, alpha, r) {
-    ctx.beginPath(); ctx.arc(e.x, e.y, r + 2.5, 0, Math.PI * 2); ctx.fillStyle = hexA("#0b0d10", 0.9 * alpha); ctx.fill();
-    ctx.beginPath(); ctx.arc(e.x, e.y, r, 0, Math.PI * 2); ctx.fillStyle = hexA(e.color, alpha); ctx.fill();
+  function screenshot(auto) {
+    lastAuto = performance.now();
+    const a = ((me.h - 90) * Math.PI) / 180, d = 0.05 + rnd() * 0.05;
+    me.tx = clamp(me.x + Math.cos(a) * d, 0.15, 0.85); me.ty = clamp(me.y + Math.sin(a) * d * 1.6, 0.15, 0.85);
+    me.ping = performance.now();
+    const w = mini.toWorld(me.tx, me.ty), f = TT.filename(w.X, 2.1, w.Z, me.h);
+    if (!auto) flash.animate([{ opacity: 0.3 }, { opacity: 0 }], { duration: 300 });
+    toast(`Screenshot saved: ${f.stamp}_<em>${f.pos.join(", ")}</em>_<em>${f.rot.slice(1, 4).join(", ")}…</em>`);
   }
-  function ping(e, now) {
-    const t = (now - e.ping) / 900;
-    if (t < 0 || t > 1) return;
-    ctx.beginPath(); ctx.arc(e.x, e.y, 8 + t * 46, 0, Math.PI * 2);
-    ctx.strokeStyle = hexA(e.color, 0.7 * (1 - t)); ctx.lineWidth = 2; ctx.stroke();
+  let opIdx = 0; const ops = [0.86, 0.6, 0.35, 1];
+  let shotTimer;
+  const act = {
+    PrintScreen: () => screenshot(false),
+    F5: () => ov.classList.toggle("full"),
+    F6: () => { opIdx = (opIdx + 1) % ops.length; ov.style.opacity = ops[opIdx]; },
+    F7: () => ov.classList.toggle("hidden"),
+    F8: () => {
+      flash.animate([{ opacity: 0.12 }, { opacity: 0 }], { duration: 250 });
+      toast(`<b>F8</b> Sent your last screenshot to K7Q2XM · 3 teammates`, "sent");
+      clearTimeout(shotTimer); shot.classList.remove("on");
+      shotTimer = setTimeout(() => { void shot.offsetWidth; shot.classList.add("on"); mates[2].ping = performance.now();
+        shotTimer = setTimeout(() => shot.classList.remove("on"), 10000); }, 1400);
+    },
+  };
+  function press(k) {
+    const b = $(`.key[data-k="${k}"]`); if (!b || !act[k] || !atTop()) return;
+    act[k]();
+    b.classList.add("down", "lit"); setTimeout(() => b.classList.remove("down"), 120); setTimeout(() => b.classList.remove("lit"), 900);
   }
-  function label(e, text, sub) {
-    ctx.font = '600 11px "JetBrains Mono", monospace';
-    const w1 = ctx.measureText(text).width, w2 = sub ? ctx.measureText(sub).width + 8 : 0;
-    const x = e.x + 13, y = e.y - 22, w = w1 + w2 + 14;
-    ctx.fillStyle = "rgba(11,13,16,0.86)"; ctx.strokeStyle = hexA(e.color, 0.55); ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.roundRect(x, y, w, 19, 4); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = e.color; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(text, x + 7, y + 10);
-    if (sub) { ctx.fillStyle = C.fg; ctx.fillText(sub, x + 7 + w1 + 8, y + 10); }
-  }
-
-  function draw(now) {
-    const dt = Math.min(50, now - (draw.last || now)); draw.last = now;
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    ctx.drawImage(base, 0, 0, W, H);
-    const age = reduce ? 99 : (now - born) / 1000;
-    const R = Math.hypot(W, H) * (1 - Math.pow(2, -6 * Math.min(1, age / 1.8)));
-    const revealing = age < 1.8;
-    ctx.save();
-    if (revealing) {
-      ctx.fillStyle = C.deep; ctx.fillRect(0, 0, W, H);
-      ctx.beginPath(); ctx.arc(you.x, you.y, R, 0, Math.PI * 2); ctx.clip();
-      ctx.drawImage(base, 0, 0, W, H);
-    }
-    // route to the first extract
-    const ex = extracts[0], exX = ex[0] * W, exY = ex[1] * H;
-    ctx.strokeStyle = "rgba(62,207,142,0.5)"; ctx.lineWidth = 1.5; ctx.setLineDash([2, 6]); ctx.lineDashOffset = -now / 40;
-    ctx.beginPath(); ctx.moveTo(you.x, you.y); ctx.lineTo(exX, exY); ctx.stroke(); ctx.setLineDash([]);
-    // extracts
-    ctx.font = '600 11px "JetBrains Mono", monospace'; ctx.textBaseline = "middle";
-    for (const [fx, fy, name, col] of extracts) {
-      const x = fx * W, y = fy * H;
-      ctx.fillStyle = "rgba(11,13,16,0.85)"; ctx.strokeStyle = col; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.roundRect(x - 9, y - 9, 18, 18, 4); ctx.fill(); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(x - 3, y + 4); ctx.lineTo(x + 4, y - 3); ctx.moveTo(x - 1, y - 3); ctx.lineTo(x + 4, y - 3); ctx.lineTo(x + 4, y + 2);
-      ctx.strokeStyle = col; ctx.stroke();
-      const right = x < W - 120;
-      ctx.textAlign = right ? "left" : "right"; ctx.fillStyle = col;
-      const dist = name === ex[2] ? `  ${Math.round(Math.hypot(exX - you.x, exY - you.y) * mpp)} m` : "";
-      ctx.fillText(name + dist, right ? x + 15 : x - 15, y);
-    }
-    // teammates
-    for (const m of mates) {
-      if (!reduce) {
-        const sp = (2.6 / mpp) * (dt / 1000) * 3;
-        const dx = m.wx - m.tx, dy = m.wy - m.ty, d = Math.hypot(dx, dy);
-        if (d < 4) pickWaypoint(m); else { m.tx += (dx / d) * sp; m.ty += (dy / d) * sp; m.dir = bearing(dx, dy); }
-        if (now > m.next) {
-          m.x = m.tx; m.y = m.ty; m.h = (m.dir ?? m.h) + (rnd() - 0.5) * 70; m.ping = now;
-          m.next = now + 1600 + rnd() * 2600;
-        }
-      }
-      const stale = Math.min(1, Math.max(0, (now - m.ping) / 1000 - 30) / 270);
-      const a = 1 - 0.65 * stale;
-      headingLine(m, a); ping(m, now); dot(m, a, 6);
-      label(m, m.floor ? `${m.label} [${m.floor}]` : m.label, `${Math.round(Math.hypot(m.x - you.x, m.y - you.y) * mpp)} m`);
-    }
-    // you
-    headingLine(you, 1); ping(you, now); dot(you, 1, 7.5);
-    if (revealing) {
-      ctx.restore(); ctx.save();
-      ctx.beginPath(); ctx.arc(you.x, you.y, R, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(240,180,41,0.75)"; ctx.lineWidth = 2; ctx.stroke();
-    }
-    ctx.restore();
-    // cursor readout
-    if (pointer) {
-      const w = toWorld(pointer.x, pointer.y);
-      ctx.strokeStyle = "rgba(240,180,41,0.9)"; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.arc(pointer.x, pointer.y, 11, 0, Math.PI * 2); ctx.stroke();
-      ctx.font = '500 11px "JetBrains Mono", monospace'; ctx.textAlign = "left"; ctx.textBaseline = "top";
-      const t = `X ${w.X.toFixed(1)}  Z ${w.Z.toFixed(1)}`;
-      ctx.fillStyle = "rgba(11,13,16,0.86)"; ctx.fillRect(pointer.x + 16, pointer.y + 12, ctx.measureText(t).width + 12, 34);
-      ctx.fillStyle = C.fg; ctx.fillText(t, pointer.x + 22, pointer.y + 16);
-      ctx.fillStyle = C.amber; ctx.fillText("click = PrtSc", pointer.x + 22, pointer.y + 31);
-    }
-    // idle demo: you take a screenshot now and then
-    if (!reduce && now - lastClick > 5200 && age > 2.4) {
-      const a = deg(you.h - 90 + (rnd() - 0.5) * 80), d = (50 + rnd() * 70) / mpp;
-      snap(clampX(you.x + Math.cos(a) * d), clampY(you.y + Math.sin(a) * d), now, true);
-    }
-    if (!reduce) requestAnimationFrame(draw);
-  }
-
-  const logEl = document.getElementById("log"), cap = document.getElementById("cap"), flash = document.getElementById("flash");
-  function logShot() {
-    const w = toWorld(you.x, you.y);
-    const elev = 2 + field(you.x * 0.01, you.y * 0.01) * 6;
-    const f = filename(w.X, elev, w.Z, you.h);
-    const li = document.createElement("li");
-    const em = (t) => { const e = document.createElement("em"); e.textContent = t; return e; };
-    li.append(f.stamp + "_", em(f.pos.join(", ")), "_", em(f.rot.join(", ")), " (0).png");
-    const relay = document.createElement("span"); relay.className = "relay"; relay.textContent = "→ sent to room K7Q2XM (3 teammates)";
-    li.append(relay);
-    logEl.prepend(li);
-    while (logEl.children.length > 3) logEl.lastChild.remove();
-    for (const r of logEl.querySelectorAll("li:not(:first-child) .relay")) r.remove();
-    document.getElementById("sx").textContent = w.X.toFixed(1);
-    document.getElementById("sz").textContent = w.Z.toFixed(1);
-    document.getElementById("sh").textContent = String(Math.round(you.h) % 360).padStart(3, "0") + "°";
-  }
-  function snap(x, y, now, auto) {
-    const dx = x - you.x, dy = y - you.y;
-    if (Math.hypot(dx, dy) > 3) you.h = bearing(dx, dy);
-    you.x = x; you.y = y; you.ping = now; lastClick = now;
-    logShot();
-    if (!auto) { flash.classList.remove("on"); void flash.offsetWidth; flash.classList.add("on"); }
-    cap.classList.add("down"); setTimeout(() => cap.classList.remove("down"), 140);
-  }
-
-  cv.addEventListener("pointermove", (e) => { const r = cv.getBoundingClientRect(); pointer = { x: e.clientX - r.left, y: e.clientY - r.top }; if (reduce) requestAnimationFrame(draw); });
-  cv.addEventListener("pointerleave", () => { pointer = null; if (reduce) requestAnimationFrame(draw); });
-  cv.addEventListener("click", (e) => { const r = cv.getBoundingClientRect(); snap(e.clientX - r.left, e.clientY - r.top, performance.now()); if (reduce) requestAnimationFrame(draw); });
-
-  function init() {
-    build(); place();
-    you.x0 = you.x; you.y0 = you.y;
-    logEl.textContent = ""; logShot();
-    requestAnimationFrame(draw);
-  }
-  // phones fire resize when the address bar slides; only a new map size or pixel ratio needs new contours
-  let t;
-  addEventListener("resize", () => {
-    clearTimeout(t);
-    t = setTimeout(() => {
-      const r = wrap.getBoundingClientRect();
-      if (Math.round(r.width) === Math.round(W) && Math.round(r.height) === Math.round(H) && Math.min(2, devicePixelRatio || 1) === DPR) return;
-      const ox = you.x / W, oy = you.y / H;
-      build(); you.x = ox * W; you.y = oy * H;
-      requestAnimationFrame(draw);
-    }, 150);
+  $$(".key").forEach((b) => b.addEventListener("click", () => press(b.dataset.k)));
+  // the demo keys only work at the top of the page, and never with a modifier (Ctrl+P, Ctrl+F5 stay the browser's)
+  addEventListener("keydown", (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = e.key === "p" || e.key === "P" ? "PrintScreen" : e.key;
+    if (act[k] && atTop()) { e.preventDefault(); press(k); }
   });
-  document.fonts.ready.then(init);
-
-  // raid clock
+  addEventListener("keyup", (e) => { if (e.key === "PrintScreen") press("PrintScreen"); });
   let left = 31 * 60 + 42;
-  setInterval(() => { left = Math.max(0, left - 1); document.getElementById("raid").textContent = `${pad(Math.floor(left / 60))}:${pad(left % 60)}`; }, 1000);
+  setInterval(() => { left = Math.max(0, left - 1); }, 1000);
+
+  // ======================= STORY: the scrolled raid =======================
+  const m = TT.map($("#map"), { seed: 11, scale: 820 });
+  const S = m.scene;
+  const YOU = { x: 0.64, y: 0.5 };
+  const final = { ghost: [0.56, 0.4], nomad: [0.74, 0.58], vex: [0.71, 0.36] };
+  const start = { ghost: [0.3, -0.1], nomad: [1.1, 0.8], vex: [0.95, -0.1] };
+  const P = {
+    you: { id: "you", label: "YOU", color: C.you, x: YOU.x, y: YOU.y, h: 48, show: false },
+    ghost: { id: "ghost", label: "GHOST", color: C.ghost, h: 20, show: false },
+    nomad: { id: "nomad", label: "NOMAD", color: C.nomad, h: 300, floor: "2F", show: false },
+    vex: { id: "vex", label: "VEX", color: C.vex, h: 330, show: false },
+  };
+  S.players = [P.you, P.ghost, P.nomad, P.vex];
+  const T = [
+    { color: C.you, pts: [[0.4, 0.95], [0.45, 0.82], [0.5, 0.74], [0.55, 0.66], [0.6, 0.57], [YOU.x, YOU.y]] },
+    { color: C.ghost, pts: [[0.18, 0.12], [0.28, 0.2], [0.38, 0.27], [0.47, 0.33], final.ghost] },
+    { color: C.nomad, pts: [[0.98, 0.95], [0.92, 0.82], [0.86, 0.72], [0.8, 0.64], final.nomad] },
+    { color: C.vex, pts: [[0.9, 0.08], [0.84, 0.16], [0.78, 0.24], [0.74, 0.3], final.vex] },
+  ];
+
+  // the filename types itself out in beat 2
+  const f = TT.filename(-182.4, 2.1, -71.03, 48, new Date(2026, 10, 8, 21, 14));
+  const parts = [["p", "Screenshots\\"], ["", f.stamp + "_"], ["e", f.pos.join(", ")], ["", "_"], ["e", f.rot.join(", ")], ["", " (0).png"]];
+  const full = parts.map((p) => p[1]).join("");
+  const typedEl = $("#typed");
+  let typed = -1;
+  function typeTo(n) {
+    if (n === typed) return; typed = n; typedEl.textContent = "";
+    let l = n;
+    for (const [cls, txt] of parts) {
+      if (l <= 0) break;
+      const s = txt.slice(0, l); l -= txt.length;
+      const el = document.createElement(cls === "e" ? "em" : "span"); if (cls === "p") el.className = "p";
+      el.textContent = s; typedEl.append(el);
+    }
+    if (n < full.length) { const c = document.createElement("span"); c.className = "caret"; typedEl.append(c); }
+  }
+
+  // ---------- scroll ----------
+  const track = $("#raid"), beats = $$(".beat"), rail = $$("#rail li");
+  let target = 0;
+  function readScroll() { const r = track.getBoundingClientRect(); target = clamp(-r.top / (r.height - innerHeight)); }
+  addEventListener("scroll", readScroll, { passive: true }); addEventListener("resize", readScroll);
+  rail.forEach((li) => li.addEventListener("click", () => {
+    const r = track.getBoundingClientRect(), b = +li.dataset.b;
+    scrollTo({ top: scrollY + r.top + ((b === 0 ? 0 : b + 0.5) / U) * (r.height - innerHeight), behavior: "smooth" });
+  }));
+
+  const lines = $$(".line"), chips = $$("#chips .chip"), roomCells = $$("#room span"), popup = $("#popup"), ptime = $("#ptime");
+  const dock = $("#dock"), playhead = $("#playhead"), clockEl = $("#clock"), dockT = $("#dockT"), f8 = $("#f8");
+  const railbox = $("#railbox"), vig = $("#vig"), mapEl = $("#map"), ovmap = $("#ovmap"), rw = $("#rw"), ovclock = $("#ovclock");
+  let shotFired = false, f8Fired = false, joined = {};
+
+  S.beforeFrame = (now) => {
+    const rdt = Math.min(1000, now - (S._t || now)); S._t = now;
+    cur += (target - cur) * (1 - Math.pow(0.0005, rdt / 1000)); if (Math.abs(target - cur) < 1e-4) cur = target;
+    const p = cur * U, local = (b) => p - b;
+    const t0 = local(0);
+    mini.pause(p > 1.05); // the overlay is gone after the dive
+
+    // ---- the dive: the overlay's minimap grows until it is the page ----
+    const heroA = 1 - ss(0.03, 0.2, t0);
+    hero.style.opacity = heroA; hero.style.transform = `translateY(${(1 - heroA) * -40}px)`; hero.style.pointerEvents = heroA > 0.5 ? "" : "none";
+    deck.style.opacity = heroA; deck.style.pointerEvents = heroA > 0.5 ? "" : "none";
+    toasts.style.opacity = heroA; shot.style.visibility = heroA > 0.05 ? "" : "hidden";
+    const g = ss(0.15, 0.78, t0);
+    if (t0 > 0.02) {
+      if (!ov.classList.contains("diving")) { ov.classList.add("diving"); ov.classList.remove("full", "hidden"); ov.style.opacity = ""; opIdx = 0; }
+      const L = ov.offsetLeft, Tp = ov.offsetTop, mw = ovmap.offsetWidth, mh = ovmap.offsetHeight, my0 = ovmap.offsetTop;
+      const vw = innerWidth, vh = stage.offsetHeight;
+      const sEnd = Math.max(vw / mw, vh / mh) * 1.02, k = lerp(1, sEnd, g * g * (3 - 2 * g) * 0.5 + g * 0.5);
+      const cx = lerp(L + mw / 2, vw / 2, g), cy = lerp(Tp + my0 + mh / 2, vh / 2, g);
+      ov.style.transform = `translate(${cx - L - k * (mw / 2)}px, ${cy - Tp - k * (my0 + mh / 2)}px) scale(${k})`;
+      ov.style.opacity = 1 - ss(0.8, 0.97, t0);
+      ov.style.visibility = t0 > 1 ? "hidden" : "";
+    } else if (ov.classList.contains("diving")) { ov.classList.remove("diving"); ov.style.transform = ""; ov.style.opacity = ""; ov.style.visibility = ""; }
+    // the scene falls away behind it
+    world.style.opacity = 1 - ss(0.3, 0.8, t0);
+    world.style.transform = `scale(${1 + g * 0.18})`;
+    world.style.visibility = t0 > 1 ? "hidden" : "";
+    mapEl.style.opacity = ss(0.62, 0.92, t0);
+    vig.style.opacity = ss(0.7, 1, t0);
+    // rewind the raid clock on the overlay while diving
+    rw.style.opacity = ss(0.2, 0.35, t0);
+    const rem = Math.round(lerp(left, 0, ss(0.25, 0.8, t0)));
+    ovclock.textContent = `${pad(Math.floor(rem / 60))}:${pad(rem % 60)}`;
+    railbox.style.opacity = ss(0.75, 1, t0);
+
+    // ---- beats ----
+    beats.forEach((el) => {
+      const b = +el.dataset.b, t = local(b);
+      const a = b === 6 ? ss(0.05, 0.35, t) : ss(0.05, 0.3, t) * (1 - ss(0.75, 0.95, t));
+      el.style.opacity = a.toFixed(3);
+      const y = (1 - a) * (t < 0.5 ? 30 : -30);
+      el.style.transform = mobile() ? `translateY(${y}px)` : `translateY(calc(-50% + ${y}px))`;
+      el.classList.toggle("on", a > 0.5);
+    });
+    const active = clamp(Math.floor(p), 0, U - 1);
+    rail.forEach((li, i) => li.classList.toggle("on", i <= active));
+    const secs = Math.round(clamp((p - 1) / (U - 1)) * 42 * 60);
+    clockEl.textContent = `${pad(Math.floor(secs / 60))}:${pad(secs % 60)}`;
+
+    // camera + fog
+    const t1 = local(1), t2 = local(2), t3 = local(3), t4 = local(4), t5 = local(5), t6 = local(6);
+    const zIn = 1.9, off = mobile() ? 0 : 0.1;
+    let z = zIn, cx = YOU.x - off, cy = YOU.y;
+    const out = ss(0.1, 0.8, t3);
+    z = lerp(zIn, 1.05, out); cx = lerp(YOU.x - off, 0.6, out); cy = lerp(YOU.y, 0.5, out);
+    const f8z = ss(0.0, 0.5, t4) * (1 - ss(0.8, 1, t4));
+    z = lerp(z, 1.35, f8z); cx = lerp(cx, 0.66, f8z); cy = lerp(cy, 0.42, f8z);
+    const ex = ss(0.1, 0.8, t6);
+    z = lerp(z, 1.15, ex); cx = lerp(cx, 0.72, ex); cy = lerp(cy, 0.62, ex);
+    if (mobile()) cx = lerp(cx, YOU.x, 0.6);
+    S.zoom = z; S.cx = cx; S.cy = cy;
+    const reveal = ss(0.35, 1, t2);
+    S.fog = reveal >= 1 ? null : { x: YOU.x, y: YOU.y, r: lerp(0.035 + 0.006 * Math.sin(now / 400), 1.2, reveal) };
+    S.dim = lerp(0.35, 0, ss(0.35, 0.9, t2));
+
+    lines.forEach((l, i) => { const a = ss(0.12 + i * 0.18, 0.28 + i * 0.18, t1); l.style.opacity = a; l.style.transform = `translateY(${(1 - a) * 10}px)`; });
+
+    const fa = ss(0.0, 0.08, t2) * (1 - ss(0.85, 1, t2));
+    typedEl.style.opacity = fa;
+    typeTo(Math.round(ss(0.04, 0.42, t2) * full.length));
+    typedEl.classList.toggle("hot", t2 > 0.45);
+    chips.forEach((c, i) => { const a = ss(0.48 + i * 0.05, 0.6 + i * 0.05, t2) * (1 - ss(0.85, 1, t2)); c.style.opacity = a; c.style.transform = `translateY(${(1 - a) * 12}px) scale(${0.9 + a * 0.1})`; });
+    const landed = t2 > 0.42;
+    P.you.show = landed;
+    if (landed && !shotFired) { shotFired = true; P.you.ping = now; flash.animate([{ opacity: 0.25 }, { opacity: 0 }], { duration: 320 }); }
+    if (!landed) shotFired = false;
+
+    roomCells.forEach((c, i) => { const a = ss(0.05 + i * 0.05, 0.15 + i * 0.05, t3); c.style.opacity = a; c.style.transform = `rotateX(${(1 - a) * 90}deg)`; });
+    ["ghost", "nomad", "vex"].forEach((id, i) => {
+      const a = ss(0.3 + i * 0.12, 0.65 + i * 0.12, t3), pl = P[id];
+      pl.show = a > 0; pl.x = lerp(start[id][0], final[id][0], a); pl.y = lerp(start[id][1], final[id][1], a); pl.alpha = Math.min(1, a * 1.5);
+      if (a >= 1 && !joined[id]) { joined[id] = true; pl.ping = now; } if (a < 1) joined[id] = false;
+    });
+
+    const pa = ss(0.18, 0.4, t4) * (1 - ss(0.82, 0.98, t4));
+    const [vx, vy] = m.toScreen(P.vex.x, P.vex.y);
+    const pw = popup.offsetWidth || 360;
+    popup.style.left = Math.min(innerWidth - pw - 16, vx + 22) + "px"; popup.style.top = Math.max(70, vy - popup.offsetHeight - 26) + "px";
+    popup.style.opacity = pa; popup.style.transform = `scale(${0.6 + 0.4 * pa}) rotate(${(1 - pa) * -4}deg)`;
+    ptime.style.transform = `scaleX(${1 - ss(0.4, 0.82, t4)})`;
+    const pressed = t4 > 0.12 && t4 < 0.2;
+    f8.classList.toggle("down", pressed);
+    if (pressed && !f8Fired) { f8Fired = true; P.vex.ping = now; } if (t4 < 0.1) f8Fired = false;
+
+    const tr = ss(0.05, 0.85, t5);
+    S.trails = t5 > 0 && t5 < 1.6 ? T.map((x) => ({ ...x, t: tr, bright: 0.65 })) : [];
+    const da = ss(0.0, 0.15, t5) * (1 - ss(0.9, 1.05, t5));
+    dock.style.opacity = da; dock.style.transform = `translateX(-50%) translateY(${(1 - da) * 30}px)`;
+    playhead.style.left = 19 + tr * (playhead.parentElement.offsetWidth - 19) + "px";
+    const rs = Math.round(tr * 31 * 60 + 40); dockT.textContent = `${pad(Math.floor(rs / 60))}:${pad(rs % 60)}`;
+    S.route = t6 > 0.05 ? { from: "you", to: 0 } : null;
+  };
+
+  // ======================= below the raid =======================
+  const io = new IntersectionObserver((es) => es.forEach((e) => e.isIntersecting && e.target.classList.add("in")), { threshold: 0.2 });
+  $$(".reveal").forEach((el) => io.observe(el));
+  const neverItems = $$("#never li"), keysTrack = $("#keys"), keysRow = $("#keysRow");
+  function after() {
+    neverItems.forEach((li) => { const r = li.getBoundingClientRect(); li.style.setProperty("--strike", clamp((innerHeight * 0.8 - r.top) / (innerHeight * 0.25)).toFixed(3)); });
+    const r = keysTrack.getBoundingClientRect(), t = clamp(-r.top / (r.height - innerHeight));
+    keysRow.style.transform = `translateX(${-t * Math.max(0, keysRow.scrollWidth - innerWidth + 48)}px)`;
+  }
+  addEventListener("scroll", after, { passive: true }); addEventListener("resize", after);
+
+  document.fonts.ready.then(() => {
+    mini.start(); m.start(); readScroll(); after();
+    // both maps sleep while the track is off screen
+    new IntersectionObserver(([e]) => { m.pause(!e.isIntersecting); if (!e.isIntersecting) mini.pause(true); }).observe(track);
+    setTimeout(() => { if (atTop()) press("F8"); }, 2600);
+  });
 })();
