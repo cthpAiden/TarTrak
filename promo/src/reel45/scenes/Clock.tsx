@@ -10,9 +10,10 @@ import { mixHex, rgba, useLayout } from "../kit.tsx";
 /** Raid length the ring is drawn against, and the time-lapse's start and end (seconds left). */
 const RAID = 45 * 60;
 const START = 41 * 60 + 52;
-const RED_AT = 5 * 60;
+/** The app turns the raid timer red from 10:00 left (0.17.0). */
+const RED_AT = 10 * 60;
 
-/** Seconds left: a time-lapse from 41:52 down to 05:00, then real seconds, one per beat. */
+/** Seconds left: a time-lapse from 41:52 down to 10:00, then real seconds, one per beat. */
 function secondsLeft(frame: number): number {
   if (frame < CLOCK.red) return Math.round(lerp(START, RED_AT, easeInOutCubic(prog(frame, CLOCK.lapse[0], CLOCK.lapse[1]))));
   return RED_AT - 1 - Math.floor((frame - CLOCK.red) / 30);
@@ -20,8 +21,8 @@ function secondsLeft(frame: number): number {
 const mmss = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
 /**
- * Scene 8, RAID CLOCK (local 0-239). A ring of minute ticks round a big mono countdown that time-lapses
- * from 41:52 to 05:00, then turns red and ticks real seconds on the beat; "WATCH THE CLOCK." beside it
+ * Scene 9, RAID CLOCK (local 0-119). A ring of minute ticks round a big mono countdown that time-lapses
+ * from 41:52 to 10:00, then turns red and ticks real seconds on the beat; "WATCH THE CLOCK." beside it
  * and the app's clock chip under it.
  */
 export const Clock = () => {

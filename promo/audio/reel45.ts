@@ -33,7 +33,7 @@ export const REEL45: Arrangement = {
     { chord: FMAJ, root: "F1" },
     { chord: GMAJ, root: "G1", drums: "muffled" },
     { chord: AM9, root: "A1", drums: "muffled", beats: 2 },
-    ...Array.from({ length: 11 }, (_, i) => loop(i)),
+    ...Array.from({ length: 16 }, (_, i) => loop(i)),
     { chord: FMAJ, root: "F1", drums: "groove", clap: true, openHat: true, extraHat: -2 },
     { chord: GMAJ, root: "G1", drums: "groove", clap: true, extraHat: -2 },
     { chord: AM9, root: "A1", drums: "groove", clap: true, openHat: true, extraHat: -2 },

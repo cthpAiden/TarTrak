@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { spring, useCurrentFrame } from "remotion";
+import { Img, spring, staticFile, useCurrentFrame } from "remotion";
 import { MONO } from "../../fonts.ts";
 import { C, SPRING_POP } from "../../theme.ts";
 import { clamp, easeOutCubic, prog } from "../../lib/ease.ts";
@@ -52,6 +52,17 @@ const TABS: ReadonlyArray<{ id: string; label: string; glyph: ReactNode }> = [
     ),
   },
   {
+    id: "raids",
+    label: "Raids",
+    glyph: (
+      <>
+        <path d="M2 12.5l3.5-4 3 2.5 5.5-7" />
+        <circle cx="2" cy="12.5" r="1" fill="currentColor" stroke="none" />
+        <circle cx="14" cy="4" r="1" fill="currentColor" stroke="none" />
+      </>
+    ),
+  },
+  {
     id: "settings",
     label: "Settings",
     glyph: (
@@ -73,7 +84,7 @@ const enter = (frame: number, at: number) => {
 };
 
 /**
- * The icon rail (`.rail`): logo tile, the Filters / Squad / Quests / Settings tabs with Squad selected
+ * The icon rail (`.rail`): logo, the Filters / Squad / Quests / Raids / Settings tabs with Squad selected
  * (its dot says the room is connected, Quests carries the to-do count), and the Overlay and Opacity
  * actions at the bottom. `x` = left edge (it slides in from -64), `height` = down to the status bar.
  */
@@ -103,26 +114,18 @@ export const Rail = ({ x, height }: { x: number; height: number }) => {
         boxShadow: edge > 0 ? `6px 0 18px rgba(0, 0, 0, ${edge})` : undefined,
       }}
     >
-      <div
+      {/* The topo compass icon (0.16.1); the glow follows the round dial. */}
+      <Img
+        src={staticFile("logo.svg")}
         style={{
           width: 34,
           height: 34,
           marginBottom: 10,
-          borderRadius: 9,
-          display: "grid",
-          placeItems: "center",
           flex: "none",
-          background: C.amber,
-          color: C.onAmber,
           transform: `scale(${logo})`,
-          boxShadow: `0 0 ${14 * clamp(1 - prog(frame, 364, 380))}px rgba(240, 180, 41, 0.55)`,
+          filter: `drop-shadow(0 0 ${8 * clamp(1 - prog(frame, 364, 380))}px rgba(240, 180, 41, 0.55))`,
         }}
-      >
-        <Glyph size={18} sw={1.8}>
-          <circle cx="8" cy="8" r="4" />
-          <path d="M8 1v3M8 12v3M1 8h3M12 8h3" />
-        </Glyph>
-      </div>
+      />
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         {TABS.map((t, i) => {
           const on = t.id === "squad";

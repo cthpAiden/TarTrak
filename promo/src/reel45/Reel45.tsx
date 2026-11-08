@@ -14,8 +14,10 @@ import { SCENES, SHIFT, glitchAt, sceneAt, type SceneId } from "./timeline.ts";
 import { Safe } from "./scenes/Safe.tsx";
 import { Maps } from "./scenes/Maps.tsx";
 import { Exits } from "./scenes/Exits.tsx";
+import { Quests } from "./scenes/Quests.tsx";
 import { Clock } from "./scenes/Clock.tsx";
 import { Share } from "./scenes/Share.tsx";
+import { Peek } from "./scenes/Peek.tsx";
 import { Keys } from "./scenes/Keys.tsx";
 import { PORTRAIT, Reframe } from "./Reframe.tsx";
 import { useLayout } from "./kit.tsx";
@@ -29,15 +31,17 @@ const SCENE: Record<SceneId, { C: ComponentType; shift?: number }> = {
   safe: { C: Safe },
   maps: { C: Maps },
   exits: { C: Exits },
+  quests: { C: Quests },
   clock: { C: Clock },
   share: { C: Share },
+  peek: { C: Peek },
   keys: { C: Keys },
   montage: { C: Shot5Montage, shift: SHIFT },
   overlay: { C: Shot6Overlay, shift: SHIFT },
   end: { C: Shot7End, shift: SHIFT },
 };
 
-const HUD: HudSpec = { title: "TARTRAK // REEL", total: 13, shotAt: (f) => SCENES[sceneAt(f)], endAt: SCENES.end.from };
+const HUD: HudSpec = { title: "TARTRAK // REEL", total: 15, shotAt: (f) => SCENES[sceneAt(f)], endAt: SCENES.end.from };
 
 /**
  * The 45 s reel: one scene at a time inside the shared frame, glitch on the hard cuts, the 45 s score.

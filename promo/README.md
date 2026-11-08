@@ -7,15 +7,17 @@
     npm run studio        # live preview
     node scripts/still.ts Shot3 270 300   # stills into out/stills/
 
-## 45 s reel
+## 60 s reel
 
 `Reel45` (16:9) and `Reel45Vertical` (9:16) are one composition at two sizes: the showreel's shots 1-4,
-six new scenes (src/reel45/scenes: how it works, maps, extracts, raid clock, shared markers, hotkeys), then
+eight new scenes (src/reel45/scenes: how it works, maps, extracts, quests, raid clock, shared markers,
+see what I see (F8), hotkeys), then
 shots 5-7. The timeline is src/reel45/timeline.ts; the score's bars are audio/reel45.ts. In the vertical cut
 the 16:9 shots are reframed by src/reel45/Reframe.tsx, which also moves their headlines under the picture.
 
     npm run render:reel45                                  # public/score45.wav, out/tartrak-reel45.mp4
     npx remotion render src/index.ts Reel45Vertical out/tartrak-reel45-vertical.mp4 --codec=h264 --crf=14
-    node scripts/still.ts Reel45Vertical 1820              # stills into out/stills/
+    node scripts/still.ts Reel45Vertical 2730              # stills into out/stills/
+    npm run studio                                         # scrub any frame live before rendering
 
 Remotion is free for individuals and companies of up to 3 people (remotion.dev/license).

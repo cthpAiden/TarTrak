@@ -4,11 +4,16 @@ import { easeOutExpo, prog } from "../../lib/ease.ts";
 import { Checkbox, Icon } from "../../components/ui.tsx";
 
 /** Made-up quests; the avatar is a trader-style square with made-up initials (no real trader art). */
-const ROWS = [
-  { name: "Supply Run", trader: "QM", tick: 514 },
-  { name: "Signal Lost", trader: "SP", tick: 520 },
-  { name: "Cold Storage", trader: "DR", tick: 526 },
+export const QUEST_ROWS = [
+  { name: "Supply Run", trader: "QM" },
+  { name: "Signal Lost", trader: "SP" },
+  { name: "Cold Storage", trader: "DR" },
 ] as const;
+/** The montage ticks its rows at 514 / 520 / 526. */
+const MONTAGE_TICKS = [514, 520, 526] as const;
+/** Card layout, for anything that points at a row: header height, row height. */
+export const CARD_HEAD = 60;
+export const CARD_ROW = 64;
 const TICK = 8;
 export const CARD_W = 420;
 
@@ -17,12 +22,29 @@ const amber = (a: number) => `rgba(240, 180, 41, ${a})`;
 /**
  * The app's Quests panel as a floating card (C.panel, 420 px): "Quests" + the to-do count, three rows
  * with the app's checkbox, a trader-style avatar and the quest name. Rows tick at 514 / 520 / 526 with
- * an amber sweep across the row. It rises in on the cut and drifts up while it floats.
+ * an amber sweep across the row. It rises in at `at` and drifts up while it floats (`drift` off holds it
+ * still). `ticks` are the rows' tick frames; `scale` grows it from its top-left corner.
  */
-export const QuestCard = ({ frame, x, y }: { frame: number; x: number; y: number }) => {
-  const enter = prog(frame, 510, 518, easeOutExpo);
-  const drift = -10 * prog(frame, 510, 539);
-  const done = ROWS.filter((r) => frame >= r.tick).length;
+export const QuestCard = ({
+  frame,
+  x,
+  y,
+  at = 510,
+  ticks = MONTAGE_TICKS,
+  scale = 1,
+  drift: drifts = true,
+}: {
+  frame: number;
+  x: number;
+  y: number;
+  at?: number;
+  ticks?: readonly number[];
+  scale?: number;
+  drift?: boolean;
+}) => {
+  const enter = prog(frame, at, at + 8, easeOutExpo);
+  const drift = drifts ? -10 * prog(frame, at, at + 29) : 0;
+  const done = ticks.filter((t) => frame >= t).length;
   return (
     <div
       style={{
@@ -36,7 +58,8 @@ export const QuestCard = ({ frame, x, y }: { frame: number; x: number; y: number
         borderRadius: 14,
         boxShadow: `0 44px 90px rgba(0, 0, 0, 0.55), 0 12px 26px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04)`,
         opacity: enter,
-        transform: `translateY(${(1 - enter) * 40 + drift}px)`,
+        transformOrigin: "0 0",
+        transform: `translateY(${(1 - enter) * 40 + drift}px) scale(${scale})`,
       }}
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 34, marginBottom: 8 }}>
@@ -50,11 +73,12 @@ export const QuestCard = ({ frame, x, y }: { frame: number; x: number; y: number
           TO-DO <span style={{ color: done ? C.amber : C.muted, marginLeft: 4 }}>{done}</span>
         </div>
       </div>
-      {ROWS.map((r, i) => {
-        const inP = prog(frame, 511 + 2 * i, 519 + 2 * i, easeOutExpo);
-        const checked = prog(frame, r.tick, r.tick + TICK);
-        const sweep = prog(frame, r.tick, r.tick + 5, easeOutExpo);
-        const fade = 1 - prog(frame, r.tick + 5, r.tick + 20);
+      {QUEST_ROWS.map((r, i) => {
+        const tick = ticks[i];
+        const inP = prog(frame, at + 1 + 2 * i, at + 9 + 2 * i, easeOutExpo);
+        const checked = prog(frame, tick, tick + TICK);
+        const sweep = prog(frame, tick, tick + 5, easeOutExpo);
+        const fade = 1 - prog(frame, tick + 5, tick + 20);
         const on = checked > 0.3;
         return (
           <div

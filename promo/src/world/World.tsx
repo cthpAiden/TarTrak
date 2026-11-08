@@ -16,6 +16,15 @@ import { markerScale, measurePills, measureText } from "./pills.ts";
 
 /** Which layers to draw (all default true except measures). `labels` = area names and grid numbers; me and my heading line always draw. */
 export type WorldShow = Partial<{ grid: boolean; labels: boolean; extracts: boolean; mates: boolean; measures: boolean; route: boolean; quests: boolean; pin: boolean; stroke: boolean }>;
+/** A teammate capsule's age, as the app writes it: "3s", "12s", then "2m". */
+const ageText = (s: number): string => (s < 60 ? `${Math.floor(s)}s` : `${Math.floor(s / 60)}m`);
+/** Black or white digits, whichever reads better on the teammate's colour. */
+function inkOn(hex: string): string {
+  const n = parseInt(hex.slice(1), 16);
+  const lum = (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255;
+  return lum > 0.45 ? "#0b0d10" : "#ffffff";
+}
+
 export type WorldProps = {
   cam: Cam;
   width: number;
@@ -415,10 +424,31 @@ export const World = ({ cam, width, height, show, extrude = 1 }: WorldProps) => 
     frame - f0 > 90 ? 1 : spring({ frame: frame - f0, fps, config, durationInFrames });
 
   // Heading lines ---------------------------------------------------------------------------
-  const heading = (key: string, from: Pt, bearing: number, len: number, color: string, w: number) => {
+  const heading = (key: string, from: Pt, bearing: number, len: number, color: string, w: number, marks = false) => {
     if (len <= 0.5) return null;
     const end = fromBearing(from, bearing, len / 2);
-    const far = fromBearing(from, bearing, 60);
+    const far = fromBearing(from, bearing, Math.max(60, len / 2));
+    // 50 m in screen px: the app hides the marks below 16 px.
+    const show = marks && px(1) > 0 && 100 / px(1) >= 16;
+    const ticks = show
+      ? [50, 100, 150]
+          .filter((m) => m <= len / 2 + 0.5)
+          .flatMap((m) => {
+            const c = fromBearing(from, bearing, m);
+            const a = fromBearing(c, bearing + 90, 1), o = { x: a.x - c.x, y: a.y - c.y };
+            const k = Math.hypot(o.x, o.y);
+            const u = { x: o.x / k, y: o.y / k };
+            return [1, -1].map((sd) => (
+              <line
+                key={`${m}${sd}`}
+                x1={c.x + sd * u.x * px(4)}
+                y1={c.y + sd * u.y * px(4)}
+                x2={c.x + sd * u.x * px(8)}
+                y2={c.y + sd * u.y * px(8)}
+              />
+            ));
+          })
+      : [];
     return (
       <g key={key}>
         <defs>
@@ -428,10 +458,15 @@ export const World = ({ cam, width, height, show, extrude = 1 }: WorldProps) => 
           </linearGradient>
         </defs>
         <line x1={from.x} y1={from.y} x2={end.x} y2={end.y} stroke={`url(#${uid}-hd-${key})`} strokeWidth={w * semi} strokeDasharray={`${10 * semi} ${14 * semi}`} strokeLinecap="round" />
+        {ticks.length ? (
+          <g stroke={color} strokeOpacity={0.7} strokeWidth={px(2)} strokeLinecap="round">
+            {ticks}
+          </g>
+        ) : null}
       </g>
     );
   };
-  const myHeadingLen = 120 * easeOutCubic(prog(frame, 132, 150));
+  const myHeadingLen = 200 * easeOutCubic(prog(frame, 132, 150));
   const mates = on.mates ? MATES.filter((m) => frame >= m.landAt - 20) : [];
   const mateSwing = (m: Mate) => springAt(m.landAt, SPRING_POP, 12);
 
@@ -529,7 +564,7 @@ export const World = ({ cam, width, height, show, extrude = 1 }: WorldProps) => 
         })}
 
       {/* heading lines: mine draws out, teammates' swing into place after landing */}
-      {heading("me", ME, ME.heading, myHeadingLen, C.amber, 6)}
+      {heading("me", ME, ME.heading, myHeadingLen, C.amber, 6, true)}
       {mates
         .filter((m) => frame >= m.landAt)
         .map((m) => {
@@ -756,20 +791,25 @@ export const World = ({ cam, width, height, show, extrude = 1 }: WorldProps) => 
         <div
           style={{
             position: "absolute",
-            left: -8,
-            top: -8,
-            width: 16,
-            height: 16,
-            borderRadius: 8,
+            left: 0,
+            top: -9,
+            height: 18,
+            minWidth: 18,
+            padding: "0 5px",
+            borderRadius: 9,
             background: m.color,
-            border: `2.5px solid ${C.deep}`,
-            boxSizing: "content-box",
-            margin: -2.5,
-            transform: `scale(${2 - squash}, ${squash})`,
+            border: `1.5px solid ${C.deep}`,
+            transform: `translateX(-50%) scale(${2 - squash}, ${squash})`,
             transformOrigin: "50% 100%",
             boxShadow: `0 0 12px ${rgba(m.color, 0.55)}`,
+            font: `600 11px/15px ${MONO}`,
+            textAlign: "center",
+            color: inkOn(m.color),
+            whiteSpace: "nowrap",
           }}
-        />
+        >
+          {ageText(Math.max(0, frame - m.landAt) / 60)}
+        </div>
         <TypedPill text={label} p={prog(frame, m.landAt, m.landAt + 8)} caret={m.color} style={{ left: 0, top: -40, transform: "translateX(-50%)", font: `600 13px ${SANS}`, letterSpacing: "0.04em" }} />
       </At>,
     );

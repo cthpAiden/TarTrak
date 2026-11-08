@@ -1,17 +1,17 @@
 /**
- * The reel's timeline (50 s since "how it works" grew to 11 s): the showreel's shots 1-4 as they are
- * (0-479), six new scenes (480-2579), then shots 5-7 shifted 2100 frames later (2580-2999). The video and
+ * The reel's timeline (60 s): the showreel's shots 1-4 as they are (0-479), eight new scenes
+ * (480-3179), then shots 5-7 shifted 2700 frames later (3180-3599). The video and
  * the synth (audio/reel45.ts) both import this file. No imports beyond ../timeline.ts: Node runs it as-is.
  */
 import { CUES, type Cue } from "../timeline.ts";
 
-export const DURATION_FRAMES = 3000;
+export const DURATION_FRAMES = 3600;
 /** Shots 5-7 play this many frames later than in the 15 s cut. */
-export const SHIFT = 2100;
+export const SHIFT = 2700;
 
 export type SceneId =
   | "snap" | "map" | "squad" | "app"
-  | "safe" | "maps" | "exits" | "clock" | "share" | "keys"
+  | "safe" | "maps" | "exits" | "quests" | "clock" | "share" | "peek" | "keys"
   | "montage" | "overlay" | "end";
 export type Scene = { from: number; to: number; index: number; name: string };
 /** `to` is exclusive. */
@@ -23,12 +23,14 @@ export const SCENES: Record<SceneId, Scene> = {
   safe: { from: 480, to: 1140, index: 5, name: "HOW IT WORKS" },
   maps: { from: 1140, to: 1380, index: 6, name: "MAPS" },
   exits: { from: 1380, to: 1680, index: 7, name: "EXTRACTS" },
-  clock: { from: 1680, to: 1920, index: 8, name: "RAID CLOCK" },
-  share: { from: 1920, to: 2280, index: 9, name: "SHARED MARKERS" },
-  keys: { from: 2280, to: 2580, index: 10, name: "HOTKEYS" },
-  montage: { from: 2580, to: 2700, index: 11, name: "MONTAGE" },
-  overlay: { from: 2700, to: 2820, index: 12, name: "OVERLAY" },
-  end: { from: 2820, to: 3000, index: 13, name: "END" },
+  quests: { from: 1680, to: 2040, index: 8, name: "QUESTS" },
+  clock: { from: 2040, to: 2160, index: 9, name: "RAID CLOCK" },
+  share: { from: 2160, to: 2520, index: 10, name: "SHARED MARKERS" },
+  peek: { from: 2520, to: 2880, index: 11, name: "SEE WHAT I SEE" },
+  keys: { from: 2880, to: 3180, index: 12, name: "HOTKEYS" },
+  montage: { from: 3180, to: 3300, index: 13, name: "MONTAGE" },
+  overlay: { from: 3300, to: 3420, index: 14, name: "OVERLAY" },
+  end: { from: 3420, to: 3600, index: 15, name: "END" },
 };
 export const SCENE_IDS = Object.keys(SCENES) as SceneId[];
 export function sceneAt(frame: number): SceneId {
@@ -37,7 +39,7 @@ export function sceneAt(frame: number): SceneId {
 }
 
 /** Hard cuts that get the RGB-split glitch: the showreel's (shifted) plus the new scenes' hard cuts. */
-export const GLITCHES = [480, 1140, 1380, 1920, 2580, 2610, 2640, 2670, 2700, 2820] as const;
+export const GLITCHES = [480, 1140, 1380, 2160, 3180, 3210, 3240, 3270, 3300, 3420] as const;
 const GLITCH_SHAPE: Record<number, number> = { [-1]: 0.35, 0: 1, 1: 0.7, 2: 0.4, 3: 0.15 };
 export function glitchAt(frame: number): number {
   for (const g of GLITCHES) {
@@ -88,7 +90,28 @@ export const SAFE = {
 } as const;
 export const MAPS = { spinFrom: 4, land: 150, headline: [8, 16], out: 224 } as const;
 export const EXITS = { pops: [18, 30, 42, 54, 66], route: [104, 146], headline: [120, 128], out: 284 } as const;
-export const CLOCK = { lapse: [6, 150], red: 150, beats: [150, 180, 210], headline: [12, 20], out: 222 } as const;
+export const QUESTS = { panel: [0, 18], ticks: [30, 60, 90], headline: [40, 48], push: [120, 150], pops: [150, 180, 210, 240], squad: 270, out: 344 } as const;
+/** 2 s: the countdown time-lapses to 10:00, when the app turns the timer red, then ticks two beats. */
+export const CLOCK = { lapse: [4, 60], red: 60, beats: [60, 90], headline: [6, 12], out: 106 } as const;
+/**
+ * SEE WHAT I SEE: GHOST asks where I am; my screenshot puts me on his map, in the trees; F8 sends him
+ * the screenshot, it pops up and enlarges on the enemy; he marks him and pushes.
+ */
+export const PEEK = {
+  ask: 10,
+  /** [appear, press, release] of the screenshot key, then of F8. */
+  key: [16, 30, 42],
+  land: 34,
+  headline: [60, 68],
+  f8: [92, 120, 134],
+  popup: 128,
+  big: [170, 190],
+  ring: 200,
+  small: [236, 252],
+  mark: 254,
+  push: [266, 316],
+  out: 336,
+} as const;
 export const SHARE = {
   panels: [0, 6, 12],
   cursor: 30,
@@ -171,13 +194,22 @@ const newCues: Cue[] = [
   cue("exits", EXITS.route[1], { kind: "ping" }),
   cue("exits", EXITS.route[1], { kind: "pluck", note: "A4" }),
   cue("exits", EXITS.out - 8, { kind: "whoosh", dur: 24, pan: 0.6 }),
-  // 8 RAID CLOCK
+  // 8 QUESTS
+  cue("quests", 0, { kind: "impactLite" }),
+  ...QUESTS.ticks.flatMap((t, k) => [cue("quests", t, { kind: "uiClick" }), cue("quests", t, { kind: "pop", note: ["A5", "C6", "E6"][k] })]),
+  cue("quests", QUESTS.headline[0], { kind: "impactLite" }),
+  cue("quests", QUESTS.push[0], { kind: "whoosh", dur: 30, pan: 0.4 }),
+  ...QUESTS.pops.map((p, k) => cue("quests", p, { kind: "pop", note: ["A5", "C6", "E6", "G6"][k] })),
+  cue("quests", QUESTS.pops[3], { kind: "ping" }),
+  cue("quests", QUESTS.squad, { kind: "pop", note: "A6", pan: 0.5 }),
+  cue("quests", QUESTS.out - 8, { kind: "whoosh", dur: 24, pan: -0.5 }),
+  // 9 RAID CLOCK
   cue("clock", 0, { kind: "impactLite" }),
-  cue("clock", CLOCK.lapse[0], { kind: "ratchet", dur: CLOCK.lapse[1] - CLOCK.lapse[0] - 20 }),
+  cue("clock", CLOCK.lapse[0], { kind: "ratchet", dur: CLOCK.lapse[1] - CLOCK.lapse[0] - 10 }),
   cue("clock", CLOCK.red, { kind: "stab" }),
   ...CLOCK.beats.map((b) => cue("clock", b, { kind: "tick", note: "A6" })),
-  cue("clock", CLOCK.out - 8, { kind: "whoosh", dur: 24, pan: -0.5 }),
-  // 9 SHARED MARKERS
+  cue("clock", CLOCK.out - 2, { kind: "whoosh", dur: 16, pan: -0.5 }),
+  // 10 SHARED MARKERS
   ...SHARE.panels.map((p, k) => cue("share", p, { kind: k === 0 ? "impactLite" : "whoosh", dur: 16, pan: [-0.6, 0, 0.6][k] })),
   cue("share", SHARE.menu, { kind: "uiClick" }),
   cue("share", SHARE.typeFrom, { kind: "typing", dur: SHARE.typeTo - SHARE.typeFrom }),
@@ -188,7 +220,25 @@ const newCues: Cue[] = [
   cue("share", SHARE.draw[0], { kind: "scribble", dur: SHARE.draw[1] - SHARE.draw[0] }),
   cue("share", SHARE.draw[1] + 2 * SHARE.lag, { kind: "pop", note: "E6", pan: 0.6 }),
   cue("share", SHARE.out - 8, { kind: "whoosh", dur: 24, pan: 0.4 }),
-  // 10 HOTKEYS
+  // 11 SEE WHAT I SEE
+  cue("peek", 0, { kind: "impactLite" }),
+  cue("peek", PEEK.ask, { kind: "pop", note: "E5", pan: 0.4 }),
+  cue("peek", PEEK.key[1], { kind: "keyClick" }),
+  cue("peek", PEEK.key[1] + 2, { kind: "shutter" }),
+  cue("peek", PEEK.land, { kind: "ping" }),
+  cue("peek", PEEK.land, { kind: "pluck", note: "A4" }),
+  cue("peek", PEEK.headline[0], { kind: "impactLite" }),
+  cue("peek", PEEK.f8[1], { kind: "keyClick" }),
+  cue("peek", PEEK.f8[1], { kind: "thud" }),
+  cue("peek", PEEK.popup, { kind: "pop", note: "C6" }),
+  cue("peek", PEEK.big[0], { kind: "whoosh", dur: 20, pan: 0 }),
+  cue("peek", PEEK.ring, { kind: "stab", gain: 0.6 }),
+  cue("peek", PEEK.small[0], { kind: "whoosh", dur: 16, pan: -0.4 }),
+  cue("peek", PEEK.mark, { kind: "pop", note: "E6" }),
+  cue("peek", PEEK.push[0], { kind: "dashTicks", dur: PEEK.push[1] - PEEK.push[0] }),
+  cue("peek", PEEK.push[1], { kind: "impactLite" }),
+  cue("peek", PEEK.out - 8, { kind: "whoosh", dur: 24, pan: 0.4 }),
+  // 12 HOTKEYS
   ...KEYS.presses.flatMap(([k, press]) => [
     cue("keys", press, { kind: "keyClick" }),
     cue("keys", press, { kind: "tick", note: ["A5", "C6", "E6"][k] }),

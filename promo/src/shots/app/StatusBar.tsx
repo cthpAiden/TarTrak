@@ -3,6 +3,7 @@ import { MONO } from "../../fonts.ts";
 import { C } from "../../theme.ts";
 import { easeOutCubic, prog } from "../../lib/ease.ts";
 import { BUILD, STATUS_H, WIN_W, raidClock } from "./motion.ts";
+import app from "../../../../package.json";
 
 /** app.css `.status` background. */
 const STATUS_BG = "#0c0f13";
@@ -38,7 +39,7 @@ export const StatusBar = ({ top }: { top: number }) => {
       }}
     >
       <span style={{ fontFamily: MONO, fontVariantNumeric: "tabular-nums", opacity: t }}>
-        X -182.4 · Z -71.0 · <b style={b}>048°</b>
+        X -182 · Y 4 · Z -71 · <b style={b}>048°</b>
       </span>
       <Sep />
       <span style={{ display: "flex", alignItems: "center", gap: 6, opacity: t }}>
@@ -51,7 +52,7 @@ export const StatusBar = ({ top }: { top: number }) => {
         Raid <b style={{ ...b, fontVariantNumeric: "tabular-nums" }}>{raidClock(frame)}</b> left
       </span>
       <span style={{ flex: 1 }} />
-      <span style={{ fontFamily: MONO, color: C.muted, opacity: t }}>v0.12.2</span>
+      <span style={{ fontFamily: MONO, color: C.muted, opacity: t }}>v{app.version}</span>
     </footer>
   );
 };
