@@ -245,13 +245,15 @@
       const sEnd = Math.max(vw / mw, vh / mh) * 1.02, k = lerp(1, sEnd, g * g * (3 - 2 * g) * 0.5 + g * 0.5);
       const cx = lerp(L + mx0 + mw / 2, vw / 2, g), cy = lerp(Tp + my0 + mh / 2, vh / 2, g);
       ov.style.transform = `translate(${cx - L - k * (mx0 + mw / 2)}px, ${cy - Tp - k * (my0 + mh / 2)}px) scale(${k})`;
+      // marks grow from the app's screen size to the story map's (zoom 1.9) by the end of the dive
+      mini.setRes(Math.ceil(sEnd)); MS.markScale = lerp(1, 1.9, (k - 1) / (sEnd - 1)) / (MS.zoom * k);
       // a round map opens out to a square so it can fill the page
       ov.style.borderRadius = ov.classList.contains("circle") ? `${50 * (1 - ss(0.1, 0.6, g))}%` : "";
       ovmap.style.borderRadius = ov.style.borderRadius;
       bezel.style.opacity = 1 - ss(0, 0.35, g);
       ov.style.opacity = 1 - ss(0.8, 0.97, t0);
       ov.style.visibility = t0 > 1 ? "hidden" : "";
-    } else if (ov.classList.contains("diving")) { ov.classList.remove("diving"); ov.style.transform = ""; ov.style.opacity = ""; ov.style.visibility = ""; ov.style.borderRadius = ""; ovmap.style.borderRadius = ""; bezel.style.opacity = ""; }
+    } else if (ov.classList.contains("diving")) { ov.classList.remove("diving"); ov.style.transform = ""; ov.style.opacity = ""; ov.style.visibility = ""; ov.style.borderRadius = ""; ovmap.style.borderRadius = ""; bezel.style.opacity = ""; mini.setRes(1); MS.markScale = 1 / MS.zoom; }
     // the scene falls away behind it
     world.style.opacity = 1 - ss(0.3, 0.8, t0);
     world.style.transform = `scale(${1 + g * 0.18})`;

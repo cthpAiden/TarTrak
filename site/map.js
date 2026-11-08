@@ -74,7 +74,7 @@ window.TT = (() => {
       clusters: [[0.72, 0.24, "SAWMILL"], [0.88, 0.62, "DEPOT"], [0.44, 0.22, "RAIL YARD"], [0.3, 0.6, "RIVERSIDE"]],
       extracts: [[0.86, 0.86, "NORTH GATE", COL.ok], [0.5, 0.9, "PIER 4", COL.blue], [0.12, 0.2, "TUNNEL", COL.you]],
     }, opts.world || {});
-    let W = 0, H = 0, DPR = 1, mpp = 1, base = null;
+    let W = 0, H = 0, DPR = 1, mpp = 1, base = null, RES = 1;
     // scene: callers mutate this. Entity positions are fractions; tx/ty are targets the entity glides to.
     const scene = {
       players: [], // {id, label, color, x, y, h, floor, sub, alpha, ping, show}
@@ -92,7 +92,9 @@ window.TT = (() => {
     }
     function build() {
       const r = host.getBoundingClientRect();
-      W = Math.max(1, r.width); H = Math.max(1, r.height); DPR = Math.min(2, devicePixelRatio || 1);
+      W = Math.max(1, r.width); H = Math.max(1, r.height);
+      // RES > 1 draws extra pixels for a canvas that is scaled up with CSS; capped so it stays a sane size
+      DPR = Math.min(Math.min(2, devicePixelRatio || 1) * RES, 4096 / Math.max(W, H));
       canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
       mpp = Math.max(0.45, Math.min(1.25, (opts.scale ?? 760) / W));
       base = document.createElement("canvas"); base.width = canvas.width; base.height = canvas.height;
@@ -132,15 +134,16 @@ window.TT = (() => {
       }
     }
     const px = (e) => [e.x * W, e.y * H];
-    function headingLine(x, y, h, color, alpha, len = 100) {
-      const a = deg(h - 90), L = len / mpp, cs = Math.cos(a), sn = Math.sin(a);
+    // u: map pixels per drawing unit, when the line is drawn inside a marker's screen-size transform
+    function headingLine(x, y, h, color, alpha, len = 100, u = 1) {
+      const a = deg(h - 90), L = (len / mpp) * u, cs = Math.cos(a), sn = Math.sin(a);
       const g = ctx.createLinearGradient(x, y, x + cs * L, y + sn * L);
       g.addColorStop(0, hexA(color, 0.95 * alpha)); g.addColorStop(1, hexA(color, 0));
       ctx.strokeStyle = g; ctx.lineWidth = 2; ctx.setLineDash([7, 5]);
       ctx.beginPath(); ctx.moveTo(x + cs * 9, y + sn * 9); ctx.lineTo(x + cs * L, y + sn * L); ctx.stroke(); ctx.setLineDash([]);
       ctx.lineWidth = 1.5;
       for (const [m, o] of [[50, 0.8], [100, 0.55], [150, 0.35]]) {
-        const d = m / mpp; if (d > L) break;
+        const d = (m / mpp) * u; if (d > L) break;
         const cx = x + cs * d, cy = y + sn * d; ctx.strokeStyle = hexA(color, o * alpha); ctx.beginPath();
         ctx.moveTo(cx - sn * 3.5, cy + cs * 3.5); ctx.lineTo(cx - sn * 8, cy + cs * 8);
         ctx.moveTo(cx + sn * 3.5, cy - cs * 3.5); ctx.lineTo(cx + sn * 8, cy - cs * 8); ctx.stroke();
@@ -224,10 +227,10 @@ window.TT = (() => {
           p.x += (p.tx - p.x) * k; p.y += (p.ty - p.y) * k;
         }
         const [x, y] = px(p), a = p.alpha ?? 1;
-        headingLine(x, y, p.h, p.color, a, p.len ?? 100);
-        // markScale: 1 / zoom keeps dots and tags at screen size, like the app's Leaflet markers
+        // markScale: 1 / zoom keeps lines, dots and tags at screen size, like the app's Leaflet markers
         const ms = scene.markScale ?? 1;
         ctx.save(); ctx.translate(x, y); ctx.scale(ms, ms);
+        headingLine(0, 0, p.h, p.color, a, p.len ?? 100, 1 / ms);
         ping(0, 0, p.color, p.ping ?? -9e9, now); dot(0, 0, p.color, a, 6);
         if (p.label) tag(0, 0, p.floor ? `${p.label} [${p.floor}]` : p.label, a);
         ctx.restore();
@@ -250,6 +253,7 @@ window.TT = (() => {
       scene, rng, W: () => W, H: () => H, mpp: () => mpp,
       start() { ttSyncFonts(); build(); kick(); return api; },
       pause(v) { paused = v; if (!v) kick(); },
+      setRes(r) { if (r !== RES) { RES = r; if (W) build(); } },
       // fraction on the map -> css px on the canvas, through the current camera
       toScreen(fx, fy) { const z = scene.zoom; return [(fx - scene.cx) * W * z + W / 2, (fy - scene.cy) * H * z + H / 2]; },
       toWorld(fx, fy) { return { X: -182.4 + (fx - 0.62) * W * mpp, Z: -71.0 - (fy - 0.48) * H * mpp }; },
